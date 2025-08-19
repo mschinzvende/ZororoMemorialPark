@@ -1,0 +1,79 @@
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  margin-bottom: 60px;
+}
+
+:root {
+    --primary-green: #006A46;
+    --primary-black: #000000;
+    --primary-grey: #f2f2f2;
+    --primary-white: #ffffff;
+}
+
+/* Navbar */
+.navbar {
+    background-color: var(--primary-green);
+}
+
+    .navbar .nav-link,
+    .navbar .navbar-brand {
+        color: var(--primary-white);
+        font-weight: 500;
+    }
+
+        .navbar .nav-link:hover {
+            color: var(--primary-grey);
+        }
+
+/* Footer */
+.footer {
+    background-color: var(--primary-black);
+    color: var(--primary-white);
+    padding: 1rem;
+    text-align: center;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+}
+
+    .btn-primary:hover {
+        background-color: #005738;
+        border-color: #005738;
+    }
+
+/* Table styling */
+.table thead {
+    background-color: var(--primary-green);
+    color: var(--primary-white);
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: var(--primary-grey);
+}
+
+/* Cards */
+.card {
+    border: 1px solid var(--primary-grey);
+    border-radius: 0.5rem;
+}
