@@ -1,31 +1,29 @@
 {
-  "$schema": "http://json.schemastore.org/launchsettings.json",
-  "iisSettings": {
-    "windowsAuthentication": false,
-    "anonymousAuthentication": true,
-    "iisExpress": {
-      "applicationUrl": "http://localhost:55933",
-      "sslPort": 44353
-    }
-  },
   "profiles": {
     "http": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
       "launchBrowser": true,
-      "applicationUrl": "http://localhost:5014",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5014"
     },
     "https": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
       "launchBrowser": true,
-      "applicationUrl": "https://localhost:7246;http://localhost:5014",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "SMTP_SERVER": "mail.zororomemorial.co.zw",
+        "SMTP_PORT": "465",
+        "SMTP_SENDER_EMAIL": "noreply@zororomemorial.co.zw",
+        "SMTP_SENDER_PASSWORD": "Zimbotech@123",
+        "USE_SSL": "true",
+        "SMTP_SENDER_NAME": "Zororo Memorial Park",
+        "DB_CONNECTION_STRING": "\"Server=DESKTOP-B34DOTS\\\\SQLEXPRESS;Database=ZororoMemorial;Encrypt=False;TrustServerCertificate=True;Trusted_Connection=True;MultipleActiveResultSets=true\""
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://localhost:7246;http://localhost:5014"
     },
     "IIS Express": {
       "commandName": "IISExpress",
@@ -33,6 +31,15 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
+    }
+  },
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:55933",
+      "sslPort": 44353
     }
   }
 }

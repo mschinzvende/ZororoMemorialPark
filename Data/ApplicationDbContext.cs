@@ -9,5 +9,10 @@ namespace ZororoMemorialPark.Data
             : base(options)
         {
         }
+
+        // Define DbSets for your entities here
+
+        public DbSet<tbl_AuditLogs> tbl_AuditLogs { get; set; }
+
     }
 }
