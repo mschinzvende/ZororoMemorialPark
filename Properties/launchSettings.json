@@ -29,7 +29,13 @@
       "commandName": "IISExpress",
       "launchBrowser": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "SMTP_SENDER_NAME": "Zororo Memorial Park",
+        "USE_SSL": "true",
+        "SMTP_SENDER_PASSWORD": "Zimbotech@123",
+        "SMTP_SENDER_EMAIL": "noreply@zororomemorial.co.zw",
+        "SMTP_PORT": "465",
+        "SMTP_SERVER": "mail.zororomemorial.co.zw"
       }
     }
   },

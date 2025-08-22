@@ -16,29 +16,42 @@ namespace ZororoMemorialPark.Services
         public string Password = Environment.GetEnvironmentVariable("SMTP_SENDER_PASSWORD");
         public bool UseSSL  = bool.Parse(Environment.GetEnvironmentVariable("USE_SSL"));
 
-        public async Task SendEmailAsync(string to, string subject, string body, string attachmentPath = null)
+        public void SendEmail(string to, string subject, string body, string attachmentPath = null)
         {
-            using (var client = new SmtpClient(SmtpServer, Port))
+            try
             {
-                client.Credentials = new NetworkCredential(Username, Password);
-                client.EnableSsl = UseSSL;
-
-                using (var message = new MailMessage())
+                using (var client = new SmtpClient(SmtpServer, Port))
                 {
-                    message.From = new MailAddress(SenderEmail, SenderName);
-                    message.To.Add(to);
-                    message.Subject = subject;
-                    message.Body = body;
-                    message.IsBodyHtml = true;
+                    client.Credentials = new NetworkCredential(Username, Password);
+                    client.EnableSsl = UseSSL;
 
-                    if (!string.IsNullOrEmpty(attachmentPath))
+                    using (var message = new MailMessage())
                     {
-                        message.Attachments.Add(new Attachment(attachmentPath));
-                    }
+                        message.From = new MailAddress(SenderEmail, SenderName);
+                        message.To.Add(to);
+                        message.Subject = subject;
+                        message.Body = body;
+                        message.IsBodyHtml = true;
 
-                     await client.SendMailAsync(message);
+                        if (!string.IsNullOrEmpty(attachmentPath))
+                        {
+                            message.Attachments.Add(new Attachment(attachmentPath));
+                        }
+
+                        Console.WriteLine($"Sending email to {to} via {SmtpServer}:{Port} (SSL={UseSSL})...");
+                        client.SendMailAsync(message);
+                        Console.WriteLine("Email sent successfully.");
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                // Log the exception or handle it as needed
+                Console.WriteLine($"Error sending email: {ex.Message}");
+                throw;
+
+            }
         }
+            
     }
 }

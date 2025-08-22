@@ -161,7 +161,7 @@ public class UserManagementModel : PageModel
                     {
                         var emailService = new EmailService();
 
-                        await emailService.SendEmailAsync(
+                        emailService.SendEmail(
                             AddInput.Email,
                             "Welcome to Zororo Memorial Park",
                             $"<p>Dear User,</p><p>Your account has been created successfully. Your username is {AddInput.Email}.</p> <p>Your Password is {AddInput.Password}</p><p>Thank you!</p>",
@@ -283,7 +283,7 @@ public class UserManagementModel : PageModel
                 {
                    
                         var emailService = new EmailService();
-                        await emailService.SendEmailAsync(
+                        emailService.SendEmail(
                             user.Email,
                             "Password Reset Confirmation",
                             $"<p>Dear {user.Email},</p><p>Your password has been reset successfully. Your new password is <strong>{ResetInput.NewPassword}</strong>.</p><p>Thank you!</p>",

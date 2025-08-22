@@ -20,11 +20,15 @@ namespace ZororoMemorialPark.Areas.Identity.Pages.Account
     public class LoginModel : PageModel
     {
         private readonly SignInManager<IdentityUser> _signInManager;
-        private readonly ILogger<LoginModel> _logger;
+        private readonly UserManager<IdentityUser> _userManager;
+        private readonly IAppLogger _appLogger;
+        private readonly ILogger<AppLogger> _logger;
 
-        public LoginModel(SignInManager<IdentityUser> signInManager, ILogger<LoginModel> logger)
+        public LoginModel(ILogger<AppLogger> logger, UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, IAppLogger appLogger)
         {
             _signInManager = signInManager;
+            _appLogger = appLogger;
+            _userManager = userManager;
             _logger = logger;
         }
 
@@ -121,7 +125,11 @@ namespace ZororoMemorialPark.Areas.Identity.Pages.Account
                 var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
                 if (result.Succeeded)
                 {
-                    _logger.LogInformation("User logged in.");
+                    //_logger.LogInformation("User logged in.");
+
+                    //Log the login activity
+
+                    _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Login", "User logged in successfully.").Wait();
                     return LocalRedirect(returnUrl);
                 }
                 if (result.RequiresTwoFactor)
@@ -130,15 +138,16 @@ namespace ZororoMemorialPark.Areas.Identity.Pages.Account
                 }
                 if (result.IsLockedOut)
                 {
-                    _logger.LogWarning("User account locked out.");
+                    _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Login Failed", "User account locked out.").Wait();
                     ErrorMessage = "User account locked out.";
                     return Page();
                 }
                 else
                 {
-                    _logger.LogWarning("Failed Login Attempt");
-                    ModelState.AddModelError(string.Empty, "Invalid login attempt.");
                    
+                    _logger.LogCritical("Invalid login attempt for user {Email}", Input.Email);
+                    
+                    ErrorMessage = "Invalid login attempt.";    
                     return Page();
                 }
             }
