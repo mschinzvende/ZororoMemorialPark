@@ -1,0 +1,339 @@
+﻿@page
+@model ZororoMemorialPark.Pages.Graves.GravesModel
+
+@{
+    ViewData["Title"] = "Graves";
+}
+
+<div class="row">
+    <div class="col-lg-11 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center"
+                 style="background-color: var(--primary-green); color: var(--primary-white);">
+                <h5 class="mb-0">Graves</h5>
+                <div>
+                    <button class="btn btn-sm btn-light me-2" data-bs-toggle="modal" data-bs-target="#createGraveModal">
+                        <i class="bi bi-plus-circle"></i> Add Grave
+                    </button>
+                    <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#bulkGraveModal">
+                        <i class="bi bi-stack"></i> Bulk Generate
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-body">
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert" id="successMessage">
+                        @TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @TempData["ErrorMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Plot Number</th>
+                                <th>Section</th>
+                                <th>Stage</th>
+                                <th>Status</th>
+                                <th>Price</th>
+                                <th style="width:150px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gravesTable">
+                            @foreach (var grave in Model.PaginatedGraves)
+                            {
+                                <tr id="row-@grave.sys_graveId">
+                                    <td>@grave.sys_plotNumber</td>
+                                    <td>@grave.SectionName</td>
+                                    <td>@grave.StageName</td>
+                                    <td>@grave.sys_graveSaleStatus</td>
+                                    <td>@grave.sys_price.ToString("C")</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-secondary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editGraveModal"
+                                                data-id="@grave.sys_graveId"
+                                                data-plot="@grave.sys_plotNumber"
+                                                data-section="@grave.sys_sectionId"
+                                                data-stage="@grave.sys_stageId"
+                                                data-status="@grave.sys_graveSaleStatus"
+                                                data-price="@grave.sys_price">
+                                            Edit
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteGraveModal"
+                                                data-id="@grave.sys_graveId"
+                                                data-plot="@grave.sys_plotNumber">
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="card-footer d-flex justify-content-between align-items-center"
+                 style="background-color: var(--primary-grey);">
+                <span>Page @Model.PaginatedGraves.PageIndex of @Model.PaginatedGraves.TotalPages</span>
+                <nav>
+                    <ul class="pagination">
+                        <li class="page-item @(Model.PaginatedGraves.HasPreviousPage ? "" : "disabled")">
+                            <a class="page-link" asp-route-pageIndex="@(Model.PaginatedGraves.PageIndex - 1)">Previous</a>
+                        </li>
+                        @for (int i = 1; i <= Model.PaginatedGraves.TotalPages; i++)
+                        {
+                            <li class="page-item @(i == Model.PaginatedGraves.PageIndex ? "active" : "")">
+                                <a class="page-link" asp-route-pageIndex="@i">@i</a>
+                            </li>
+                        }
+                        <li class="page-item @(Model.PaginatedGraves.HasNextPage ? "" : "disabled")">
+                            <a class="page-link" asp-route-pageIndex="@(Model.PaginatedGraves.PageIndex + 1)">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+@* Create Single Grave Modal *@
+<div class="modal fade" id="createGraveModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);">
+                <h5 class="modal-title">Add Grave</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <form method="post" asp-page-handler="Create" id="createGraveForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Plot Number</label>
+                        <input name="sys_plotNumber" class="form-control border" style="border-color: var(--primary-green);" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Section</label>
+                        <select name="sys_sectionId" class="form-select">
+                            @foreach (var sec in Model.Sections)
+                            {
+                                <option value="@sec.sys_sectionId">@sec.sys_sectionName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Stage</label>
+                        <select name="sys_stageId" class="form-select">
+                            @foreach (var stage in Model.Stages)
+                            {
+                                <option value="@stage.sys_stageId">@stage.sys_stageName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Price</label>
+                        <input type="number" name="sys_price" step="0.01" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Sale Status</label>
+                        <select name="sys_graveSaleStatus" class="form-select">
+                            <option value="Available">Available</option>
+                            <option value="Sold">Sold</option>
+                        </select>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Bulk Generate Graves Modal *@
+<div class="modal fade" id="bulkGraveModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);">
+                <h5 class="modal-title">Bulk Generate Graves</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <form method="post" asp-page-handler="BulkGenerate" id="bulkGraveForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Number of Graves</label>
+                        <input type="number" name="count" class="form-control" min="1" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Section</label>
+                        <select name="sys_sectionId" class="form-select">
+                            @foreach (var sec in Model.Sections)
+                            {
+                                <option value="@sec.sys_sectionId">@sec.sys_sectionName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Stage</label>
+                        <select name="sys_stageId" class="form-select">
+                            @foreach (var stage in Model.Stages)
+                            {
+                                <option value="@stage.sys_stageId">@stage.sys_stageName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Starting Plot Number</label>
+                        <input type="text" name="plotSeed" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Price</label>
+                        <input type="number" name="sys_price" step="0.01" class="form-control" />
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">Generate</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Edit Grave Modal -->
+<div class="modal fade" id="editGraveModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);">
+                <h5 class="modal-title">Edit Grave</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <form method="post" asp-page-handler="Edit" id="editGraveForm">
+                    <input type="hidden" name="sys_graveId" />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Plot Number</label>
+                        <input name="sys_plotNumber" class="form-control border" style="border-color: var(--primary-green);" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Section</label>
+                        <select name="sys_sectionId" class="form-select border" style="border-color: var(--primary-green);">
+                            @foreach (var grave_section in Model.Sections)
+                            {
+                                <option value="@grave_section.sys_sectionId">@grave_section.sys_sectionName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Development Stage</label>
+                        <select name="sys_stageId" class="form-select border" style="border-color: var(--primary-green);">
+                            @foreach (var stage in Model.Stages)
+                            {
+                                <option value="@stage.sys_stageId">@stage.sys_stageName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Price</label>
+                        <input type="number" step="0.01" name="sys_price" class="form-control border" style="border-color: var(--primary-green);" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Status</label>
+                        <select name="sys_graveSaleStatus" class="form-select border" style="border-color: var(--primary-green);">
+                            <option value="Available">Available</option>
+                            <option value="Reserved">Reserved</option>
+                            <option value="Sold">Sold</option>
+                        </select>
+                    </div>
+
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">Update</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Delete Grave Modal -->
+<div class="modal fade" id="deleteGraveModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background-color: var(--primary-black); color: var(--primary-white);">
+                <h5 class="modal-title">Delete Grave</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <form method="post" asp-page-handler="Delete" id="deleteGraveForm">
+                    <input type="hidden" name="sys_graveId" />
+                    <p class="fw-semibold text-danger">
+                        Are you sure you want to delete this grave: <strong id="gravePlotName"></strong>?
+                    </p>
+
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Edit Grave Modal
+    var editModal = document.getElementById('editGraveModal');
+    editModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var graveId = button.getAttribute('data-id');
+        var plotNumber = button.getAttribute('data-plot');
+        var sectionId = button.getAttribute('data-section');
+        var stageId = button.getAttribute('data-stage');
+        var price = button.getAttribute('data-price');
+        var status = button.getAttribute('data-status');
+
+        var modal = this;
+        modal.querySelector('input[name="sys_graveId"]').value = graveId;
+        modal.querySelector('input[name="sys_plotNumber"]').value = plotNumber;
+        modal.querySelector('select[name="sys_sectionId"]').value = sectionId;
+        modal.querySelector('select[name="sys_stageId"]').value = stageId;
+        modal.querySelector('input[name="sys_price"]').value = price;
+        modal.querySelector('select[name="sys_graveSaleStatus"]').value = status;
+    });
+
+    // Delete Grave Modal
+    var deleteModal = document.getElementById('deleteGraveModal');
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var graveId = button.getAttribute('data-id');
+        var plotNumber = button.getAttribute('data-plot');
+
+        var modal = this;
+        modal.querySelector('input[name="sys_graveId"]').value = graveId;
+        modal.querySelector('#gravePlotName').textContent = plotNumber;
+    });
+</script>

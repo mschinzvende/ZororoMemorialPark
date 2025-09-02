@@ -1,0 +1,210 @@
+﻿@page
+@model ZororoMemorialPark.Pages.Graves.GraveSectionsModel
+
+@{
+    ViewData["Title"] = "Grave Sections";
+}
+
+
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center"
+                     style="background-color: var(--primary-green); color: var(--primary-white);">
+                    <h5 class="mb-0">Sections</h5>
+                    <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#createSectionModal">
+                        <i class="bi bi-plus-circle"></i> Add Section
+                    </button>
+                </div>
+
+                <div class="card-body">
+                    <!-- Alerts -->
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert" id="successMessage">
+                            @TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert" id="errorMessage">
+                            @TempData["ErrorMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <!-- Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Section Name</th>
+                                    <th style="width:150px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sectionsTable">
+                                @foreach (var grave_section in Model.PaginatedSections)
+                                {
+                                    <tr id="row-@grave_section.sys_sectionId">
+                                        <td>@grave_section.sys_sectionName</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-secondary"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editSectionModal"
+                                                    data-id="@grave_section.sys_sectionId"
+                                                    data-name="@grave_section.sys_sectionName">
+                                                Edit
+                                            </button>
+
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteSectionModal"
+                                                    data-id="@grave_section.sys_sectionId"
+                                                    data-name="@grave_section.sys_sectionName">
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="card-footer d-flex justify-content-between align-items-center"
+                     style="background-color: var(--primary-grey);">
+                    <span>Page @Model.PaginatedSections.PageIndex of @Model.PaginatedSections.TotalPages</span>
+
+                    <nav>
+                        <ul class="pagination mb-0">
+                            <li class="page-item @(Model.PaginatedSections.HasPreviousPage ? "" : "disabled")">
+                                <a class="page-link" asp-route-pageIndex="@(Model.PaginatedSections.PageIndex - 1)">Previous</a>
+                            </li>
+
+                            @for (int i = 1; i <= Model.PaginatedSections.TotalPages; i++)
+                            {
+                                <li class="page-item @(i == Model.PaginatedSections.PageIndex ? "active" : "")">
+                                    <a class="page-link" asp-route-pageIndex="@i">@i</a>
+                                </li>
+                            }
+
+                            <li class="page-item @(Model.PaginatedSections.HasNextPage ? "" : "disabled")">
+                                <a class="page-link" asp-route-pageIndex="@(Model.PaginatedSections.PageIndex + 1)">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+<!-- Create Modal -->
+<div class="modal fade" id="createSectionModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);">
+                <h5 class="modal-title">Add Section</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <form method="post" asp-page-handler="Create" id="createSectionForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Section Name</label>
+                        <input name="sectionName" class="form-control border" style="border-color: var(--primary-green);" />
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editSectionModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);">
+                <h5 class="modal-title">Edit Section</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <form method="post" asp-page-handler="Edit" id="editSectionForm">
+                    <input type="hidden" name="sys_sectionId" />
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Section Name</label>
+                        <input name="sys_sectionName" class="form-control border" style="border-color: var(--primary-green);" />
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">Update</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteSectionModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background-color: var(--primary-black); color: var(--primary-white);">
+                <h5 class="modal-title">Delete Section</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <form method="post" asp-page-handler="Delete" id="deleteSectionForm">
+                    <input type="hidden" name="sys_sectionId" />
+                    <p class="fw-semibold text-danger">Are you sure you want to delete this section?</p>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script>
+    // When Edit modal is about to show
+    var editModal = document.getElementById('editSectionModal');
+    editModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+
+        var id = button.getAttribute('data-id');
+        var name = button.getAttribute('data-name');
+
+        // Fill form fields
+        var modal = this;
+        modal.querySelector('input[name="sys_sectionId"]').value = id;
+        modal.querySelector('input[name="sys_sectionName"]').value = name;
+    });
+
+    // When Delete modal is about to show
+    var deleteModal = document.getElementById('deleteSectionModal');
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+
+        var id = button.getAttribute('data-id');
+        var name = button.getAttribute('data-name');
+
+        var modal = this;
+        modal.querySelector('input[name="sys_sectionId"]').value = id;
+        modal.querySelector('p strong').textContent = name;
+    });
+</script>
+
+
