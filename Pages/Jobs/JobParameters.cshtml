@@ -1,0 +1,275 @@
+﻿@page
+@model ZororoMemorialPark.Pages.Jobs.JobParametersModel
+@{
+    ViewData["Title"] = "Job Evaluation Parameters";
+}
+
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center"
+                 style="background-color: var(--primary-green); color: var(--primary-white);">
+                <h5 class="mb-0">Job Evaluation Parameters</h5>
+                <div>
+                    <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#createParameterModal">
+                        <i class="bi bi-plus-circle"></i> Add Parameter
+                    </button>
+                    
+                </div>
+            </div>
+
+            <div class="card-body">
+
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert" id="successMessage">
+                        @TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @TempData["ErrorMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+                <div class="d-flex justify-content-between align-items-center mb-3">
+
+                <input type="text" class="form-control w-50" placeholder="Search parameters..." id="searchInput">
+                    <button class="btn btn-sm btn-danger" id="deleteSelectedBtn" data-bs-toggle="modal" data-bs-target="#bulkDeleteParameterModal" disabled>
+                        <i class="bi bi-trash"></i> Delete Selected
+                    </button>
+
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;">
+                                    <input type="checkbox" id="selectAll">
+                                </th>
+                                <th>Parameter Name</th>
+                                <th style="width:150px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="parametersTable">
+                            @foreach (var param in Model.PaginatedParameters)
+                            {
+                                <tr id="row-@param.sys_jobEvaluationParameterId">
+                                    <td>
+                                        <input type="checkbox" class="row-checkbox" value="@param.sys_jobEvaluationParameterId">
+                                    </td>
+                                    <td>@param.sys_parameterName</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-secondary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editParameterModal"
+                                                data-id="@param.sys_jobEvaluationParameterId"
+                                                data-name="@param.sys_parameterName">
+                                            Edit
+                                        </button>
+                                     <button class="btn btn-sm btn-outline-danger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteParameterModal"
+                                                data-id="@param.sys_jobEvaluationParameterId"
+                                                data-name="@param.sys_parameterName">
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pagination Placeholder -->
+            <div class="card-footer d-flex justify-content-between align-items-center"
+                 style="background-color: var(--primary-grey);">
+                <span>Page @Model.PaginatedParameters.PageIndex of @Model.PaginatedParameters.TotalPages</span>
+                <nav>
+                    <ul class="pagination">
+                        <li class="page-item @(Model.PaginatedParameters.HasPreviousPage ? "" : "disabled")">
+                            <a class="page-link" asp-route-pageIndex="@(Model.PaginatedParameters.PageIndex - 1)">Previous</a>
+                        </li>
+                        @for (int i = 1; i <= Model.PaginatedParameters.TotalPages; i++)
+                        {
+                            <li class="page-item @(i == Model.PaginatedParameters.PageIndex ? "active" : "")">
+                                <a class="page-link" asp-route-pageIndex="@i">@i</a>
+                            </li>
+                        }
+                        <li class="page-item @(Model.PaginatedParameters.HasNextPage ? "" : "disabled")">
+                            <a class="page-link" asp-route-pageIndex="@(Model.PaginatedParameters.PageIndex + 1)">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Modal -->
+<div class="modal fade" id="createParameterModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);">
+                <h5 class="modal-title">Add Parameter</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <form method="post" asp-page-handler="Create" id="createParameterForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Parameter Name</label>
+                        <input name="sys_parameterName" class="form-control" />
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editParameterModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);">
+                <h5 class="modal-title">Edit Parameter</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <form method="post" asp-page-handler="Edit" id="editParameterForm">
+                    <input type="hidden" name="sys_jobEvaluationParameterId" />
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Parameter Name</label>
+                        <input name="sys_parameterName" class="form-control" />
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">Update</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteParameterModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background-color: var(--primary-black); color: var(--primary-white);">
+                <h5 class="modal-title">Delete Parameter</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <form method="post" asp-page-handler="Delete" id="deleteParameterForm">
+                    <input type="hidden" name="sys_jobEvaluationParameterId" />
+                    <p class="fw-semibold text-danger">
+                        Are you sure you want to delete parameter: <strong id="parameterName"></strong>?
+                    </p>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Delete Modal -->
+<div class="modal fade" id="bulkDeleteParameterModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background-color: var(--primary-black); color: var(--primary-white);">
+                <h5 class="modal-title">Delete Selected Parameters</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <form method="post" asp-page-handler="DeleteSelected" id="deleteSelectedParameterForm">
+                    <input type="hidden" name="SelectedIds" id="SelectedIds" />
+                    <p class="fw-semibold text-danger" id="bulkDeleteMessage"></p>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ----------------- Scripts ----------------- -->
+<script>
+    // --- Live Search ---
+    document.getElementById("searchInput").addEventListener("keyup", function () {
+        let filter = this.value.toLowerCase();
+        let rows = document.querySelectorAll("#parametersTable tr");
+        rows.forEach(row => {
+            let text = row.innerText.toLowerCase();
+            row.style.display = text.includes(filter) ? "" : "none";
+        });
+    });
+
+    // --- Checkbox Select/Deselect ---
+    const selectAll = document.getElementById("selectAll");
+    const deleteBtn = document.getElementById("deleteSelectedBtn");
+
+    selectAll.addEventListener("change", function () {
+        let checkboxes = document.querySelectorAll(".row-checkbox");
+        checkboxes.forEach(cb => cb.checked = this.checked);
+        toggleDeleteButton();
+    });
+
+    document.addEventListener("change", function (e) {
+        if (e.target.classList.contains("row-checkbox")) {
+            toggleDeleteButton();
+        }
+    });
+
+    function toggleDeleteButton() {
+        let checked = document.querySelectorAll(".row-checkbox:checked").length;
+        deleteBtn.disabled = checked === 0;
+    }
+
+    // --- Bulk Delete Handler ---
+    deleteBtn.addEventListener("click", function () {
+        let ids = Array.from(document.querySelectorAll(".row-checkbox:checked"))
+            .map(cb => cb.value);
+        if (ids.length > 0) {
+            document.getElementById("SelectedIds").value = ids.join(",");
+            document.getElementById("bulkDeleteMessage").textContent =
+                `Are you sure you want to delete ${ids.length} selected parameter(s)?`;
+        }
+    });
+
+    // --- Edit Modal ---
+    var editModal = document.getElementById('editParameterModal');
+    editModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var id = button.getAttribute('data-id');
+        var name = button.getAttribute('data-name');
+
+        var modal = this;
+        modal.querySelector('input[name="sys_jobEvaluationParameterId"]').value = id;
+        modal.querySelector('input[name="sys_parameterName"]').value = name;
+    });
+
+    // --- Delete Modal ---
+    var deleteModal = document.getElementById('deleteParameterModal');
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var id = button.getAttribute('data-id');
+        var name = button.getAttribute('data-name');
+
+        var modal = this;
+        modal.querySelector('input[name="sys_jobEvaluationParameterId"]').value = id;
+        modal.querySelector('#parameterName').textContent = name;
+    });
+</script>

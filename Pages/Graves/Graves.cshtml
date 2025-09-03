@@ -38,15 +38,30 @@
                     </div>
                 }
 
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover align-middle mb-0">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <!-- Search -->
+                    <input type="text" id="searchInput" class="form-control w-50" placeholder="Search graves...">
+
+                    <!-- Delete Selected -->
+
+                        <button id="deleteSelectedBtn" type="button" class="btn btn-danger btn-sm" disabled
+                                data-bs-toggle="modal" data-bs-target="#bulkDeleteModal">
+                            <i class="bi bi-trash"></i> Delete Selected
+                        </button>
+
+                </div>
+
+                
+                    <table class="table table-responsive table-striped table-hover align-middle mb-0">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" id="selectAll"></th>
                                 <th>Plot Number</th>
                                 <th>Section</th>
                                 <th>Stage</th>
                                 <th>Status</th>
                                 <th>Price</th>
+                                <th>Location</th>
                                 <th style="width:150px;">Actions</th>
                             </tr>
                         </thead>
@@ -54,11 +69,15 @@
                             @foreach (var grave in Model.PaginatedGraves)
                             {
                                 <tr id="row-@grave.sys_graveId">
+                                    <td>
+                                        <input type="checkbox" class="row-checkbox" value="@grave.sys_graveId">
+                                    </td>
                                     <td>@grave.sys_plotNumber</td>
                                     <td>@grave.SectionName</td>
                                     <td>@grave.StageName</td>
                                     <td>@grave.sys_graveSaleStatus</td>
                                     <td>@grave.sys_price.ToString("C")</td>
+                                    <td>@grave.sys_latitude,@grave.sys_longitude</td>
                                     <td>
                                         <button class="btn btn-sm btn-outline-secondary"
                                                 data-bs-toggle="modal"
@@ -68,7 +87,9 @@
                                                 data-section="@grave.sys_sectionId"
                                                 data-stage="@grave.sys_stageId"
                                                 data-status="@grave.sys_graveSaleStatus"
-                                                data-price="@grave.sys_price">
+                                                data-price="@grave.sys_price"
+                                                data-latitude="@grave.sys_latitude"
+                                                data-longitude="@grave.sys_longitude">
                                             Edit
                                         </button>
                                         <button class="btn btn-sm btn-outline-danger"
@@ -83,11 +104,14 @@
                             }
                         </tbody>
                     </table>
-                </div>
+
+                    
+
+                
             </div>
 
             <!-- Pagination -->
-            <div class="card-footer d-flex justify-content-between align-items-center"
+            <div class="card-footer d-flex justify-content-between align-items-center mb-lg-5"
                  style="background-color: var(--primary-grey);">
                 <span>Page @Model.PaginatedGraves.PageIndex of @Model.PaginatedGraves.TotalPages</span>
                 <nav>
@@ -149,11 +173,21 @@
                         <input type="number" name="sys_price" step="0.01" class="form-control" />
                     </div>
                     <div class="mb-3">
+
+                        
                         <label class="form-label fw-bold">Sale Status</label>
                         <select name="sys_graveSaleStatus" class="form-select">
                             <option value="Available">Available</option>
                             <option value="Sold">Sold</option>
                         </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Latitude</label>
+                        <input name="sys_Latitude" class="form-control border" style="border-color: var(--primary-green);" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Longitude</label>
+                        <input name="sys_Longitude" class="form-control border" style="border-color: var(--primary-green);" />
                     </div>
                     <div class="text-end">
                         <button type="submit" class="btn btn-primary">Save</button>
@@ -266,7 +300,14 @@
                             <option value="Sold">Sold</option>
                         </select>
                     </div>
-
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Latitude</label>
+                        <input name="sys_Latitude" class="form-control border" style="border-color: var(--primary-green);" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Longitude</label>
+                        <input name="sys_Longitude" class="form-control border" style="border-color: var(--primary-green);" />
+                    </div>
                     <div class="text-end">
                         <button type="submit" class="btn btn-primary">Update</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -304,6 +345,31 @@
     </div>
 </div>
 
+
+<!-- Bulk Delete Modal -->
+<div class="modal fade" id="bulkDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Delete Selected Graves</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="bulkDeleteMessage">Are you sure you want to delete the selected graves?</p>
+            </div>
+            <div class="modal-footer">
+                <form method="post" asp-page-handler="DeleteSelected" id="bulkDeleteForm">
+                    <input type="hidden" name="SelectedIds" id="SelectedIds" />
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
 <script>
     // Edit Grave Modal
     var editModal = document.getElementById('editGraveModal');
@@ -315,6 +381,8 @@
         var stageId = button.getAttribute('data-stage');
         var price = button.getAttribute('data-price');
         var status = button.getAttribute('data-status');
+        var latitude = button.getAttribute('data-latitude');
+        var longitude = button.getAttribute('data-longitude');
 
         var modal = this;
         modal.querySelector('input[name="sys_graveId"]').value = graveId;
@@ -323,6 +391,8 @@
         modal.querySelector('select[name="sys_stageId"]').value = stageId;
         modal.querySelector('input[name="sys_price"]').value = price;
         modal.querySelector('select[name="sys_graveSaleStatus"]').value = status;
+        modal.querySelector('input[name="sys_Latitude"]').value = latitude;
+        modal.querySelector('input[name="sys_Longitude"]').value = longitude;
     });
 
     // Delete Grave Modal
@@ -337,3 +407,56 @@
         modal.querySelector('#gravePlotName').textContent = plotNumber;
     });
 </script>
+
+
+<script>
+    // --- Live Search ---
+    document.getElementById("searchInput").addEventListener("keyup", function () {
+        let filter = this.value.toLowerCase();
+        let rows = document.querySelectorAll("#gravesTable tr");
+        rows.forEach(row => {
+            let text = row.innerText.toLowerCase();
+            row.style.display = text.includes(filter) ? "" : "none";
+        });
+    });
+
+    // --- Checkbox Select/Deselect ---
+    const selectAll = document.getElementById("selectAll");
+    const deleteBtn = document.getElementById("deleteSelectedBtn");
+
+    selectAll.addEventListener("change", function () {
+        let checkboxes = document.querySelectorAll(".row-checkbox");
+        checkboxes.forEach(cb => cb.checked = this.checked);
+        toggleDeleteButton();
+    });
+
+    document.addEventListener("change", function (e) {
+        if (e.target.classList.contains("row-checkbox")) {
+            toggleDeleteButton();
+        }
+    });
+
+    function toggleDeleteButton() {
+        let checked = document.querySelectorAll(".row-checkbox:checked").length;
+        deleteBtn.disabled = checked === 0;
+    }
+
+    // --- Bulk Delete Modal Handling ---
+    const bulkDeleteModal = document.getElementById("bulkDeleteModal");
+    const bulkDeleteMessage = document.getElementById("bulkDeleteMessage");
+    const selectedIdsInput = document.getElementById("SelectedIds");
+
+    bulkDeleteModal.addEventListener("show.bs.modal", function () {
+        let ids = Array.from(document.querySelectorAll(".row-checkbox:checked"))
+            .map(cb => cb.value);
+
+        if (ids.length > 0) {
+            selectedIdsInput.value = ids.join(",");
+            bulkDeleteMessage.textContent = `Are you sure you want to delete ${ids.length} selected grave(s)?`;
+        }
+    });
+</script>
+
+
+
+

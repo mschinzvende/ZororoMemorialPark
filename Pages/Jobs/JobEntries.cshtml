@@ -1,0 +1,322 @@
+﻿@page
+@model ZororoMemorialPark.Pages.Jobs.JobsModel
+@{
+    ViewData["Title"] = "Jobs";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-3">Jobs</h2>
+
+    <!-- Success/Error messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <!-- Add Job button -->
+    <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#createModal">
+        Add Job
+    </button>
+
+    <!-- Jobs Table -->
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Grave</th>
+                <th>Supplier</th>
+                <th>Stage</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Balance Due</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var job in Model.PaginatedJobs)
+            {
+                var totalPaid = Model._context.tbl_Expenses
+                .Where(e => e.sys_jobId == job.sys_jobId)
+                .Sum(e => (double?)e.sys_amountPaid) ?? 0;
+
+                var totalDue = Model._context.tbl_Expenses
+                .Where(e => e.sys_jobId == job.sys_jobId)
+                .Sum(e => (double?)e.sys_amountDue) ?? 0;
+
+                var balance = totalDue - totalPaid;
+
+                <tr>
+                    <td>@job.tbl_Grave?.sys_plotNumber</td>
+                    <td>@job.tbl_Supplier?.sys_supplierName</td>
+                    <td>@job.tbl_DevelopmentStage?.sys_stageName</td>
+                    <td>@job.sys_startDate</td>
+                    <td>@job.sys_endDate</td>
+                    <td>@balance.ToString("C")</td>
+                    <td>
+                        <!-- Edit -->
+                        <button class="btn btn-sm btn-warning"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editModal"
+                                data-id="@job.sys_jobId"
+                                data-grave="@job.sys_graveId"
+                                data-supplier="@job.sys_supplierId"
+                                data-stage="@job.sys_stageId"
+                                data-start="@job.sys_startDate"
+                                data-end="@job.sys_endDate">
+                            Edit
+                        </button>
+
+                        <!-- Delete -->
+                        <button class="btn btn-sm btn-danger"
+                                data-bs-toggle="modal"
+                                data-bs-target="#deleteModal"
+                                data-id="@job.sys_jobId">
+                            Delete
+                        </button>
+
+                        <!-- Payment -->
+                        <button class="btn btn-sm btn-success"
+                                data-bs-toggle="modal"
+                                data-bs-target="#paymentModal"
+                                data-jobid="@job.sys_jobId"
+                                data-supplier="@job.sys_supplierId">
+                            Payment
+                        </button>
+
+                        <!-- Evaluate -->
+                        <button class="btn btn-sm btn-info"
+                                data-bs-toggle="modal"
+                                data-bs-target="#evaluationModal"
+                                data-jobid="@job.sys_jobId">
+                            Evaluate
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- Pagination Placeholder -->
+    <div class="card-footer d-flex justify-content-between align-items-center"
+         style="background-color: var(--primary-grey);">
+        <span>Page @Model.PaginatedJobs.PageIndex of @Model.PaginatedJobs.TotalPages</span>
+        <nav>
+            <ul class="pagination">
+                <li class="page-item @(Model.PaginatedJobs.HasPreviousPage ? "" : "disabled")">
+                    <a class="page-link" asp-route-pageIndex="@(Model.PaginatedJobs.PageIndex - 1)">Previous</a>
+                </li>
+                @for (int i = 1; i <= Model.PaginatedJobs.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.PaginatedJobs.PageIndex ? "active" : "")">
+                        <a class="page-link" asp-route-pageIndex="@i">@i</a>
+                    </li>
+                }
+                <li class="page-item @(Model.PaginatedJobs.HasNextPage ? "" : "disabled")">
+                    <a class="page-link" asp-route-pageIndex="@(Model.PaginatedJobs.PageIndex + 1)">Next</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Create Modal -->
+<div class="modal fade" id="createModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Create">
+                <div class="modal-header"><h5>Add Job</h5></div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label>Grave</label>
+                        <select asp-for="Job.sys_graveId" class="form-select"
+                                asp-items="@(new SelectList(Model.Graves, "sys_graveId", "sys_plotNumber"))"></select>
+                    </div>
+                    <div class="mb-2">
+                        <label>Supplier</label>
+                        <select asp-for="Job.sys_supplierId" class="form-select"
+                                asp-items="@(new SelectList(Model.Suppliers, "sys_supplierId", "sys_supplierName"))"></select>
+                    </div>
+                    <div class="mb-2">
+                        <label>Stage</label>
+                        <select asp-for="Job.sys_stageId" class="form-select"
+                                asp-items="@(new SelectList(Model.Stages, "sys_stageId", "StageName"))"></select>
+                    </div>
+                    <div class="mb-2">
+                        <label>Start Date</label>
+                        <input asp-for="Job.sys_startDate" class="form-control" type="date" />
+                    </div>
+                    <div class="mb-2">
+                        <label>End Date</label>
+                        <input asp-for="Job.sys_endDate" class="form-control" type="date" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Edit">
+                <div class="modal-header"><h5>Edit Job</h5></div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="Job.sys_jobId" id="editJobId" />
+                    <div class="mb-2">
+                        <label>Grave</label>
+                        <select asp-for="Job.sys_graveId" class="form-select" id="editGraveId"
+                                asp-items="@(new SelectList(Model.Graves, "sys_graveId", "sys_plotNumber"))"></select>
+                    </div>
+                    <div class="mb-2">
+                        <label>Supplier</label>
+                        <select asp-for="Job.sys_supplierId" class="form-select" id="editSupplierId"
+                                asp-items="@(new SelectList(Model.Suppliers, "sys_supplierId", "sys_supplierName"))"></select>
+                    </div>
+                    <div class="mb-2">
+                        <label>Stage</label>
+                        <select asp-for="Job.sys_stageId" class="form-select" id="editStageId"
+                                asp-items="@(new SelectList(Model.Stages, "sys_stageId", "StageName"))"></select>
+                    </div>
+                    <div class="mb-2">
+                        <label>Start Date</label>
+                        <input asp-for="Job.sys_startDate" class="form-control" type="date" id="editStartDate" />
+                    </div>
+                    <div class="mb-2">
+                        <label>End Date</label>
+                        <input asp-for="Job.sys_endDate" class="form-control" type="date" id="editEndDate" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-warning">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Delete">
+                <div class="modal-header"><h5>Delete Job</h5></div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="Job.sys_jobId" id="deleteJobId" />
+                    <p>Are you sure you want to delete this job?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="AddPayment">
+                <div class="modal-header"><h5>Supplier Payment</h5></div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="Expense.sys_jobId" id="paymentJobId" />
+                    <input type="hidden" asp-for="Expense.sys_supplierId" id="paymentSupplierId" />
+                    <div class="mb-2">
+                        <label>Amount Due</label>
+                        <input asp-for="Expense.sys_amountDue" class="form-control" type="number" step="0.01" />
+                    </div>
+                    <div class="mb-2">
+                        <label>Amount Paid</label>
+                        <input asp-for="Expense.sys_amountPaid" class="form-control" type="number" step="0.01" />
+                    </div>
+                    <div class="mb-2">
+                        <label>Balance Due</label>
+                        <input asp-for="Expense.sys_balanceDue" class="form-control" type="number" step="0.01" />
+                    </div>
+                    <div class="mb-2">
+                        <label>Payment Method</label>
+                        <select asp-for="Expense.sys_paymentMethodId" class="form-select"
+                                asp-items="@(new SelectList(Model.PaymentMethods, "sys_paymentMethodId", "sys_paymentMethodName"))"></select>
+                    </div>
+                    <div class="mb-2">
+                        <label>Notes</label>
+                        <textarea asp-for="Expense.sys_notes" class="form-control"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Save Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Evaluation Modal -->
+<div class="modal fade" id="evaluationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="AddEvaluation">
+                <div class="modal-header"><h5>Job Evaluation</h5></div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="JobEvaluation.sys_jobId" id="evaluationJobId" />
+                    <div class="mb-2">
+                        <label>Parameter</label>
+                        <select asp-for="JobEvaluation.sys_jobEvaluationParameterId" class="form-select"
+                                asp-items="@(new SelectList(Model.JobParameters, "sys_jobEvaluationParameterId", "sys_parameterName"))"></select>
+                    </div>
+                    <div class="mb-2">
+                        <label>Evaluation</label>
+                        <textarea asp-for="JobEvaluation.sys_jobEvaluation" class="form-control"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-info">Save Evaluation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // --- Edit Job Modal ---
+        var editModal = document.getElementById("editModal");
+        editModal.addEventListener("show.bs.modal", function (event) {
+            var button = event.relatedTarget;
+            document.getElementById("editJobId").value = button.getAttribute("data-id");
+            document.getElementById("editGraveId").value = button.getAttribute("data-grave");
+            document.getElementById("editSupplierId").value = button.getAttribute("data-supplier");
+            document.getElementById("editStageId").value = button.getAttribute("data-stage");
+            document.getElementById("editStartDate").value = button.getAttribute("data-start");
+            document.getElementById("editEndDate").value = button.getAttribute("data-end");
+        });
+
+        // --- Delete Job Modal ---
+        var deleteModal = document.getElementById("deleteModal");
+        deleteModal.addEventListener("show.bs.modal", function (event) {
+            var button = event.relatedTarget;
+            document.getElementById("deleteJobId").value = button.getAttribute("data-id");
+        });
+
+        // --- Payment Modal ---
+        var paymentModal = document.getElementById("paymentModal");
+        paymentModal.addEventListener("show.bs.modal", function (event) {
+            var button = event.relatedTarget;
+            document.getElementById("paymentJobId").value = button.getAttribute("data-jobid");
+            document.getElementById("paymentSupplierId").value = button.getAttribute("data-supplier");
+        });
+
+        // --- Evaluation Modal ---
+        var evaluationModal = document.getElementById("evaluationModal");
+        evaluationModal.addEventListener("show.bs.modal", function (event) {
+            var button = event.relatedTarget;
+            document.getElementById("evaluationJobId").value = button.getAttribute("data-jobid");
+        });
+    });
+</script>

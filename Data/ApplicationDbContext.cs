@@ -19,5 +19,16 @@ namespace ZororoMemorialPark.Data
         public DbSet<tbl_DevelopmentStages> tbl_DevelopmentStages { get; set; }
 
         public DbSet<tbl_Graves> tbl_Graves { get; set; }
+
+        public DbSet<tbl_Suppliers> tbl_Suppliers { get; set; }
+
+        public DbSet<tbl_Jobs> tbl_Jobs { get; set; }
+
+        public DbSet<tbl_jobEvaluationParameters> tbl_jobEvaluationParameters { get; set; }
+
+        public DbSet<tbl_JobEvaluations> tbl_JobEvaluations { get; set; }
+        public DbSet<tbl_PaymentMethods> tbl_PaymentMethods { get; set; }
+        public DbSet<tbl_Expenses> tbl_Expenses { get; set; }
+
     }
 }

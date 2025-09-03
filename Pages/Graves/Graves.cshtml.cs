@@ -17,6 +17,8 @@ namespace ZororoMemorialPark.Pages.Graves
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IAppLogger _appLogger;
 
+        [BindProperty]
+        public string SelectedIds { get; set; }
         public GravesModel(ApplicationDbContext context, UserManager<IdentityUser> userManager, IAppLogger appLogger)
         {
             _context = context;
@@ -49,7 +51,9 @@ namespace ZororoMemorialPark.Pages.Graves
                                 sys_sectionId = g.sys_sectionId,
                                 SectionName = s.sys_sectionName,
                                 sys_stageId = g.sys_stageId,
-                                StageName = st.sys_stageName
+                                StageName = st.sys_stageName,
+                                sys_latitude = g.sys_latitude,
+                                sys_longitude = g.sys_longitude
                             };
 
                 int pageSize = 10;
@@ -75,6 +79,8 @@ namespace ZororoMemorialPark.Pages.Graves
                 int stageId = int.Parse(Request.Form["sys_stageId"]);
                 string status = Request.Form["sys_graveSaleStatus"];
                 double price = double.Parse(Request.Form["sys_price"]);
+                double latitude = double.Parse(Request.Form["sys_Latitude"]);
+                double longitude = double.Parse(Request.Form["sys_Longitude"]);
 
                 if (string.IsNullOrWhiteSpace(plot))
                 {
@@ -96,7 +102,9 @@ namespace ZororoMemorialPark.Pages.Graves
                     sys_sectionId = sectionId,
                     sys_stageId = stageId,
                     sys_graveSaleStatus = status,
-                    sys_price = price
+                    sys_price = price,
+                    sys_latitude = latitude,
+                    sys_longitude = longitude
                 };
 
                 _context.tbl_Graves.Add(grave);
@@ -200,6 +208,8 @@ namespace ZororoMemorialPark.Pages.Graves
                 grave.sys_stageId = int.Parse(Request.Form["sys_stageId"]);
                 grave.sys_price = double.Parse(Request.Form["sys_price"]);
                 grave.sys_graveSaleStatus = Request.Form["sys_graveSaleStatus"];
+                grave.sys_latitude = double.Parse(Request.Form["sys_Latitude"]);
+                grave.sys_longitude = double.Parse(Request.Form["sys_Longitude"]);
 
                 _context.tbl_Graves.Update(grave);
                 await _context.SaveChangesAsync();
@@ -243,18 +253,66 @@ namespace ZororoMemorialPark.Pages.Graves
                 return RedirectToPage();
             }
         }
-    }
 
-    // ViewModel to include Section and Stage names for display
-    public class GraveViewModel
-    {
-        public int sys_graveId { get; set; }
-        public string sys_plotNumber { get; set; }
-        public string sys_graveSaleStatus { get; set; }
-        public double sys_price { get; set; }
-        public int sys_sectionId { get; set; }
-        public string SectionName { get; set; }
-        public int sys_stageId { get; set; }
-        public string StageName { get; set; }
+        public async Task<IActionResult> OnPostDeleteSelectedAsync()
+        {
+            try
+            {
+                //var selectedIds = Request.Form["SelectedIds"].ToString();
+
+                if (string.IsNullOrEmpty(SelectedIds))
+                {
+                    TempData["ErrorMessage"] = "No graves selected for deletion.";
+                    return RedirectToPage();
+                }
+
+                var ids = SelectedIds.Split(',').Select(int.Parse).ToList();
+
+                var gravesToDelete = await _context.tbl_Graves
+                    .Where(g => ids.Contains(g.sys_graveId))
+                    .ToListAsync();
+
+                if (gravesToDelete.Any())
+                {
+                    _context.tbl_Graves.RemoveRange(gravesToDelete);
+                    await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = $"{gravesToDelete.Count} grave(s) deleted successfully.";
+                    await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Bulk Delete", $"Deleted {gravesToDelete.Count} graves.");
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "No matching graves found.";
+                }
+
+                return RedirectToPage();
+            }
+
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error deleting selected graves: " + ex.Message;
+                await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error", ex.Message);
+                return RedirectToPage();
+            }
+
+
+        }
+
+
+
+
+        // ViewModel to include Section and Stage names for display
+        public class GraveViewModel
+        {
+            public int sys_graveId { get; set; }
+            public string sys_plotNumber { get; set; }
+            public string sys_graveSaleStatus { get; set; }
+            public double sys_price { get; set; }
+            public int sys_sectionId { get; set; }
+            public string SectionName { get; set; }
+            public int sys_stageId { get; set; }
+            public string StageName { get; set; }
+            public double sys_latitude { get; set; }
+            public double sys_longitude { get; set; }
+        }
     }
 }
