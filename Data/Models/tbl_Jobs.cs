@@ -16,6 +16,8 @@ namespace ZororoMemorialPark.Data.Models
 
         [ForeignKey("tbl_DevelopmentStage")]
         public int sys_stageId { get; set; }
+
+        public string sys_jobStatus { get; set; }
         public DateOnly sys_startDate { get; set; }
         public DateOnly sys_endDate { get; set; }
 

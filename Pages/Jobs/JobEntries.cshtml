@@ -3,126 +3,170 @@
 @{
     ViewData["Title"] = "Jobs";
 }
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center"
+                 style="background-color: var(--primary-green); color: var(--primary-white);">
+                <h5 class="mb-0">Jobs</h5>
+                
+                    
+                    <div>
+                        <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#createModal">
+                            <i class="bi bi-plus-circle"></i> Add Job
+                        </button>
 
-<div class="container mt-4">
-    <h2 class="mb-3">Jobs</h2>
+                    </div>
 
-    <!-- Success/Error messages -->
-    @if (TempData["SuccessMessage"] != null)
+                    </div>
+
+                    <div class="card-body">
+                        @if (TempData["SuccessMessage"] != null)
+                        {
+                            <div class="alert alert-success alert-dismissible fade show" role="alert" id="successMessage">
+                                @TempData["SuccessMessage"]
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        }
+
+                        @if (TempData["ErrorMessage"] != null)
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                @TempData["ErrorMessage"]
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        }
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <input type="text" class="form-control w-50" placeholder="Search jobs..." id="searchInput">
+                    <button class="btn btn-sm btn-danger" id="deleteSelectedBtn" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal" disabled>
+                        <i class="bi bi-trash"></i> Delete Selected
+                    </button>
+                </div>
+
+
+    @if (Model?.JobList?.Any() == true)
     {
-        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-    }
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px;">
+                                        <input type="checkbox" id="selectAll">
+                                    </th>
+                                    <th>Grave</th>
+                                    <th>Supplier</th>
+                                    <th>Stage</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Status</th>
+                                    <th>Balance Due</th>
+                                    <th style="width:200px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var job in Model.JobList)
+                                {
+                                    <tr>
+                                        <td>
+                                            <input type="checkbox" class="job-checkbox" value="@job.JobId">
+                                        </td>
+                                        <td><a asp-page="/Graves/GraveDetails" asp-route-id="@job.GraveID">@job.GravePlot</a></td>
+                                        <td>@job.SupplierName</td>
+                                        <td>@job.StageName</td>
+                                        <td>@(job.StartDate?.ToString("yyyy-MM-dd") ?? "")</td>
+                                        <td>@(job.EndDate?.ToString("yyyy-MM-dd") ?? "")</td>
+                                        <td>@job.JobStatus</td>
+                                        <td>@job.Balance</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-warning"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editModal"
+                                                    data-id="@job.JobId"
+                                                    data-section="@job.SectionID"
+                                                    data-grave="@job.GraveID"
+                                                    data-supplier="@job.SupplierID"
+                                                    data-stage="@job.StageID"
+                                                    data-start="@job.StartDate?.ToString("yyyy-MM-dd")"
+                                                    data-end="@job.EndDate?.ToString("yyyy-MM-dd")"
+                                                    data-status="@job.JobStatus">
+                                                Edit
+                                            </button>
 
-    <!-- Add Job button -->
-    <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#createModal">
-        Add Job
-    </button>
 
-    <!-- Jobs Table -->
-    <table class="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th>Grave</th>
-                <th>Supplier</th>
-                <th>Stage</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th>Balance Due</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var job in Model.PaginatedJobs)
+                                            <button class="btn btn-sm btn-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteModal"
+                                                    data-id="@job.JobId">
+                                                Delete
+                                            </button>
+                                            @if (job.JobStatus != "Complete")
+                                            {
+                                                <button class="btn btn-sm btn-secondary" disabled>
+                                                    Pay
+                                                </button>
+                                                <button class="btn btn-sm btn-secondary" disabled>
+                                                    Evaluate
+                                                </button>
+                                            }
+                                            else{
+                                                <button type="button" class="btn btn-sm btn-info"
+                                                        onclick="openPaymentModal(@job.JobId, @job.SupplierID)">
+                                                   Pay
+                                                </button>
+
+                                                <button type="button"
+                                                        class="btn btn-info btn-sm btn-secondary"
+                                                    onclick="openEvaluationModal(@job.JobId)">
+                                                    Evaluate
+                                                </button>
+                                            }
+                                            
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+            @if (Model.TotalPages > 1)
             {
-                var totalPaid = Model._context.tbl_Expenses
-                .Where(e => e.sys_jobId == job.sys_jobId)
-                .Sum(e => (double?)e.sys_amountPaid) ?? 0;
-
-                var totalDue = Model._context.tbl_Expenses
-                .Where(e => e.sys_jobId == job.sys_jobId)
-                .Sum(e => (double?)e.sys_amountDue) ?? 0;
-
-                var balance = totalDue - totalPaid;
-
-                <tr>
-                    <td>@job.tbl_Grave?.sys_plotNumber</td>
-                    <td>@job.tbl_Supplier?.sys_supplierName</td>
-                    <td>@job.tbl_DevelopmentStage?.sys_stageName</td>
-                    <td>@job.sys_startDate</td>
-                    <td>@job.sys_endDate</td>
-                    <td>@balance.ToString("C")</td>
-                    <td>
-                        <!-- Edit -->
-                        <button class="btn btn-sm btn-warning"
-                                data-bs-toggle="modal"
-                                data-bs-target="#editModal"
-                                data-id="@job.sys_jobId"
-                                data-grave="@job.sys_graveId"
-                                data-supplier="@job.sys_supplierId"
-                                data-stage="@job.sys_stageId"
-                                data-start="@job.sys_startDate"
-                                data-end="@job.sys_endDate">
-                            Edit
-                        </button>
-
-                        <!-- Delete -->
-                        <button class="btn btn-sm btn-danger"
-                                data-bs-toggle="modal"
-                                data-bs-target="#deleteModal"
-                                data-id="@job.sys_jobId">
-                            Delete
-                        </button>
-
-                        <!-- Payment -->
-                        <button class="btn btn-sm btn-success"
-                                data-bs-toggle="modal"
-                                data-bs-target="#paymentModal"
-                                data-jobid="@job.sys_jobId"
-                                data-supplier="@job.sys_supplierId">
-                            Payment
-                        </button>
-
-                        <!-- Evaluate -->
-                        <button class="btn btn-sm btn-info"
-                                data-bs-toggle="modal"
-                                data-bs-target="#evaluationModal"
-                                data-jobid="@job.sys_jobId">
-                            Evaluate
-                        </button>
-                    </td>
-                </tr>
+                <div class="card-footer d-flex justify-content-between align-items-center"
+                     style="background-color: var(--primary-grey);">
+                    <span>Page @Model.CurrentPage of @Model.TotalPages</span>
+                    <nav>
+                        <ul class="pagination mb-0">
+                            <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                                <a class="page-link" asp-route-pageIndex="@(Model.CurrentPage - 1)">Previous</a>
+                            </li>
+                            @for (int i = 1; i <= Model.TotalPages; i++)
+                            {
+                                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                    <a class="page-link" asp-route-pageIndex="@i">@i</a>
+                                </li>
+                            }
+                            <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                                <a class="page-link" asp-route-pageIndex="@(Model.CurrentPage + 1)">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
             }
-        </tbody>
-    </table>
+        
+}
+    
+    else
+    {
+        <div class="alert alert-info">No jobs found.</div>
+    }
 
-    <!-- Pagination Placeholder -->
-    <div class="card-footer d-flex justify-content-between align-items-center"
-         style="background-color: var(--primary-grey);">
-        <span>Page @Model.PaginatedJobs.PageIndex of @Model.PaginatedJobs.TotalPages</span>
-        <nav>
-            <ul class="pagination">
-                <li class="page-item @(Model.PaginatedJobs.HasPreviousPage ? "" : "disabled")">
-                    <a class="page-link" asp-route-pageIndex="@(Model.PaginatedJobs.PageIndex - 1)">Previous</a>
-                </li>
-                @for (int i = 1; i <= Model.PaginatedJobs.TotalPages; i++)
-                {
-                    <li class="page-item @(i == Model.PaginatedJobs.PageIndex ? "active" : "")">
-                        <a class="page-link" asp-route-pageIndex="@i">@i</a>
-                    </li>
-                }
-                <li class="page-item @(Model.PaginatedJobs.HasNextPage ? "" : "disabled")">
-                    <a class="page-link" asp-route-pageIndex="@(Model.PaginatedJobs.PageIndex + 1)">Next</a>
-                </li>
-            </ul>
-        </nav>
-    </div>
-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
 <!-- Create Modal -->
+
 <div class="modal fade" id="createModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -130,28 +174,57 @@
                 <div class="modal-header"><h5>Add Job</h5></div>
                 <div class="modal-body">
                     <div class="mb-2">
-                        <label>Grave</label>
-                        <select asp-for="Job.sys_graveId" class="form-select"
-                                asp-items="@(new SelectList(Model.Graves, "sys_graveId", "sys_plotNumber"))"></select>
+                        <label>Section</label>
+                        <select id="sectionDropdown" class="form-select">
+                            <option value="">-- Select Section --</option>
+                            @foreach (var grave_section in Model.Sections)
+                            {
+                                <option value="@grave_section.sys_sectionId">@grave_section.sys_sectionName</option>
+                            }
+                        </select>
                     </div>
+
+                    <div class="mb-2">
+                        <label>Grave</label>
+                        <select name="sys_graveId" class="form-select" id="graveDropdown">
+                            <option value="">-- Select Grave --</option>
+                        </select>
+                    </div>
+
                     <div class="mb-2">
                         <label>Supplier</label>
-                        <select asp-for="Job.sys_supplierId" class="form-select"
+                        <select name="sys_supplierId" class="form-select"
                                 asp-items="@(new SelectList(Model.Suppliers, "sys_supplierId", "sys_supplierName"))"></select>
                     </div>
                     <div class="mb-2">
-                        <label>Stage</label>
-                        <select asp-for="Job.sys_stageId" class="form-select"
-                                asp-items="@(new SelectList(Model.Stages, "sys_stageId", "StageName"))"></select>
+                        <label>Development Stage</label>
+                        <select name="sys_stageId" class="form-select"
+                                asp-items="@(new SelectList(Model.Stages, "sys_stageId", "sys_stageName"))"></select>
                     </div>
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                        <div class="mb-2">
+                            <label>Start Date</label>
+                            <input name="sys_startDate" class="form-control" type="date" />
+                        </div>
+                        </div>
+                        <div class="col-sm-6">
+                        <div class="mb-2">
+                            <label>End Date</label>
+                            <input name="sys_endDate" class="form-control" type="date" />
+                        </div>
+                        </div>
+                    </div>
+                    
                     <div class="mb-2">
-                        <label>Start Date</label>
-                        <input asp-for="Job.sys_startDate" class="form-control" type="date" />
+                        <label>Status</label>
+                        <select name="sys_status" class="form-select">
+                            <option value="Complete">Complete</option>
+                            <option value="In Progress">In Progress</option>
+                                </select>
                     </div>
-                    <div class="mb-2">
-                        <label>End Date</label>
-                        <input asp-for="Job.sys_endDate" class="form-control" type="date" />
-                    </div>
+
                 </div>
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-primary">Save</button>
@@ -161,38 +234,92 @@
     </div>
 </div>
 
+
 <!-- Edit Modal -->
 <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <form method="post" asp-page-handler="Edit">
-                <div class="modal-header"><h5>Edit Job</h5></div>
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Job</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
                 <div class="modal-body">
-                    <input type="hidden" asp-for="Job.sys_jobId" id="editJobId" />
+                    <!-- Job Id (Hidden) -->
+                    <input type="hidden" name="sys_jobId" id="editJobId" />
+
+                    <!-- Section -->
                     <div class="mb-2">
-                        <label>Grave</label>
-                        <select asp-for="Job.sys_graveId" class="form-select" id="editGraveId"
-                                asp-items="@(new SelectList(Model.Graves, "sys_graveId", "sys_plotNumber"))"></select>
+                        <label for="EditsectionDropdown">Section</label>
+                        <select id="EditsectionDropdown" class="form-select">
+                            <option value="">-- Select Section --</option>
+                            @foreach (var grave_section in Model.Sections)
+                            {
+                                <option value="@grave_section.sys_sectionId">@grave_section.sys_sectionName</option>
+                            }
+                        </select>
                     </div>
+
+                    <!-- Grave -->
                     <div class="mb-2">
-                        <label>Supplier</label>
-                        <select asp-for="Job.sys_supplierId" class="form-select" id="editSupplierId"
-                                asp-items="@(new SelectList(Model.Suppliers, "sys_supplierId", "sys_supplierName"))"></select>
+                        <label for="EditgraveDropdown">Grave</label>
+                        <select name="sys_graveId" class="form-select" id="EditgraveDropdown">
+                            <option value="">-- Select Grave --</option>
+                        </select>
                     </div>
+
+                    <!-- Supplier -->
                     <div class="mb-2">
-                        <label>Stage</label>
-                        <select asp-for="Job.sys_stageId" class="form-select" id="editStageId"
-                                asp-items="@(new SelectList(Model.Stages, "sys_stageId", "StageName"))"></select>
+                        <label for="editSupplierId">Supplier</label>
+                        <select name="sys_supplierId" class="form-select" id="editSupplierId">
+                            <option value="">-- Select Supplier --</option>
+                            @foreach (var supplier in Model.Suppliers)
+                            {
+                                <option value="@supplier.sys_supplierId">@supplier.sys_supplierName</option>
+                            }
+                        </select>
                     </div>
+
+                    <!-- Stage -->
                     <div class="mb-2">
-                        <label>Start Date</label>
-                        <input asp-for="Job.sys_startDate" class="form-control" type="date" id="editStartDate" />
+                        <label for="editStageId">Stage</label>
+                        <select name="sys_stageId" class="form-select" id="editStageId">
+                            <option value="">-- Select Stage --</option>
+                            @foreach (var stage in Model.Stages)
+                            {
+                                <option value="@stage.sys_stageId">@stage.sys_stageName</option>
+                            }
+                        </select>
                     </div>
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                    <!-- Start Date -->
                     <div class="mb-2">
-                        <label>End Date</label>
-                        <input asp-for="Job.sys_endDate" class="form-control" type="date" id="editEndDate" />
+                        <label for="editStartDate">Start Date</label>
+                        <input name="sys_startDate" class="form-control" type="date" id="editStartDate" />
+                    </div>
+                    </div>
+                        <div class="col-sm-6">
+                    <!-- End Date -->
+                    <div class="mb-2">
+                        <label for="editEndDate">End Date</label>
+                        <input name="sys_endDate" class="form-control" type="date" id="editEndDate" />
+                    </div>
+                    </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label>Status</label>
+                        <select name="sys_status" class="form-select" id="editStatus">
+
+                            <option value="Complete">Complete</option>
+                            <option value="In Progress">In Progress</option>
+                        </select>
                     </div>
                 </div>
+
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-warning">Update</button>
                 </div>
@@ -201,6 +328,7 @@
     </div>
 </div>
 
+
 <!-- Delete Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog">
@@ -208,7 +336,7 @@
             <form method="post" asp-page-handler="Delete">
                 <div class="modal-header"><h5>Delete Job</h5></div>
                 <div class="modal-body">
-                    <input type="hidden" asp-for="Job.sys_jobId" id="deleteJobId" />
+                    <input type="text" id="deleteJobId" name="deleteJobId" />
                     <p>Are you sure you want to delete this job?</p>
                 </div>
                 <div class="modal-footer">
@@ -219,36 +347,100 @@
     </div>
 </div>
 
-<!-- Payment Modal -->
-<div class="modal fade" id="paymentModal" tabindex="-1">
+<!--Bulk Delete Modal-->
+<div class="modal fade" id="bulkDeleteModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post" asp-page-handler="AddPayment">
-                <div class="modal-header"><h5>Supplier Payment</h5></div>
+            <form method="post" asp-page-handler="BulkDelete">
+                <div class="modal-header"><h5>Delete Selected Jobs</h5></div>
                 <div class="modal-body">
-                    <input type="hidden" asp-for="Expense.sys_jobId" id="paymentJobId" />
-                    <input type="hidden" asp-for="Expense.sys_supplierId" id="paymentSupplierId" />
-                    <div class="mb-2">
-                        <label>Amount Due</label>
-                        <input asp-for="Expense.sys_amountDue" class="form-control" type="number" step="0.01" />
+                    <input type="hidden" name="JobIds" id="bulkDeleteIds" />
+                    <p>Are you sure you want to delete the selected jobs?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger">Delete Selected</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="AddPayment">
+                <div class="modal-header">
+                    <h5>Payments</h5>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="paymentJobId" name="sys_jobId" />
+                    <input type="hidden" id="paymentSupplierId" name="sys_supplierId"/>
+
+                    <!-- Previous Payments -->
+                    <h6>Previous Payments</h6>
+                    <table class="table table-sm table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Amount Due</th>
+                                <th>Amount Paid</th>
+                                <th>Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="previousPaymentsBody">
+                            <!-- Filled dynamically via AJAX -->
+                        </tbody>
+                    </table>
+
+                    <hr />
+
+                    <!-- New Payment Form -->
+
+
+                    <div class="row">
+
+                        <div class="col-sm-6">
+                            <div class="mb-2">
+                                <label>Amount Due</label>
+                                <input type="number" class="form-control" id="amountDue" name="AmountDue" />
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <div class="mb-2">
+                                <label>Amount Paid</label>
+                                <input type="number" class="form-control" id="amountPaid" name="AmountPaid" required />
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                        <div class="mb-2">
+                            <label>Payment Date</label>
+                            <input type="date" class="form-control" name="PaymentDate" value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        </div>
+                        <div class="col-sm-6">
+                        <div class="mb-2">
+                            <label>Payment Method</label>
+                            <select class="form-select" name="sys_paymentMethodId"
+                                    asp-items="@(new SelectList(Model.PaymentMethods, "sys_paymentMethodId", "sys_paymentMethodName"))">
+                            </select>
+                        </div>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <div class="mb-2">
+                                <label>Notes</label>
+                                <input type="text"  class="form-control" name="PaymentNotes" />
+                        </div>
                     </div>
-                    <div class="mb-2">
-                        <label>Amount Paid</label>
-                        <input asp-for="Expense.sys_amountPaid" class="form-control" type="number" step="0.01" />
-                    </div>
-                    <div class="mb-2">
-                        <label>Balance Due</label>
-                        <input asp-for="Expense.sys_balanceDue" class="form-control" type="number" step="0.01" />
-                    </div>
-                    <div class="mb-2">
-                        <label>Payment Method</label>
-                        <select asp-for="Expense.sys_paymentMethodId" class="form-select"
-                                asp-items="@(new SelectList(Model.PaymentMethods, "sys_paymentMethodId", "sys_paymentMethodName"))"></select>
-                    </div>
-                    <div class="mb-2">
-                        <label>Notes</label>
-                        <textarea asp-for="Expense.sys_notes" class="form-control"></textarea>
-                    </div>
+
+                    
+                    
+                    
+                </div>
+
                 </div>
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-success">Save Payment</button>
@@ -258,32 +450,171 @@
     </div>
 </div>
 
+
+
+
+
 <!-- Evaluation Modal -->
 <div class="modal fade" id="evaluationModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="post" asp-page-handler="AddEvaluation">
-                <div class="modal-header"><h5>Job Evaluation</h5></div>
+            <form id="evaluationForm" method="post" asp-page-handler="AddEvaluation">
+                <div class="modal-header">
+                    <h5>Job Evaluations</h5>
+                </div>
                 <div class="modal-body">
-                    <input type="hidden" asp-for="JobEvaluation.sys_jobId" id="evaluationJobId" />
-                    <div class="mb-2">
-                        <label>Parameter</label>
-                        <select asp-for="JobEvaluation.sys_jobEvaluationParameterId" class="form-select"
-                                asp-items="@(new SelectList(Model.JobParameters, "sys_jobEvaluationParameterId", "sys_parameterName"))"></select>
-                    </div>
-                    <div class="mb-2">
-                        <label>Evaluation</label>
-                        <textarea asp-for="JobEvaluation.sys_jobEvaluation" class="form-control"></textarea>
+                    <input type="hidden" name="JobId" id="evaluationJobId" />
+
+                      <div class="row">
+                        <div id="evaluationParametersContainer">
+                        
+                        </div>
+                    
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-info">Save Evaluation</button>
+                    <button type="submit" class="btn btn-info">Save Evaluations</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+
+
 <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const sectionDropdown = document.getElementById("sectionDropdown");
+        const graveDropdown = document.getElementById("graveDropdown");
+
+        sectionDropdown.addEventListener("change", function () {
+            const sectionId = this.value;
+
+            // Clear existing graves
+            graveDropdown.innerHTML = '<option value="">-- Select Grave --</option>';
+
+            if (sectionId) {
+                fetch(`?handler=GetGravesBySection&sectionId=${sectionId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(grave => {
+                            let option = document.createElement("option");
+                            option.value = grave.sys_graveId;
+                            option.textContent = grave.sys_plotNumber;
+                            graveDropdown.appendChild(option);
+                        });
+                    });
+            }
+        });
+    });
+
+
+    
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var editModal = document.getElementById("editModal");
+
+        editModal.addEventListener("show.bs.modal", function (event) {
+            var button = event.relatedTarget;
+
+            // Fill hidden Id
+            document.getElementById("editJobId").value = button.getAttribute("data-id");
+
+            // Preselect Section
+            var sectionId = button.getAttribute("data-section");
+            var graveId = button.getAttribute("data-grave");
+            var supplierId = button.getAttribute("data-supplier");
+            var stageId = button.getAttribute("data-stage");
+            var startDate = button.getAttribute("data-start");
+            var endDate = button.getAttribute("data-end");
+
+            // Section dropdown
+            var sectionDropdown = document.getElementById("EditsectionDropdown");
+            sectionDropdown.value = sectionId;
+
+            // Populate graves for that section and select correct grave
+            var graveDropdown = document.getElementById("EditgraveDropdown");
+            graveDropdown.innerHTML = '<option value="">-- Select Grave --</option>';
+
+            if (sectionId) {
+                fetch(`?handler=GetGravesBySection&sectionId=${sectionId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(grave => {
+                            var option = document.createElement("option");
+                            option.value = grave.sys_graveId;
+                            option.text = grave.sys_plotNumber;
+                            if (grave.sys_graveId == graveId) {
+                                option.selected = true;
+                            }
+                            graveDropdown.add(option);
+                        });
+                    })
+                    .catch(error => console.error("Error loading graves:", error));
+            }
+
+            // Supplier, Stage, Dates
+            document.getElementById("editSupplierId").value = supplierId;
+            document.getElementById("editStageId").value = stageId;
+            document.getElementById("editStartDate").value = startDate;
+            document.getElementById("editEndDate").value = endDate;
+        });
+
+        // If user changes section manually, reload graves
+        document.getElementById("EditsectionDropdown").addEventListener("change", function () {
+            var sectionId = this.value;
+            var graveDropdown = document.getElementById("EditgraveDropdown");
+            graveDropdown.innerHTML = '<option value="">-- Select Grave --</option>';
+
+            if (sectionId) {
+                fetch(`?handler=GravesBySection&sectionId=${sectionId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(grave => {
+                            var option = document.createElement("option");
+                            option.value = grave.sys_graveId;
+                            option.text = grave.sys_plotNumber;
+                            graveDropdown.add(option);
+                        });
+                    })
+                    .catch(error => console.error("Error loading graves:", error));
+            }
+        });
+    });
+</script>
+
+
+<script>
+
+    function openEvaluationModal(jobId) {
+        $('#evaluationJobId').val(jobId);
+
+        $.getJSON('?handler=EvaluationParameters&jobId=' + jobId, function (data) {
+            let container = $('#evaluationParametersContainer');
+            container.empty();
+
+            if (data && data.length > 0) {
+                data.forEach(param => {
+                    container.append(`
+                    <div class="col-sm-4">
+                        <div class="mb-2">
+                            <label>${param.sys_parameterName}</label>
+                            <input type="hidden" name="parameterIds" value="${param.sys_jobEvaluationParameterId}" />
+                            <input type="text" class="form-control" name="evaluation_${param.sys_jobEvaluationParameterId}" value="${param.sys_jobEvaluation ?? ''}" />
+                        </div>
+                        </div>
+                    `);
+                });
+            } else {
+                container.append(`<p class="text-muted">No evaluation parameters defined.</p>`);
+            }
+
+            $('#evaluationModal').modal('show');
+        });
+    }
+
+
     document.addEventListener("DOMContentLoaded", function () {
         // --- Edit Job Modal ---
         var editModal = document.getElementById("editModal");
@@ -295,6 +626,7 @@
             document.getElementById("editStageId").value = button.getAttribute("data-stage");
             document.getElementById("editStartDate").value = button.getAttribute("data-start");
             document.getElementById("editEndDate").value = button.getAttribute("data-end");
+            document.getElementbyId("editStatus").value = button.getAttribute("data-status");
         });
 
         // --- Delete Job Modal ---
@@ -304,19 +636,77 @@
             document.getElementById("deleteJobId").value = button.getAttribute("data-id");
         });
 
-        // --- Payment Modal ---
-        var paymentModal = document.getElementById("paymentModal");
-        paymentModal.addEventListener("show.bs.modal", function (event) {
-            var button = event.relatedTarget;
-            document.getElementById("paymentJobId").value = button.getAttribute("data-jobid");
-            document.getElementById("paymentSupplierId").value = button.getAttribute("data-supplier");
+
+        
+    });
+
+</script>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const selectAll = document.getElementById("selectAll");
+        const checkboxes = document.querySelectorAll(".job-checkbox");
+        const deleteBtn = document.getElementById("deleteSelectedBtn");
+        const bulkDeleteIds = document.getElementById("bulkDeleteIds");
+
+        // Select All toggle
+        selectAll.addEventListener("change", function () {
+            checkboxes.forEach(cb => cb.checked = this.checked);
+            toggleDeleteButton();
         });
 
-        // --- Evaluation Modal ---
-        var evaluationModal = document.getElementById("evaluationModal");
-        evaluationModal.addEventListener("show.bs.modal", function (event) {
-            var button = event.relatedTarget;
-            document.getElementById("evaluationJobId").value = button.getAttribute("data-jobid");
+        // Enable delete button if at least one is checked
+        checkboxes.forEach(cb => {
+            cb.addEventListener("change", toggleDeleteButton);
+        });
+
+        function toggleDeleteButton() {
+            const checked = document.querySelectorAll(".job-checkbox:checked").length > 0;
+            deleteBtn.disabled = !checked;
+        }
+
+        // Pass selected IDs to hidden input for bulk delete
+        deleteBtn.addEventListener("click", function () {
+            const ids = Array.from(document.querySelectorAll(".job-checkbox:checked"))
+                             .map(cb => cb.value)
+                             .join(",");
+            bulkDeleteIds.value = ids;
         });
     });
+</script>
+<script>
+    // When opening modal, load previous payments
+    function openPaymentModal(jobId, supplierId) {
+        $("#paymentJobId").val(jobId);
+        $("#paymentSupplierId").val(supplierId);
+
+        fetch(`?handler=Payments&jobId=${jobId}`)
+            .then(r => r.json())
+            .then(data => {
+                let rows = "";
+                let hasPayments = data.length > 0;
+
+                data.forEach(p => {
+                    rows += `<tr>
+                        <td>${p.paymentDate}</td>
+                        <td>${p.amountDue}</td>
+                        <td>${p.amountPaid}</td>
+                        <td>${p.balance}</td>
+                    </tr>`;
+                });
+
+                $("#previousPaymentsBody").html(rows);
+
+                if (hasPayments) {
+                    // Already has payments -> disable AmountDue
+                    $("#amountDue").val("0").prop("readonly", true);
+                } else {
+                    // First payment -> allow entering AmountDue
+                    $("#amountDue").val("").prop("readonly", false);
+                }
+
+                $("#paymentModal").modal("show");
+            });
+    }
 </script>

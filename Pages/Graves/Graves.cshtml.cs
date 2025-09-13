@@ -74,13 +74,22 @@ namespace ZororoMemorialPark.Pages.Graves
         {
             try
             {
-                string plot = Request.Form["sys_plotNumber"];
+                
                 int sectionId = int.Parse(Request.Form["sys_sectionId"]);
                 int stageId = int.Parse(Request.Form["sys_stageId"]);
                 string status = Request.Form["sys_graveSaleStatus"];
                 double price = double.Parse(Request.Form["sys_price"]);
                 double latitude = double.Parse(Request.Form["sys_Latitude"]);
                 double longitude = double.Parse(Request.Form["sys_Longitude"]);
+
+                string plot = Request.Form["sys_plotNumber"];
+
+                var sectionName = _context.tbl_Sections
+                    .Where(s => s.sys_sectionId == sectionId )
+                    .Select(s => s.sys_sectionName)
+                    .FirstOrDefault();
+
+                plot = plot + "-" + sectionName;
 
                 if (string.IsNullOrWhiteSpace(plot))
                 {
@@ -134,11 +143,18 @@ namespace ZororoMemorialPark.Pages.Graves
                 string seed = Request.Form["plotSeed"];
                 double price = double.Parse(Request.Form["sys_price"]);
 
+                var sectionName = _context.tbl_Sections
+                    .Where(s => s.sys_sectionId == sectionId)
+                    .Select(s => s.sys_sectionName)
+                    .FirstOrDefault();
+
                 if (string.IsNullOrWhiteSpace(seed))
                 {
                     TempData["ErrorMessage"] = "Plot number seed is required.";
                     return RedirectToPage();
                 }
+
+                var NewSeed = seed + "-" + sectionName;
 
                 var gravesToAdd = new List<tbl_Graves>();
                 string currentSeed = seed;
@@ -146,16 +162,22 @@ namespace ZororoMemorialPark.Pages.Graves
                 for (int i = 0; i < count; i++)
                 {
                     // Check duplicates
-                    bool exists = await _context.tbl_Graves.AnyAsync(g => g.sys_plotNumber == currentSeed && g.sys_sectionId == sectionId);
+                    bool exists = await _context.tbl_Graves.AnyAsync(g => g.sys_plotNumber == NewSeed && g.sys_sectionId == sectionId);
                     if (exists)
                     {
-                        TempData["ErrorMessage"] = $"Duplicate found: Plot {currentSeed} already exists in the section.";
-                        return RedirectToPage();
+                        TempData["ErrorMessage"] = $"Duplicate found: Plot {NewSeed} already exists in the section.";
+                        _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Bulk Generate Error", $"Duplicate plot {NewSeed} found during bulk generation.");
+                        if (int.TryParse(currentSeed, out int seedNumr))
+                        {
+                            currentSeed = (seedNumr + 1).ToString();
+                            NewSeed = currentSeed + "-" + sectionName;
+                        }
+                        continue;
                     }
 
                     gravesToAdd.Add(new tbl_Graves
                     {
-                        sys_plotNumber = currentSeed,
+                        sys_plotNumber = currentSeed+"-"+sectionName,
                         sys_sectionId = sectionId,
                         sys_stageId = stageId,
                         sys_graveSaleStatus = "Available",

@@ -1,0 +1,559 @@
+﻿@page "{id:int}"
+@model ZororoMemorialPark.Pages.Graves.GraveDetailsModel
+@{
+    ViewData["Title"] = "Grave Details";
+}
+
+<div class="row">
+    <div class="col-lg-12 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-header" style="background-color: var(--primary-green); color: var(--primary-white);">
+                <h5 class="mb-0">Grave @Model.Grave.sys_plotNumber Details</h5>
+            </div>
+
+            <div class="card-body">
+
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert" id="successMessage">
+                        @TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @TempData["ErrorMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+
+                <!-- Tabs -->
+                <ul class="nav nav-tabs mb-3" id="graveTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="details-tab" data-bs-toggle="tab" href="#details" role="tab">Details</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="reservation-tab" data-bs-toggle="tab" href="#reservation" role="tab">Reservations</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="jobs-tab" data-bs-toggle="tab" href="#jobs" role="tab">Jobs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="payments-tab" data-bs-toggle="tab" href="#payments" role="tab">Payments</a>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- Details Tab -->
+                    <div class="tab-pane fade show active" id="details" role="tabpanel">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="card p-2 mb-2">
+                                    <h6>Grave Information</h6>
+                                    <p><strong>Section:</strong> @Model.Section?.sys_sectionName</p>
+                                    <p><strong>Stage:</strong> @Model.Stage?.sys_stageName</p>
+                                    <p><strong>Plot Number:</strong> @Model.Grave.sys_plotNumber</p>
+                                    <p><strong>Status:</strong> @Model.Grave.sys_graveSaleStatus</p>
+                                    <p><strong>Price:$</strong> @Model.Grave.sys_price</p>
+                                    <p><strong>Location:</strong> (@Model.Grave.sys_latitude,@Model.Grave.sys_longitude)</p>
+
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="card p-2 mb-2">
+                                    <h6>Deceased Details</h6>
+                                    @if (Model.Allocation != null)
+                                    {
+                                        <p><strong>Name:</strong> @Model.Deceased.sys_deceasedFullName</p>
+                                        <p><strong>DOB:</strong> @Model.Deceased.sys_deceasedDOB.ToString("yyyy-MM-dd")</p>
+                                        <p><strong>DOD:</strong> @Model.Deceased.sys_deceasedDOD.ToString("yyyy-MM-dd")</p>
+                                        <p><strong>Gender:</strong> @Model.Deceased.sys_deceasedGender</p>
+                                        <p><strong>Marital Status:</strong> @Model.Deceased.sys_deceasedMaritalStatus</p>
+                                        <p><strong>Name of Spouse:</strong> @Model.Deceased.sys_deceasedNameOfSpouse</p>
+                                        <p><strong>Nationality:</strong> @Model.Deceased.sys_deceasedNationality</p>
+
+                                        <p><strong>Burial Date:</strong> @Model.Allocation.sys_dateTimeOfBurial</p>
+                                        <p><strong>Repatriation Source:</strong> @Model.Allocation.sys_repatriationSource</p>
+
+
+                                        <p><strong>Next of Kin:</strong> @Model.Deceased.sys_deceasedNextOfKinName</p>
+                                        <p><strong>Address:</strong> @Model.Deceased.sys_deceasedNextOfKinAddress</p>
+                                        <p><strong>Email:</strong> @Model.Deceased.sys_deceasedNextOfKinEmail</p>
+                                        <p><strong>Contact:</strong> @Model.Deceased.sys_deceasedNextOfKinPhone</p>
+                                        <p><strong>Status:</strong> @Model.AllocationPendingPayment ? "Pending Payment" : "Paid"</p>
+
+                                        @if (Model.AllocationPendingPayment)
+                                        {
+                                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#allocationPaymentModal"
+                                                    data-allocationid="@Model.Allocation.sys_allocationId">
+                                                Capture Payment
+                                            </button>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="alert alert-info">No allocation found.</div>
+                                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#allocateModal">
+                                            Allocate Grave
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reservation Tab -->
+                    <div class="tab-pane fade" id="reservation" role="tabpanel">
+                        @if (Model.Reservation != null)
+                        {
+                            <div class="card p-2 mb-2">
+                                <h6>Reservation Details</h6>
+                                <p><strong>Reserved By:</strong> @Model.Customer.sys_paymentMadeBy</p>
+                                <p><strong>Reservation ID:</strong> @Model.Reservation.sys_reservationId</p>
+
+                                @if (Model.Beneficiaries?.Any() == true)
+                                {
+                                    <h6>Beneficiaries</h6>
+                                    <ul>
+                                        @foreach (var b in Model.Beneficiaries)
+                                        {
+                                            <li>@b.sys_benefitFullName - @b.sys_benefitRelationship</li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">No reservations found.</div>
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#reserveModal">
+                                Create Reservation
+                            </button>
+                        }
+                    </div>
+
+                    <!-- Jobs Tab -->
+                    <div class="tab-pane fade" id="jobs" role="tabpanel">
+                        @if (Model.Jobs?.Any() == true)
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            
+                                            <th>Supplier</th>
+                                            <th>Stage</th>
+                                            <th>Start</th>
+                                            <th>End</th>
+                                            <th>Status</th>
+                                            <th>Evaluations</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var job in Model.Jobs)
+                                        {
+                                            <tr>
+                                                
+                                                <td>@job.SupplierName</td>
+                                                <td>@job.StageName</td>
+                                                <td>@job.sys_startDate.ToString("yyyy-MM-dd")</td>
+                                                <td>@job.sys_endDate.ToString("yyyy-MM-dd")</td>
+                                                <td>@job.Status</td>
+                                                <td>@foreach(var eval in Model.JobEvaluations){
+                                                        if (eval.sys_jobId == job.sys_jobId)
+                                                        {
+                                                            <span>@eval.tbl_jobEvaluationParameters.sys_parameterName:@eval.sys_jobEvaluation</span>
+                                                        }
+                                                    }
+
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#supplierPaymentModal"
+                                                            data-jobid="@job.sys_jobId" data-supplierid="@job.sys_supplierId">
+                                                        Pay Supplier
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">No jobs found for this grave.</div>
+                        }
+                    </div>
+
+                    <!-- Payments Tab -->
+                    <div class="tab-pane fade" id="payments" role="tabpanel">
+                        <h6>Customer Payments</h6>
+                        @if (Model.CustomerPayments?.Any() == true)
+                        {
+                            <table class="table table-striped mb-2">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Invoice</th>
+                                        <th>Amount</th>
+                                        <th>Method</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var p in Model.CustomerPayments)
+                                    {
+                                        <tr>
+                                            <td>@p.sys_date.ToString("yyyy-MM-dd")</td>
+                                            <td>@p.InvoiceNumber</td>
+                                            <td>@p.sys_amount.ToString("C")</td>
+                                            <td>@p.sys_paymentMethod</td>
+                                            <td>@p.sys_notes</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            <p><strong>Total Customer Payments:</strong> @Model.CustomerPayments.Sum(x => x.sys_amount).ToString("C")</p>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">No customer payments found.</div>
+                        }
+
+                        <h6>Supplier Payments</h6>
+                        @if (Model.SupplierPayments?.Any() == true)
+                        {
+                            <table class="table table-striped mb-2">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Job ID</th>
+                                        <th>Supplier</th>
+                                        <th>Paid</th>
+                                        <th>Balance</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var sp in Model.SupplierPayments)
+                                    {
+                                        <tr>
+                                            <td>@sp.sys_date.ToString("yyyy-MM-dd")</td>
+                                            <td>@sp.sys_jobId</td>
+                                            <td>@sp.SupplierName</td>
+                                            <td>@sp.sys_amountPaid.ToString("C")</td>
+                                            <td>@sp.sys_balanceDue.ToString("C")</td>
+                                            <td>@sp.sys_notes</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            <p><strong>Total Supplier Payments:</strong> @Model.SupplierPayments.Sum(x => x.sys_amountPaid).ToString("C")</p>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">No supplier payments found.</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals: Allocate, Reservation, Supplier Payment, Allocation Payment -->
+<!-- Allocate Grave Modal -->
+<div class="modal fade" id="allocateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="AllocateGrave">
+                <div class="modal-header"><h5>Allocate Grave</h5></div>
+                <div class="modal-body">
+
+                    <div class="row">
+
+
+                        <div class="col-md-12">
+                    <input type="hidden" name="graveId" value="@Model.Grave.sys_graveId" />
+                    <div class="mb-2">
+                        <label>Deceased Name<span class="text-danger">*</span></label>
+                        <input type="text" name="deceasedFullName" class="form-control" required />
+                    </div>
+                    </div>
+                        <div class="col-md-6">
+                    <div class="mb-2">
+                        <label>DOB<span class="text-danger">*</span></label>
+                        <input type="date" name="deceasedDOB" class="form-control" required />
+                    </div>
+                    </div>
+
+                        <div class="col-md-6">
+                    <div class="mb-2">
+                        <label>DOD<span class="text-danger">*</span></label>
+                        <input type="date" name="deceasedDOD" class="form-control" required />
+                    </div>
+                    </div>
+                        <div class="col-md-6">
+                    <div class="mb-2">
+                        <label>Gender<span class="text-danger">*</span></label>
+                        <select name="deceasedGender" class="form-control" required>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                        </div>
+                        <div class="col-md-6">
+                    <div class="mb-2">
+                        <label>Nationality<span class="text-danger">*</span></label>
+                        <input type="text" name="nationality" class="form-control" required />
+                    </div>
+                        </div>
+                        <div class="col-md-6">
+                    <div class="mb-2">
+                        <label>Marital Status</label>
+                        <select name="maritalStatus" class="form-control">
+                            <option name="Single">Single</option>
+                            <option name="Married">Married</option>
+                            <option name="Divorced">Divorced</option>
+                            <option name="Widowed">Widowed</option>
+
+                            </select>
+                    </div>
+                        </div>
+                        <div class="col-md-6">
+                    <div class="mb-2">
+                        <label>Name of Spouse</label>
+                        <input type="text" name="nameOfSpouse" class="form-control"  />
+                    </div>
+                    </div>
+                        <div class="col-md-6">
+                    <div class="mb-2">
+                        <label>Next of Kin Full Name<span class="text-danger">*</span></label>
+                        <input type="text" name="nextOfKinFullName" class="form-control" required />
+                    </div>
+                        </div>
+                        <div class="col-md-6">
+                    <div class="mb-2">
+                        <label>Next of Kin Address<span class="text-danger">*</span></label>
+                        <input type="text" name="nextOfKinAddress" class="form-control" required />
+                    </div>
+                    </div>
+                        <div class="col-md-6">
+                    <div class="mb-2">
+                        <label>Next of Kin Email</label>
+                        <input type="email" name="nextOfKinEmail" class="form-control"  />
+                    </div>
+                        </div>
+                        <div class="col-md-6">
+                    <div class="mb-2">
+                        <label>Next of Kin Phone<span class="text-danger">*</span></label>
+                        <input type="text" name="nextOfKinPhone" class="form-control" required />
+                    </div>
+                    </div>
+                        <div class="col-md-6">
+                    <div class="mb-2">
+                        <label>Payment Made By<span class="text-danger">*</span></label>
+                        <input type="text" name="paymentBy" class="form-control" required />
+                    </div>
+                    </div>
+                        <div class="col-md-6">
+                    <div class="mb-2">
+                        <label>Repatriation Source<span class="text-danger">*</span></label>
+                        <input type="text" name="repatriationSource" class="form-control" value="Local" required />
+                    </div>
+                    </div>
+                        <div class="col-md-6">
+                    <div class="mb-2">
+                        <label for="burialDate">Burial Date <span class="text-danger">*</span></label>
+                        <input type="date" id="burialDate" class="form-control" required />
+                    </div>
+                   </div>
+                                <div class="col-md-6">
+                    <div class="mb-2">
+                        <label for="burialTime">Available Slots</label>
+                        <select id="burialTime" name="burialDateTime" class="form-control" required>
+                            <option value="">-- Select a slot --</option>
+                        </select>
+                        <div id="slotMessage" class="text-danger mt-1"></div>
+                    </div>
+                    </div>
+
+
+
+                   </div>
+
+                    
+                </div>
+            
+
+                <div class="modal-footer">
+                    <button type="submit" id="allocateSubmitBtn" class="btn btn-primary">Allocate</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reserve Modal -->
+<div class="modal fade" id="reserveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="CreateReservation">
+                <div class="modal-header"><h5>Reserve Grave</h5></div>
+                <div class="modal-body">
+                    <input type="hidden" name="graveId" value="@Model.Grave.sys_graveId" />
+                    <div class="mb-2">
+                        <label>Customer Name</label>
+                        <input type="text" name="customerName" class="form-control" required />
+                    </div>
+                    <div class="mb-2">
+                        <label>Beneficiaries</label>
+                        <textarea name="beneficiaries" class="form-control" placeholder="One per line: Name|DOB|Relationship"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary">Reserve</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Supplier Payment Modal -->
+<div class="modal fade" id="supplierPaymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="AddSupplierPayment">
+                <div class="modal-header"><h5>Supplier Payment</h5></div>
+                <div class="modal-body">
+                    <input type="hidden" name="jobId" id="paymentJobId" />
+                    <input type="hidden" name="supplierId" id="paymentSupplierId" />
+                    <div class="mb-2">
+                        <label>Amount Due</label>
+                        <input type="number" name="amountDue" step="0.01" class="form-control" id="amountDue" />
+                    </div>
+                    <div class="mb-2">
+                        <label>Amount Paid</label>
+                        <input type="number" name="amountPaid" step="0.01" class="form-control" id="amountPaid" />
+                    </div>
+                    <div class="mb-2">
+                        <label>Balance</label>
+                        <input type="number" name="balanceDue" step="0.01" class="form-control" id="balanceDue" readonly />
+                    </div>
+                    <div class="mb-2">
+                        <label>Payment Method</label>
+                        <select name="paymentMethodId" class="form-select">
+                            @foreach (var pm in Model.PaymentMethods)
+                            {
+                                <option value="@pm.sys_paymentMethodId">@pm.sys_paymentMethodName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label>Notes</label>
+                        <textarea name="notes" class="form-control"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success">Save Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Allocation Payment Modal -->
+<div class="modal fade" id="allocationPaymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="AddAllocationPayment">
+                <div class="modal-header"><h5>Allocation Payment</h5></div>
+                <div class="modal-body">
+                    <input type="hidden" name="allocationId" id="allocationId" />
+                    <div class="mb-2">
+                        <label>Amount Paid</label>
+                        <input type="number" name="amountPaid" step="0.01" class="form-control" required />
+                    </div>
+                    <div class="mb-2">
+                        <label>Payment Method</label>
+                        <select name="paymentMethodId" class="form-select">
+                            @foreach (var pm in Model.PaymentMethods)
+                            {
+                                <option value="@pm.sys_paymentMethodId">@pm.sys_paymentMethodName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label>Notes</label>
+                        <textarea name="notes" class="form-control"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success">Save Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function(){
+        var supplierModal = document.getElementById("supplierPaymentModal");
+        supplierModal.addEventListener("show.bs.modal", function(event){
+            var button = event.relatedTarget;
+            document.getElementById("paymentJobId").value = button.getAttribute("data-jobid");
+            document.getElementById("paymentSupplierId").value = button.getAttribute("data-supplierid");
+        });
+
+        var allocationModal = document.getElementById("allocationPaymentModal");
+        allocationModal.addEventListener("show.bs.modal", function(event){
+            var button = event.relatedTarget;
+            document.getElementById("allocationId").value = button.getAttribute("data-allocationid");
+        });
+    });
+</script>
+
+<script>
+    document.getElementById("burialDate").addEventListener("change", async function () {
+        const burialDate = this.value;
+        const timeSelect = document.getElementById("burialTime");
+        const messageEl = document.getElementById("slotMessage");
+        const submitBtn = document.getElementById("allocateSubmitBtn");
+
+        if (!burialDate) return;
+
+        try {
+            const response = await fetch(`?handler=AvailableBurialSlots&burialDate=${encodeURIComponent(burialDate)}`);
+            const result = await response.json();
+
+            // Clear old options
+            timeSelect.innerHTML = `<option value="">-- Select a slot --</option>`;
+
+            if (result.slots.length === 0) {
+                messageEl.textContent = result.message || "No slots available.";
+                submitBtn.disabled = true;
+            } else {
+                messageEl.textContent = "";
+                submitBtn.disabled = false;
+
+                result.slots.forEach(slot => {
+                    const date = new Date(slot);
+                    const opt = document.createElement("option");
+                    opt.value = slot;
+                    opt.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    timeSelect.appendChild(opt);
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching slots:", error);
+            messageEl.textContent = "Could not load slots.";
+            submitBtn.disabled = true;
+        }
+    });
+</script>
+
+

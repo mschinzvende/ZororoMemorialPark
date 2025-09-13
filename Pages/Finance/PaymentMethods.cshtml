@@ -1,0 +1,229 @@
+﻿@page
+@model ZororoMemorialPark.Pages.PaymentMethods.PaymentMethodsModel
+@{
+    ViewData["Title"] = "Payment Methods";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-3">Payment Methods</h2>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <!-- Card Layout -->
+    <div class="card shadow-sm">
+         <div class="card-header d-flex justify-content-between align-items-center"
+                 style="background-color: var(--primary-green); color: var(--primary-white);">
+            <span>Manage Payment Methods</span>
+
+            
+            <div>
+                <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#createModal">
+                    <i class="bi bi-plus-circle"></i> Add Payment Method
+                </button>
+                </div>
+        </div>
+
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+
+                <input type="text" class="form-control w-50" placeholder="Search parameters..." id="searchInput">
+                <button class="btn btn-sm btn-danger" id="deleteSelectedBtn" data-bs-toggle="modal" data-bs-target="#deleteSelectedModal" disabled>
+                    <i class="bi bi-trash"></i> Delete Selected
+                </button>
+
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAll" /></th>
+                            <th>Name</th>
+                            <th style="width: 180px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="methodsTable">
+                        @foreach (var method in Model.PaginatedMethods)
+                        {
+                            <tr>
+                                <td><input type="checkbox" class="row-checkbox" value="@method.sys_paymentMethodId" /></td>
+                                <td>@method.sys_paymentMethodName</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="modal" data-bs-target="#editModal"
+                                            data-id="@method.sys_paymentMethodId"
+                                            data-name="@method.sys_paymentMethodName">
+                                        Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal"
+                                            data-id="@method.sys_paymentMethodId">
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        @if (Model.PaginatedMethods?.TotalPages > 1)
+        {
+            <div class="card-footer d-flex justify-content-between align-items-center">
+                <span>Page @Model.PaginatedMethods.PageIndex of @Model.PaginatedMethods.TotalPages</span>
+                <nav>
+                    <ul class="pagination mb-0">
+                        <li class="page-item @(Model.PaginatedMethods.HasPreviousPage ? "" : "disabled")">
+                            <a class="page-link" asp-route-pageIndex="@(Model.PaginatedMethods.PageIndex - 1)">Previous</a>
+                        </li>
+                        @for (int i = 1; i <= Model.PaginatedMethods.TotalPages; i++)
+                        {
+                            <li class="page-item @(i == Model.PaginatedMethods.PageIndex ? "active" : "")">
+                                <a class="page-link" asp-route-pageIndex="@i">@i</a>
+                            </li>
+                        }
+                        <li class="page-item @(Model.PaginatedMethods.HasNextPage ? "" : "disabled")">
+                            <a class="page-link" asp-route-pageIndex="@(Model.PaginatedMethods.PageIndex + 1)">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modals (Create, Edit, Delete, Delete Selected) -->
+<!-- Create Modal -->
+<div class="modal fade" id="createModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Create">
+                <div class="modal-header"><h5>Add Payment Method</h5></div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label>Name</label>
+                        <input asp-for="PaymentMethod.sys_paymentMethodName" class="form-control" />
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-primary">Save</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Edit">
+                <div class="modal-header"><h5>Edit Payment Method</h5></div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="PaymentMethod.sys_paymentMethodId" id="editMethodId" />
+                    <div class="mb-2">
+                        <label>Name</label>
+                        <input asp-for="PaymentMethod.sys_paymentMethodName" class="form-control" id="editMethodName" />
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-warning">Update</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Delete">
+                <div class="modal-header"><h5>Delete Payment Method</h5></div>
+                <div class="modal-body">
+                    <input type="text" asp-for="PaymentMethod.sys_paymentMethodId" id="deleteMethodId" />
+                    <p>Are you sure you want to delete this method?</p>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-danger">Delete</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Selected Modal -->
+<div class="modal fade" id="deleteSelectedModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="DeleteSelected">
+                <div class="modal-header"><h5>Delete Selected</h5></div>
+                <div class="modal-body">
+                    <input type="hidden" id="SelectedIds" name="SelectedIds" />
+                    <p id="bulkDeleteMessage"></p>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-danger">Delete</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Live Search ---
+    document.getElementById("searchInput").addEventListener("keyup", function () {
+        let filter = this.value.toLowerCase();
+        let rows = document.querySelectorAll("#methodsTable tr");
+        rows.forEach(row => {
+            row.style.display = row.innerText.toLowerCase().includes(filter) ? "" : "none";
+        });
+    });
+
+    // --- Checkbox Select/Deselect ---
+    const selectAll = document.getElementById("selectAll");
+    const deleteBtn = document.getElementById("deleteSelectedBtn");
+
+    selectAll.addEventListener("change", function () {
+        let checkboxes = document.querySelectorAll(".row-checkbox");
+        checkboxes.forEach(cb => cb.checked = this.checked);
+        toggleDeleteButton();
+    });
+
+    document.addEventListener("change", function (e) {
+        if (e.target.classList.contains("row-checkbox")) {
+            toggleDeleteButton();
+        }
+    });
+
+    function toggleDeleteButton() {
+        let checked = document.querySelectorAll(".row-checkbox:checked").length;
+        deleteBtn.disabled = checked === 0;
+    }
+
+    // --- Delete Selected Handler ---
+    const bulkDeleteMessage = document.getElementById("bulkDeleteMessage");
+    const selectedIdsInput = document.getElementById("SelectedIds");
+
+    deleteBtn.addEventListener("click", function () {
+        let ids = Array.from(document.querySelectorAll(".row-checkbox:checked"))
+            .map(cb => cb.value);
+        if (ids.length > 0) {
+            selectedIdsInput.value = ids.join(",");
+            bulkDeleteMessage.textContent = `Are you sure you want to delete ${ids.length} selected payment method(s)?`;
+        }
+    });
+
+    // --- Edit/Delete Modals ---
+    var editModal = document.getElementById("editModal");
+    editModal.addEventListener("show.bs.modal", function (event) {
+        var button = event.relatedTarget;
+        document.getElementById("editMethodId").value = button.getAttribute("data-id");
+        document.getElementById("editMethodName").value = button.getAttribute("data-name");
+    });
+
+    var deleteModal = document.getElementById("deleteModal");
+    deleteModal.addEventListener("show.bs.modal", function (event) {
+        var button = event.relatedTarget;
+        document.getElementById("deleteMethodId").value = button.getAttribute("data-id");
+    });
+</script>
