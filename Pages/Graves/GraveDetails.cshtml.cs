@@ -44,6 +44,10 @@ namespace ZororoMemorialPark.Pages.Graves
 
         public List<tbl_JobEvaluations> JobEvaluations {  get; set; } = new();
 
+        public double TotalPaid { get; set; }
+        public double Balance { get; set; }
+        public string PaymentStatus { get; set; }
+
         public class JobDto
         {
             public int sys_jobId { get; set; }
@@ -130,23 +134,66 @@ namespace ZororoMemorialPark.Pages.Graves
                 // Customer Payments for this grave
                 CustomerPayments = new List<CustomerPaymentDto>();
 
-                if (Customer != null)
+                // Payments from Reservation invoices
+                if (Reservation != null)
                 {
-                    CustomerPayments = await (from payment in _context.tbl_IncomePayments
-                                              join invoice in _context.tbl_Invoices
-                                              on payment.sys_invoiceId equals invoice.sys_invoiceId
-                                              where invoice.sys_customerId == Customer.sys_customerId
-                                              select new CustomerPaymentDto
-                                              {
-                                                  sys_incomeId = payment.sys_incomeId,
-                                                  sys_date = payment.sys_date,
-                                                  InvoiceNumber = invoice.sys_invoiceNumber,
-                                                  sys_amount = payment.sys_amount,
-                                                  sys_paymentMethod = payment.sys_paymentMethod,
-                                                  sys_notes = payment.sys_notes
-                                              }).ToListAsync();
+                    var reservationPayments = await (
+                        from gri in _context.tbl_GraveReservationInvoices
+                        join inv in _context.tbl_Invoices on gri.sys_invoiceId equals inv.sys_invoiceId
+                        join pay in _context.tbl_IncomePayments on inv.sys_invoiceId equals pay.sys_invoiceId
+                        where gri.sys_reservationId == Reservation.sys_reservationId
+                        select new CustomerPaymentDto
+                        {
+                            sys_incomeId = pay.sys_incomeId,
+                            sys_date = pay.sys_date,
+                            InvoiceNumber = inv.sys_invoiceNumber,
+                            sys_amount = pay.sys_amount,
+                            sys_paymentMethod = pay.sys_paymentMethod,
+                            sys_notes = pay.sys_notes
+                        }).ToListAsync();
+
+                    CustomerPayments.AddRange(reservationPayments);
                 }
 
+                // Payments from Allocation invoices
+                if (Allocation != null)
+                {
+                    var allocationPayments = await (
+                        from gai in _context.tbl_GraveAllocationInvoices
+                        join inv in _context.tbl_Invoices on gai.sys_invoiceId equals inv.sys_invoiceId
+                        join pay in _context.tbl_IncomePayments on inv.sys_invoiceId equals pay.sys_invoiceId
+                        where gai.sys_allocationId == Allocation.sys_allocationId
+                        select new CustomerPaymentDto
+                        {
+                            sys_incomeId = pay.sys_incomeId,
+                            sys_date = pay.sys_date,
+                            InvoiceNumber = inv.sys_invoiceNumber,
+                            sys_amount = pay.sys_amount,
+                            sys_paymentMethod = pay.sys_paymentMethod,
+                            sys_notes = pay.sys_notes
+                        }).ToListAsync();
+
+                    CustomerPayments.AddRange(allocationPayments);
+                }
+
+
+                //Calculate totals
+                TotalPaid = CustomerPayments.Sum(CustomerPaymentDto => CustomerPaymentDto.sys_amount );
+                Balance = (Grave?.sys_price ?? 0) - TotalPaid;
+
+                if (Balance <= 0)
+                {
+                    PaymentStatus = "Fully Paid";
+                    Balance = 0; // avoid showing negative
+                }
+                else if (TotalPaid > 0)
+                {
+                    PaymentStatus = "Partially Paid";
+                }
+                else
+                {
+                    PaymentStatus = "Unpaid";
+                }
 
                 // Supplier Payments for this grave (expenses linked to jobs)
 
@@ -254,6 +301,9 @@ namespace ZororoMemorialPark.Pages.Graves
                     sys_itemName = $"Grave Allocation - Grave ID {grave.sys_plotNumber}",
                     sys_itemCost = grave.sys_price
                 };
+                _context.tbl_InvoiceItems.Add(invoiceItem);
+                await _context.SaveChangesAsync();
+
 
                 // Create Allocation
                 var allocation = new tbl_GraveAllocations
@@ -266,6 +316,16 @@ namespace ZororoMemorialPark.Pages.Graves
                     sys_dateTimeOfBurial = burialDateTime
                 };
                 _context.tbl_GraveAllocations.Add(allocation);
+                await _context.SaveChangesAsync();
+
+                //Link grave allocation to invoice via the linker table
+
+                var linker = new tbl_GraveAllocationInvoices
+                {
+                    sys_allocationId = allocation.sys_allocationId,
+                    sys_invoiceId = invoice.sys_invoiceId
+                };
+                _context.tbl_GraveAllocationInvoices.Add(linker);
                 await _context.SaveChangesAsync();
 
                 // Update Grave status
@@ -335,7 +395,8 @@ namespace ZororoMemorialPark.Pages.Graves
 
 
         // Create Reservation
-        public async Task<IActionResult> OnPostCreateReservationAsync(int graveId, string customerName, string beneficiaries)
+        public async Task<IActionResult> OnPostCreateReservationAsync(int graveId, string customerName, 
+            string benefitiaryFullName, DateOnly benefitiaryDOB, string benefitiaryRelationship )
         {
             var customer = new tbl_Customers { sys_paymentMadeBy = customerName };
             _context.tbl_Customers.Add(customer);
@@ -349,26 +410,62 @@ namespace ZororoMemorialPark.Pages.Graves
             _context.tbl_GraveReservations.Add(reservation);
             await _context.SaveChangesAsync();
 
-            if (!string.IsNullOrEmpty(beneficiaries))
+            
+           var b = new tbl_Beneficiaries
+             {
+                  sys_benefitFullName = benefitiaryFullName ,
+                  sys_benefitDOB = benefitiaryDOB,
+                  sys_benefitRelationship = benefitiaryRelationship,
+                  sys_reservationId = reservation.sys_reservationId
+             };
+              _context.tbl_Beneficiaries.Add(b);
+             await _context.SaveChangesAsync();
+
+
+            //Create a reservation invoice
+            
+            var invoice = new tbl_Invoices
             {
-                var lines = beneficiaries.Split('\n');
-                foreach (var line in lines)
-                {
-                    var parts = line.Split('|');
-                    if (parts.Length == 3)
-                    {
-                        var b = new tbl_Beneficiaries
-                        {
-                            sys_benefitFullName = parts[0],
-                            sys_benefitDOB = DateOnly.Parse(parts[1]),
-                            sys_benefitRelationship = parts[2],
-                            sys_reservationId = reservation.sys_reservationId
-                        };
-                        _context.tbl_Beneficiaries.Add(b);
-                    }
-                }
-                await _context.SaveChangesAsync();
-            }
+
+                sys_invoiceDate = DateOnly.FromDateTime(DateTime.Now),
+                sys_invoiceNumber = $"INV-{DateTime.Now.Ticks}",
+                sys_customerId = customer.sys_customerId,
+                sys_invoiceDueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7))
+            };
+            _context.tbl_Invoices.Add(invoice);
+            await _context.SaveChangesAsync();
+
+
+            //get the grave
+
+            var grave = await _context.tbl_Graves.FindAsync(graveId);
+            // Create Invoice Item
+
+            var invoiceItem = new tbl_InvoiceItems
+            {
+                sys_invoiceId = invoice.sys_invoiceId,
+                sys_itemName = $"Grave Reservation - Grave ID {grave.sys_plotNumber}",
+                sys_itemCost = grave.sys_price
+            };
+            _context.tbl_InvoiceItems.Add(invoiceItem);
+            await _context.SaveChangesAsync();
+
+
+            //Link grave reservation to invoice via the linker table
+
+            var linker = new tbl_GraveReservationInvoices
+            {
+                sys_reservationId = reservation.sys_reservationId,
+                sys_invoiceId = invoice.sys_invoiceId
+            };
+            _context.tbl_GraveReservationInvoices.Add(linker);
+            await _context.SaveChangesAsync();
+
+            // Update Grave status
+            grave.sys_graveSaleStatus = "Reserved";
+            _context.tbl_Graves.Update(grave);
+            await _context.SaveChangesAsync();
+
 
             return RedirectToPage(new { id = graveId });
         }
@@ -407,7 +504,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 sys_date = DateOnly.FromDateTime(DateTime.Now),
                 sys_amount = amountPaid,
                 sys_paymentMethod = _context.tbl_PaymentMethods.FirstOrDefault(pm => pm.sys_paymentMethodId == paymentMethodId)?.sys_paymentMethodName,
-                sys_notes = notes
+                sys_notes = notes ?? "n/a"
             };
             _context.tbl_IncomePayments.Add(payment);
             await _context.SaveChangesAsync();

@@ -49,61 +49,143 @@
                     <!-- Details Tab -->
                     <div class="tab-pane fade show active" id="details" role="tabpanel">
                         <div class="row mb-3">
+                            <!-- Grave Information -->
                             <div class="col-md-6">
-                                <div class="card p-2 mb-2">
-                                    <h6>Grave Information</h6>
-                                    <p><strong>Section:</strong> @Model.Section?.sys_sectionName</p>
-                                    <p><strong>Stage:</strong> @Model.Stage?.sys_stageName</p>
-                                    <p><strong>Plot Number:</strong> @Model.Grave.sys_plotNumber</p>
-                                    <p><strong>Status:</strong> @Model.Grave.sys_graveSaleStatus</p>
-                                    <p><strong>Price:$</strong> @Model.Grave.sys_price</p>
-                                    <p><strong>Location:</strong> (@Model.Grave.sys_latitude,@Model.Grave.sys_longitude)</p>
+                                <div class="card p-3 mb-3 shadow-sm">
+                                    <h6 class="mb-3 border-bottom pb-2">Grave Information</h6>
+                                    <dl class="row">
+                                        <dt class="col-sm-4">Section</dt>
+                                        <dd class="col-sm-8">@Model.Section?.sys_sectionName</dd>
 
+                                        <dt class="col-sm-4">Stage</dt>
+                                        <dd class="col-sm-8">@Model.Stage?.sys_stageName</dd>
+
+                                        <dt class="col-sm-4">Plot Number</dt>
+                                        <dd class="col-sm-8"><span class="badge bg-primary">@Model.Grave.sys_plotNumber</span></dd>
+
+                                        <dt class="col-sm-4">Status</dt>
+                                        <dd class="col-sm-8">
+                                            @if (Model.Grave.sys_graveSaleStatus == "Allocated")
+                                            {
+                                                <span class="badge bg-success">Allocated</span>
+                                            }
+                                            else if (Model.Grave.sys_graveSaleStatus == "Reserved")
+                                            {
+                                                <span class="badge bg-warning text-dark">Reserved</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">@Model.Grave.sys_graveSaleStatus</span>
+                                            }
+                                        </dd>
+                                        <dt class="col-sm-4">Location</dt>
+                                        <dd class="col-sm-8">(@Model.Grave.sys_latitude, @Model.Grave.sys_longitude)</dd>
+
+                                        <dt class="col-sm-4">Price</dt>
+                                        <dd class="col-sm-8">$@Model.Grave.sys_price</dd>
+
+                                        
+                                        <dt class="col-sm-4">Total Paid: $</dt> 
+                                        <dd class="col-sm-8">@Model.TotalPaid</dd>
+
+                                        <dt class="col-sm-4">Balance: $</dt> 
+                                        <dd class="col-sm-8">@Model.Balance</dd>
+
+                                        <dt class="col-sm-4">Status: </dt>
+                                        <dd class="col-sm-8">
+                                            <span class="badge @(Model.PaymentStatus == "Fully Paid" ? "bg-success" : Model.PaymentStatus == "Partially Paid" ? "bg-warning text-dark" : "bg-danger")">
+                                                @Model.PaymentStatus
+                                            </span> </dd>
+                                        
+                                    </dl>
                                 </div>
                             </div>
 
+                            <!-- Deceased Details -->
                             <div class="col-md-6">
-                                <div class="card p-2 mb-2">
-                                    <h6>Deceased Details</h6>
+                                <div class="card p-3 mb-3 shadow-sm">
+                                    <h6 class="mb-3 border-bottom pb-2">Deceased Details</h6>
                                     @if (Model.Allocation != null)
                                     {
-                                        <p><strong>Name:</strong> @Model.Deceased.sys_deceasedFullName</p>
-                                        <p><strong>DOB:</strong> @Model.Deceased.sys_deceasedDOB.ToString("yyyy-MM-dd")</p>
-                                        <p><strong>DOD:</strong> @Model.Deceased.sys_deceasedDOD.ToString("yyyy-MM-dd")</p>
-                                        <p><strong>Gender:</strong> @Model.Deceased.sys_deceasedGender</p>
-                                        <p><strong>Marital Status:</strong> @Model.Deceased.sys_deceasedMaritalStatus</p>
-                                        <p><strong>Name of Spouse:</strong> @Model.Deceased.sys_deceasedNameOfSpouse</p>
-                                        <p><strong>Nationality:</strong> @Model.Deceased.sys_deceasedNationality</p>
+                                        <dl class="row">
+                                            <dt class="col-sm-5">Name</dt>
+                                            <dd class="col-sm-7 fw-bold">@Model.Deceased.sys_deceasedFullName</dd>
 
-                                        <p><strong>Burial Date:</strong> @Model.Allocation.sys_dateTimeOfBurial</p>
-                                        <p><strong>Repatriation Source:</strong> @Model.Allocation.sys_repatriationSource</p>
+                                            <dt class="col-sm-5">DOB</dt>
+                                            <dd class="col-sm-7">@Model.Deceased.sys_deceasedDOB.ToString("yyyy-MM-dd")</dd>
 
+                                            <dt class="col-sm-5">DOD</dt>
+                                            <dd class="col-sm-7">@Model.Deceased.sys_deceasedDOD.ToString("yyyy-MM-dd")</dd>
 
-                                        <p><strong>Next of Kin:</strong> @Model.Deceased.sys_deceasedNextOfKinName</p>
-                                        <p><strong>Address:</strong> @Model.Deceased.sys_deceasedNextOfKinAddress</p>
-                                        <p><strong>Email:</strong> @Model.Deceased.sys_deceasedNextOfKinEmail</p>
-                                        <p><strong>Contact:</strong> @Model.Deceased.sys_deceasedNextOfKinPhone</p>
-                                        <p><strong>Status:</strong> @Model.AllocationPendingPayment ? "Pending Payment" : "Paid"</p>
+                                            <dt class="col-sm-5">Gender</dt>
+                                            <dd class="col-sm-7">@Model.Deceased.sys_deceasedGender</dd>
 
-                                        @if (Model.AllocationPendingPayment)
+                                            <dt class="col-sm-5">Marital Status</dt>
+                                            <dd class="col-sm-7">@Model.Deceased.sys_deceasedMaritalStatus</dd>
+
+                                            <dt class="col-sm-5">Spouse</dt>
+                                            <dd class="col-sm-7">@Model.Deceased.sys_deceasedNameOfSpouse</dd>
+
+                                            <dt class="col-sm-5">Nationality</dt>
+                                            <dd class="col-sm-7">@Model.Deceased.sys_deceasedNationality</dd>
+
+                                            <dt class="col-sm-5">Burial Date</dt>
+                                            <dd class="col-sm-7">
+                                                <span class="badge bg-info text-dark">@Model.Allocation.sys_dateTimeOfBurial</span>
+                                            </dd>
+
+                                            <dt class="col-sm-5">Repatriation Source</dt>
+                                            <dd class="col-sm-7">@Model.Allocation.sys_repatriationSource</dd>
+
+                                            <dt class="col-sm-5">Next of Kin</dt>
+                                            <dd class="col-sm-7">@Model.Deceased.sys_deceasedNextOfKinName</dd>
+
+                                            <dt class="col-sm-5">Address</dt>
+                                            <dd class="col-sm-7">@Model.Deceased.sys_deceasedNextOfKinAddress</dd>
+
+                                            <dt class="col-sm-5">Email</dt>
+                                            <dd class="col-sm-7">@Model.Deceased.sys_deceasedNextOfKinEmail</dd>
+
+                                            <dt class="col-sm-5">Contact</dt>
+                                            <dd class="col-sm-7">@Model.Deceased.sys_deceasedNextOfKinPhone</dd>
+
+                                            <dt class="col-sm-5">Status</dt>
+                                            <dd class="col-sm-7">
+                                                @if (Model.AllocationPendingPayment)
+                                                {
+                                                    <span class="badge bg-danger">Pending Payment</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-success">Paid</span>
+                                                }
+                                            </dd>
+                                        </dl>
+
+                                        @if (Model.AllocationPendingPayment || Model.PaymentStatus=="Partially Paid" || Model.PaymentStatus=="Unpaid")
                                         {
-                                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#allocationPaymentModal"
+                                            <button class="btn btn-sm btn-success mt-2"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#allocationPaymentModal"
                                                     data-allocationid="@Model.Allocation.sys_allocationId">
-                                                Capture Payment
+                                                💳 Capture Payment
                                             </button>
                                         }
                                     }
                                     else
                                     {
                                         <div class="alert alert-info">No allocation found.</div>
-                                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#allocateModal">
-                                            Allocate Grave
+                                        <button class="btn btn-sm btn-primary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#allocateModal">
+                                            ➕ Allocate Grave
                                         </button>
                                     }
                                 </div>
                             </div>
                         </div>
                     </div>
+
 
                     <!-- Reservation Tab -->
                     <div class="tab-pane fade" id="reservation" role="tabpanel">
@@ -268,128 +350,110 @@
 <!-- Modals: Allocate, Reservation, Supplier Payment, Allocation Payment -->
 <!-- Allocate Grave Modal -->
 <div class="modal fade" id="allocateModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
+        <!-- wider modal for 3 columns -->
         <div class="modal-content">
             <form method="post" asp-page-handler="AllocateGrave">
-                <div class="modal-header"><h5>Allocate Grave</h5></div>
+                <div class="modal-header">
+                    <h5 class="modal-title">Allocate Grave</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
                 <div class="modal-body">
+                    <div class="row g-3">
+                        <!-- g-3 adds spacing -->
 
-                    <div class="row">
-
+                        <input type="hidden" name="graveId" value="@Model.Grave.sys_graveId" />
 
                         <div class="col-md-12">
-                    <input type="hidden" name="graveId" value="@Model.Grave.sys_graveId" />
-                    <div class="mb-2">
-                        <label>Deceased Name<span class="text-danger">*</span></label>
-                        <input type="text" name="deceasedFullName" class="form-control" required />
-                    </div>
-                    </div>
-                        <div class="col-md-6">
-                    <div class="mb-2">
-                        <label>DOB<span class="text-danger">*</span></label>
-                        <input type="date" name="deceasedDOB" class="form-control" required />
-                    </div>
-                    </div>
-
-                        <div class="col-md-6">
-                    <div class="mb-2">
-                        <label>DOD<span class="text-danger">*</span></label>
-                        <input type="date" name="deceasedDOD" class="form-control" required />
-                    </div>
-                    </div>
-                        <div class="col-md-6">
-                    <div class="mb-2">
-                        <label>Gender<span class="text-danger">*</span></label>
-                        <select name="deceasedGender" class="form-control" required>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                        </select>
-                    </div>
+                            <label>Deceased Name<span class="text-danger">*</span></label>
+                            <input type="text" name="deceasedFullName" class="form-control" required />
                         </div>
-                        <div class="col-md-6">
-                    <div class="mb-2">
-                        <label>Nationality<span class="text-danger">*</span></label>
-                        <input type="text" name="nationality" class="form-control" required />
-                    </div>
-                        </div>
-                        <div class="col-md-6">
-                    <div class="mb-2">
-                        <label>Marital Status</label>
-                        <select name="maritalStatus" class="form-control">
-                            <option name="Single">Single</option>
-                            <option name="Married">Married</option>
-                            <option name="Divorced">Divorced</option>
-                            <option name="Widowed">Widowed</option>
 
+                        <div class="col-md-4">
+                            <label>DOB<span class="text-danger">*</span></label>
+                            <input type="date" name="deceasedDOB" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label>DOD<span class="text-danger">*</span></label>
+                            <input type="date" name="deceasedDOD" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label>Gender<span class="text-danger">*</span></label>
+                            <select name="deceasedGender" class="form-control" required>
+                                <option value="">-- Select --</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
                             </select>
-                    </div>
                         </div>
-                        <div class="col-md-6">
-                    <div class="mb-2">
-                        <label>Name of Spouse</label>
-                        <input type="text" name="nameOfSpouse" class="form-control"  />
-                    </div>
-                    </div>
-                        <div class="col-md-6">
-                    <div class="mb-2">
-                        <label>Next of Kin Full Name<span class="text-danger">*</span></label>
-                        <input type="text" name="nextOfKinFullName" class="form-control" required />
-                    </div>
+
+                        <div class="col-md-4">
+                            <label>Nationality<span class="text-danger">*</span></label>
+                            <input type="text" name="nationality" class="form-control" required />
                         </div>
-                        <div class="col-md-6">
-                    <div class="mb-2">
-                        <label>Next of Kin Address<span class="text-danger">*</span></label>
-                        <input type="text" name="nextOfKinAddress" class="form-control" required />
-                    </div>
-                    </div>
-                        <div class="col-md-6">
-                    <div class="mb-2">
-                        <label>Next of Kin Email</label>
-                        <input type="email" name="nextOfKinEmail" class="form-control"  />
-                    </div>
+
+                        <div class="col-md-4">
+                            <label>Marital Status</label>
+                            <select name="maritalStatus" class="form-control">
+                                <option value="">-- Select --</option>
+                                <option value="Single">Single</option>
+                                <option value="Married">Married</option>
+                                <option value="Divorced">Divorced</option>
+                                <option value="Widowed">Widowed</option>
+                            </select>
                         </div>
-                        <div class="col-md-6">
-                    <div class="mb-2">
-                        <label>Next of Kin Phone<span class="text-danger">*</span></label>
-                        <input type="text" name="nextOfKinPhone" class="form-control" required />
-                    </div>
-                    </div>
-                        <div class="col-md-6">
-                    <div class="mb-2">
-                        <label>Payment Made By<span class="text-danger">*</span></label>
-                        <input type="text" name="paymentBy" class="form-control" required />
-                    </div>
-                    </div>
-                        <div class="col-md-6">
-                    <div class="mb-2">
-                        <label>Repatriation Source<span class="text-danger">*</span></label>
-                        <input type="text" name="repatriationSource" class="form-control" value="Local" required />
-                    </div>
-                    </div>
-                        <div class="col-md-6">
-                    <div class="mb-2">
-                        <label for="burialDate">Burial Date <span class="text-danger">*</span></label>
-                        <input type="date" id="burialDate" class="form-control" required />
-                    </div>
-                   </div>
-                                <div class="col-md-6">
-                    <div class="mb-2">
-                        <label for="burialTime">Available Slots</label>
-                        <select id="burialTime" name="burialDateTime" class="form-control" required>
-                            <option value="">-- Select a slot --</option>
-                        </select>
-                        <div id="slotMessage" class="text-danger mt-1"></div>
-                    </div>
-                    </div>
 
+                        <div class="col-md-4">
+                            <label>Name of Spouse</label>
+                            <input type="text" name="nameOfSpouse" class="form-control" />
+                        </div>
 
+                        <div class="col-md-4">
+                            <label>Next of Kin Full Name<span class="text-danger">*</span></label>
+                            <input type="text" name="nextOfKinFullName" class="form-control" required />
+                        </div>
 
-                   </div>
+                        <div class="col-md-4">
+                            <label>Next of Kin Address<span class="text-danger">*</span></label>
+                            <input type="text" name="nextOfKinAddress" class="form-control" required />
+                        </div>
 
-                    
+                        <div class="col-md-4">
+                            <label>Next of Kin Email</label>
+                            <input type="email" name="nextOfKinEmail" class="form-control" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label>Next of Kin Phone<span class="text-danger">*</span></label>
+                            <input type="text" name="nextOfKinPhone" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label>Payment Made By<span class="text-danger">*</span></label>
+                            <input type="text" name="paymentBy" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label>Repatriation Source<span class="text-danger">*</span></label>
+                            <input type="text" name="repatriationSource" class="form-control" value="Local" required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="burialDate">Burial Date <span class="text-danger">*</span></label>
+                            <input type="date" id="burialDate" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="burialTime">Available Slots</label>
+                            <select id="burialTime" name="burialDateTime" class="form-control" required>
+                                <option value="">-- Select a slot --</option>
+                            </select>
+                            <div id="slotMessage" class="text-danger mt-1"></div>
+                        </div>
+
+                    </div>
                 </div>
-            
-
                 <div class="modal-footer">
                     <button type="submit" id="allocateSubmitBtn" class="btn btn-primary">Allocate</button>
                 </div>
@@ -398,6 +462,7 @@
     </div>
 </div>
 
+
 <!-- Reserve Modal -->
 <div class="modal fade" id="reserveModal" tabindex="-1">
     <div class="modal-dialog">
@@ -405,14 +470,33 @@
             <form method="post" asp-page-handler="CreateReservation">
                 <div class="modal-header"><h5>Reserve Grave</h5></div>
                 <div class="modal-body">
+                    <div class="row g-3">
+
+                        <div class="col-md-4">
                     <input type="hidden" name="graveId" value="@Model.Grave.sys_graveId" />
                     <div class="mb-2">
-                        <label>Customer Name</label>
+                                <label>Customer Name<span class="text-danger">*</span></label>
                         <input type="text" name="customerName" class="form-control" required />
                     </div>
+                    </div>
+                        <div class="col-md-4">
                     <div class="mb-2">
-                        <label>Beneficiaries</label>
-                        <textarea name="beneficiaries" class="form-control" placeholder="One per line: Name|DOB|Relationship"></textarea>
+                                <label>Benefitiary Full Name<span class="text-danger">*</span></label>
+                        <input type="text" name="benefitiaryFullName" class="form-control" required />
+                    </div>
+                    </div>
+                        <div class="col-md-4">
+                    <div class="mb-2">
+                        <label>Benefitiary DOB</label>
+                        <input type="date" name="benefitiaryDOB" class="form-control" required />
+                    </div>
+                    </div>
+                        <div class="col-md-4">
+                    <div class="mb-2">
+                        <label>Relationship</label>
+                        <input type="text" name="benefitiaryRelationship" class="form-control" required />
+                    </div>
+                    </div>
                     </div>
                 </div>
                 <div class="modal-footer">
