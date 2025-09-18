@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Diagnostics;
 using ZororoMemorialPark.Data;
 using ZororoMemorialPark.Data.Models;
+using ZororoMemorialPark.Pages.Jobs;
 using ZororoMemorialPark.Services;
 
 namespace ZororoMemorialPark.Pages.Graves
@@ -36,17 +38,45 @@ namespace ZororoMemorialPark.Pages.Graves
         public bool AllocationPendingPayment { get; set; }
         public tbl_GraveReservations Reservation { get; set; }
         public tbl_Customers Customer { get; set; }
-        public List<tbl_Beneficiaries> Beneficiaries { get; set; }
-        public List<JobDto> Jobs { get; set; }
-        public List<CustomerPaymentDto> CustomerPayments { get; set; } = new();
+        public List<tbl_Beneficiaries> Beneficiaries { get; set; } = new();
+        public List<JobDto> Jobs { get; set; } = new();
+        public List<CustomerPaymentDto> AllocationPayments { get; set; } = new();
+        public List<CustomerPaymentDto> ReservationPayments { get; set; } = new();
         public List<SupplierPaymentDto> SupplierPayments { get; set; } = new();
         public List<tbl_PaymentMethods> PaymentMethods { get; set; } = new();
 
         public List<tbl_JobEvaluations> JobEvaluations {  get; set; } = new();
 
-        public double TotalPaid { get; set; }
-        public double Balance { get; set; }
-        public string PaymentStatus { get; set; }
+
+
+
+
+        // Dropdown lists (always initialized)
+        public List<tbl_Graves> Graves { get; set; } = new();
+        public List<tbl_Suppliers> Suppliers { get; set; } = new();
+        public List<tbl_DevelopmentStages> Stages { get; set; } = new();
+        
+        public List<tbl_jobEvaluationParameters> JobParameters { get; set; } = new();
+
+        public List<tbl_Sections> Sections { get; set; } = new();
+
+        // The page of jobs (used only if needed)
+        public List<tbl_Jobs> PageJobs { get; set; } = new();
+
+        // Job list view model with balances (safe to enumerate in Razor)
+        public List<JobViewModel> JobList { get; set; } = new();
+
+        // Bind properties for forms
+        //[BindProperty] public tbl_Jobs Job { get; set; }
+        [BindProperty] public tbl_Expenses Expense { get; set; } = new();
+        [BindProperty] public tbl_JobEvaluations JobEvaluation { get; set; } = new();
+
+        public double TotalPaidAllocation { get; set; }
+        public double TotalPaidReservation { get; set; }
+        public double AllocationBalance { get; set; }
+        public double ReservationBalance { get; set; }
+        public string AllocationPaymentStatus { get; set; }
+        public string ReservationPaymentStatus { get; set; }
 
         public class JobDto
         {
@@ -85,18 +115,12 @@ namespace ZororoMemorialPark.Pages.Graves
         {
             try
             {
+                await LoadDropdownsAsync();
                 // Load grave and related info
                 Grave = await _context.tbl_Graves.FindAsync(id);
+
                 Section = await _context.tbl_Sections.FindAsync(Grave.sys_sectionId);
                 Stage = await _context.tbl_DevelopmentStages.FindAsync(Grave.sys_stageId);
-
-                //get job evaluations join evaluation parameters
-                JobEvaluations = await _context.tbl_JobEvaluations
-                    .Where(je => _context.tbl_Jobs.Any(j => j.sys_jobId == je.sys_jobId && j.sys_graveId == id))
-                    .Include(je => je.tbl_jobEvaluationParameters)
-                    .ToListAsync();
-
-
 
                 // Allocation and Deceased
                 Allocation = await _context.tbl_GraveAllocations.FirstOrDefaultAsync(a => a.sys_graveId == id);
@@ -117,27 +141,10 @@ namespace ZororoMemorialPark.Pages.Graves
                     Beneficiaries = await _context.tbl_Beneficiaries.Where(b => b.sys_reservationId == Reservation.sys_reservationId).ToListAsync();
                 }
 
-                // Jobs for this grave
-                Jobs = await _context.tbl_Jobs
-                    .Where(j => j.sys_graveId == id)
-                    .Select(j => new JobDto
-                    {
-                        sys_jobId = j.sys_jobId,
-                        sys_supplierId = j.sys_supplierId,
-                        SupplierName = _context.tbl_Suppliers.FirstOrDefault(s => s.sys_supplierId == j.sys_supplierId).sys_supplierName,
-                        StageName = _context.tbl_DevelopmentStages.FirstOrDefault(st => st.sys_stageId == j.sys_stageId).sys_stageName,
-                        sys_startDate = j.sys_startDate,
-                        sys_endDate = j.sys_endDate,
-                        Status = j.sys_jobStatus
-                    }).ToListAsync();
-
-                // Customer Payments for this grave
-                CustomerPayments = new List<CustomerPaymentDto>();
-
                 // Payments from Reservation invoices
                 if (Reservation != null)
                 {
-                    var reservationPayments = await (
+                    ReservationPayments = await (
                         from gri in _context.tbl_GraveReservationInvoices
                         join inv in _context.tbl_Invoices on gri.sys_invoiceId equals inv.sys_invoiceId
                         join pay in _context.tbl_IncomePayments on inv.sys_invoiceId equals pay.sys_invoiceId
@@ -152,13 +159,13 @@ namespace ZororoMemorialPark.Pages.Graves
                             sys_notes = pay.sys_notes
                         }).ToListAsync();
 
-                    CustomerPayments.AddRange(reservationPayments);
+                    
                 }
 
                 // Payments from Allocation invoices
                 if (Allocation != null)
                 {
-                    var allocationPayments = await (
+                    AllocationPayments = await (
                         from gai in _context.tbl_GraveAllocationInvoices
                         join inv in _context.tbl_Invoices on gai.sys_invoiceId equals inv.sys_invoiceId
                         join pay in _context.tbl_IncomePayments on inv.sys_invoiceId equals pay.sys_invoiceId
@@ -173,28 +180,66 @@ namespace ZororoMemorialPark.Pages.Graves
                             sys_notes = pay.sys_notes
                         }).ToListAsync();
 
-                    CustomerPayments.AddRange(allocationPayments);
+                    ;
                 }
 
 
-                //Calculate totals
-                TotalPaid = CustomerPayments.Sum(CustomerPaymentDto => CustomerPaymentDto.sys_amount );
-                Balance = (Grave?.sys_price ?? 0) - TotalPaid;
+                //Calculate totals for allocation
+                TotalPaidAllocation = AllocationPayments.Sum(CustomerPaymentDto => CustomerPaymentDto.sys_amount );
+                AllocationBalance = (Grave?.sys_price ?? 0) - TotalPaidAllocation;
 
-                if (Balance <= 0)
+                if (AllocationBalance <= 0)
                 {
-                    PaymentStatus = "Fully Paid";
-                    Balance = 0; // avoid showing negative
+                    AllocationPaymentStatus = "Fully Paid";
+                    AllocationBalance = 0; // avoid showing negative
                 }
-                else if (TotalPaid > 0)
+                else if (TotalPaidAllocation > 0)
                 {
-                    PaymentStatus = "Partially Paid";
+                    AllocationPaymentStatus = "Partially Paid";
                 }
                 else
                 {
-                    PaymentStatus = "Unpaid";
+                    AllocationPaymentStatus = "Unpaid";
                 }
 
+                //Calculate totals for reservations
+                TotalPaidReservation = ReservationPayments.Sum(CustomerPaymentDto => CustomerPaymentDto.sys_amount);
+                ReservationBalance = (Grave?.sys_price ?? 0) - TotalPaidReservation;
+
+                if (ReservationBalance <= 0)
+                {
+                    ReservationPaymentStatus = "Fully Paid";
+                    ReservationBalance = 0; // avoid showing negative
+                }
+                else if (TotalPaidReservation > 0)
+                {
+                    ReservationPaymentStatus = "Partially Paid";
+                }
+                else
+                {
+                    ReservationPaymentStatus = "Unpaid";
+                }
+
+
+
+                //get job evaluations join evaluation parameters
+                JobEvaluations = await _context.tbl_JobEvaluations
+                    .Where(je => _context.tbl_Jobs.Any(j => j.sys_jobId == je.sys_jobId && j.sys_graveId == id))
+                    .Include(je => je.tbl_jobEvaluationParameters)
+                    .ToListAsync();
+                // Jobs for this grave
+                Jobs = await _context.tbl_Jobs
+                    .Where(j => j.sys_graveId == id)
+                    .Select(j => new JobDto
+                    {
+                        sys_jobId = j.sys_jobId,
+                        sys_supplierId = j.sys_supplierId,
+                        SupplierName = _context.tbl_Suppliers.FirstOrDefault(s => s.sys_supplierId == j.sys_supplierId).sys_supplierName,
+                        StageName = _context.tbl_DevelopmentStages.FirstOrDefault(st => st.sys_stageId == j.sys_stageId).sys_stageName,
+                        sys_startDate = j.sys_startDate,
+                        sys_endDate = j.sys_endDate,
+                        Status = j.sys_jobStatus
+                    }).ToListAsync();
                 // Supplier Payments for this grave (expenses linked to jobs)
 
 
@@ -230,8 +275,6 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 SupplierPayments = grouped;
 
-                // Payment Methods
-                PaymentMethods = await _context.tbl_PaymentMethods.ToListAsync();
             }
 
             catch (Exception ex)
@@ -253,6 +296,10 @@ namespace ZororoMemorialPark.Pages.Graves
             {
                 if (graveId == 0) return BadRequest();
 
+                //get the grave
+
+                Grave = await _context.tbl_Graves.FindAsync(graveId);
+
                 // Create Deceased
                 var deceased = new tbl_Deceased
                 {
@@ -272,67 +319,96 @@ namespace ZororoMemorialPark.Pages.Graves
                 _context.tbl_Deceased.Add(deceased);
                 await _context.SaveChangesAsync();
 
-                // Create Customer
-                var customer = new tbl_Customers { sys_paymentMadeBy = paymentBy };
-                _context.tbl_Customers.Add(customer);
-                await _context.SaveChangesAsync();
+                // Check if there is an existing reservation for this grave
+                Reservation = await _context.tbl_GraveReservations.FirstOrDefaultAsync(r => r.sys_graveId == graveId);
 
-                // Create Invoice
-                var invoice = new tbl_Invoices
+
+
+                if (Reservation == null) //only do this if there is no reservation already
                 {
+                    // Create Customer
+                    var customer = new tbl_Customers { sys_paymentMadeBy = paymentBy };
+                    _context.tbl_Customers.Add(customer);
+                    await _context.SaveChangesAsync();
 
-                    sys_invoiceDate = DateOnly.FromDateTime(DateTime.Now),
-                    sys_invoiceNumber = $"INV-{DateTime.Now.Ticks}",
-                    sys_customerId = customer.sys_customerId,
-                    sys_invoiceDueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7))
-                };
-                _context.tbl_Invoices.Add(invoice);
-                await _context.SaveChangesAsync();
+                    // Create Invoice
+                    var invoice = new tbl_Invoices
+                    {
+
+                        sys_invoiceDate = DateOnly.FromDateTime(DateTime.Now),
+                        sys_invoiceNumber = $"INV-{DateTime.Now.Ticks}",
+                        sys_customerId = customer.sys_customerId,
+                        sys_invoiceDueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7))
+                    };
+                    _context.tbl_Invoices.Add(invoice);
+                    await _context.SaveChangesAsync();
 
 
-                //get the grave
 
-                var grave = await _context.tbl_Graves.FindAsync(graveId);
-                // Create Invoice Item
+                    // Create Invoice Item
 
-                var invoiceItem = new tbl_InvoiceItems
+                    var invoiceItem = new tbl_InvoiceItems
+                    {
+                        sys_invoiceId = invoice.sys_invoiceId,
+                        sys_itemName = $"Grave Allocation - Grave ID {Grave.sys_plotNumber}",
+                        sys_itemCost = Grave.sys_price
+                    };
+                    _context.tbl_InvoiceItems.Add(invoiceItem);
+                    await _context.SaveChangesAsync();
+
+                    // Create Allocation
+                    var allocation = new tbl_GraveAllocations
+                    {
+                        sys_graveId = graveId,
+                        sys_deceasedId = deceased.sys_deceasedId,
+                        sys_customerId = customer.sys_customerId,
+                        sys_allocatedOn = DateOnly.FromDateTime(DateTime.Now),
+                        sys_repatriationSource = repatriationSource ?? "n/a",
+                        sys_dateTimeOfBurial = burialDateTime
+                    };
+                    _context.tbl_GraveAllocations.Add(allocation);
+                    await _context.SaveChangesAsync();
+
+                    //Link grave allocation to invoice via the linker table
+
+                    var linker = new tbl_GraveAllocationInvoices
+                    {
+                        sys_allocationId = allocation.sys_allocationId,
+                        sys_invoiceId = invoice.sys_invoiceId
+                    };
+                    _context.tbl_GraveAllocationInvoices.Add(linker);
+                    await _context.SaveChangesAsync();
+
+                    // Update Grave status
+                    Grave.sys_graveSaleStatus = "Occupied";
+                    _context.tbl_Graves.Update(Grave);
+                    await _context.SaveChangesAsync();
+                }
+
+                else
                 {
-                    sys_invoiceId = invoice.sys_invoiceId,
-                    sys_itemName = $"Grave Allocation - Grave ID {grave.sys_plotNumber}",
-                    sys_itemCost = grave.sys_price
-                };
-                _context.tbl_InvoiceItems.Add(invoiceItem);
-                await _context.SaveChangesAsync();
+                    // Use existing reservation to get customer
+                    var customer = await _context.tbl_Customers.FindAsync(Reservation.sys_customerId);
+                    if (customer == null) return BadRequest("Customer not found for existing reservation.");
 
+                    // Create Allocation
+                    var allocation = new tbl_GraveAllocations
+                    {
+                        sys_graveId = graveId,
+                        sys_deceasedId = deceased.sys_deceasedId,
+                        sys_customerId = customer.sys_customerId,
+                        sys_allocatedOn = DateOnly.FromDateTime(DateTime.Now),
+                        sys_repatriationSource = repatriationSource ?? "n/a",
+                        sys_dateTimeOfBurial = burialDateTime
+                    };
+                    _context.tbl_GraveAllocations.Add(allocation);
+                    await _context.SaveChangesAsync();
 
-                // Create Allocation
-                var allocation = new tbl_GraveAllocations
-                {
-                    sys_graveId = graveId,
-                    sys_deceasedId = deceased.sys_deceasedId,
-                    sys_customerId = customer.sys_customerId,
-                    sys_allocatedOn = DateOnly.FromDateTime(DateTime.Now),
-                    sys_repatriationSource = repatriationSource ?? "n/a",
-                    sys_dateTimeOfBurial = burialDateTime
-                };
-                _context.tbl_GraveAllocations.Add(allocation);
-                await _context.SaveChangesAsync();
-
-                //Link grave allocation to invoice via the linker table
-
-                var linker = new tbl_GraveAllocationInvoices
-                {
-                    sys_allocationId = allocation.sys_allocationId,
-                    sys_invoiceId = invoice.sys_invoiceId
-                };
-                _context.tbl_GraveAllocationInvoices.Add(linker);
-                await _context.SaveChangesAsync();
-
-                // Update Grave status
-                grave.sys_graveSaleStatus = "Occupied";
-                _context.tbl_Graves.Update(grave);
-                await _context.SaveChangesAsync();
-
+                    // Update Grave status
+                    Grave.sys_graveSaleStatus = "Occupied";
+                    _context.tbl_Graves.Update(Grave);
+                    await _context.SaveChangesAsync();
+                }
                 TempData["SuccessMessage"] = "Grave allocated successfully.";
                 _appLogger.LogActivityAsync(_userManager.GetUserName(User), "GraveDetails", $"OnPostAllocateGraveAsync - Grave ID {graveId} allocated.");
                 return RedirectToPage(new { id = graveId });
@@ -396,7 +472,7 @@ namespace ZororoMemorialPark.Pages.Graves
 
         // Create Reservation
         public async Task<IActionResult> OnPostCreateReservationAsync(int graveId, string customerName, 
-            string benefitiaryFullName, DateOnly benefitiaryDOB, string benefitiaryRelationship )
+            string beneficiaryFullName, DateOnly beneficiaryDOB, string beneficiaryRelationship )
         {
             var customer = new tbl_Customers { sys_paymentMadeBy = customerName };
             _context.tbl_Customers.Add(customer);
@@ -413,9 +489,9 @@ namespace ZororoMemorialPark.Pages.Graves
             
            var b = new tbl_Beneficiaries
              {
-                  sys_benefitFullName = benefitiaryFullName ,
-                  sys_benefitDOB = benefitiaryDOB,
-                  sys_benefitRelationship = benefitiaryRelationship,
+                  sys_benefitFullName = beneficiaryFullName ,
+                  sys_benefitDOB = beneficiaryDOB,
+                  sys_benefitRelationship = beneficiaryRelationship,
                   sys_reservationId = reservation.sys_reservationId
              };
               _context.tbl_Beneficiaries.Add(b);
@@ -510,7 +586,473 @@ namespace ZororoMemorialPark.Pages.Graves
             await _context.SaveChangesAsync();
             return RedirectToPage(new { id = id });
         }
+
+        // Record Reservation Payment
+        public async Task<IActionResult> OnPostRecordReservationPaymentAsync(int reservationId, double amountPaid, int paymentMethodId, string notes)
+        {
+            var reservation = await _context.tbl_GraveReservations.FindAsync(reservationId);
+            if (reservation == null) return BadRequest();
+
+            var invoice = await _context.tbl_Invoices.FirstOrDefaultAsync(i => i.sys_customerId == reservation.sys_customerId);
+            if (invoice == null) return BadRequest();
+
+            var payment = new tbl_IncomePayments
+            {
+                sys_invoiceId = invoice.sys_invoiceId,
+                sys_date = DateOnly.FromDateTime(DateTime.Now),
+                sys_amount = amountPaid,
+                sys_paymentMethod = _context.tbl_PaymentMethods.FirstOrDefault(pm => pm.sys_paymentMethodId == paymentMethodId)?.sys_paymentMethodName,
+                sys_notes = notes ?? "n/a"
+            };
+            _context.tbl_IncomePayments.Add(payment);
+            await _context.SaveChangesAsync();
+            return RedirectToPage(new { id = id });
+        }
+
+
+
+        
+        ///////////////////////////////////////////////////////////
+        //Job details Methods/////
+
+        private async Task LoadDropdownsAsync()
+        {
+            Graves = await _context.tbl_Graves.AsNoTracking().ToListAsync() ?? new();
+            Suppliers = await _context.tbl_Suppliers.AsNoTracking().ToListAsync() ?? new();
+            Stages = await _context.tbl_DevelopmentStages.AsNoTracking().ToListAsync() ?? new();
+            PaymentMethods = await _context.tbl_PaymentMethods.AsNoTracking().ToListAsync() ?? new();
+            JobParameters = await _context.tbl_jobEvaluationParameters.AsNoTracking().ToListAsync() ?? new();
+            Sections = await _context.tbl_Sections.AsNoTracking().ToListAsync() ?? new();
+        }
+
+
+        // AJAX endpoint
+        public JsonResult OnGetGetGravesBySection(int sectionId)
+        {
+            var graves = _context.tbl_Graves
+                .Where(g => g.sys_sectionId == sectionId)
+                .Select(g => new { g.sys_graveId, g.sys_plotNumber })
+                .ToList();
+
+            return new JsonResult(graves);
+        }
+
+        // --- Create/Edit/Delete/Payment/Evaluation handlers ---
+        // Note: On failure we reload page state so the view can render safely.
+        public async Task<IActionResult> OnPostCreateAsync()
+        {
+            try
+            {
+
+                var submittedJob = new tbl_Jobs
+                {
+                    sys_graveId = Request.Form["sys_graveId"].ToString() != "" ? int.Parse(Request.Form["sys_graveId"]) : 0,
+                    sys_supplierId = Request.Form["sys_supplierId"].ToString() != "" ? int.Parse(Request.Form["sys_supplierId"]) : 0,
+                    sys_stageId = Request.Form["sys_stageId"].ToString() != "" ? int.Parse(Request.Form["sys_stageId"]) : 0,
+                    sys_startDate = Request.Form["sys_startDate"].ToString() != "" ? DateOnly.Parse(Request.Form["sys_startDate"]) : DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
+                    sys_endDate = Request.Form["sys_endDate"].ToString() != "" ? DateOnly.Parse(Request.Form["sys_endDate"]) : DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
+                    sys_jobStatus = Request.Form["sys_status"].ToString()
+
+                };
+
+                var existingJob = await _context.tbl_Jobs
+                .FirstOrDefaultAsync(j => j.sys_graveId == submittedJob.sys_graveId && j.sys_stageId == submittedJob.sys_stageId && j.sys_supplierId == submittedJob.sys_supplierId);
+
+                if (existingJob != null)
+                {
+                    TempData["ErrorMessage"] = "A job with the same Grave, Stage, and Supplier already exists.";
+                    await LoadDropdownsAsync();
+                    return RedirectToPage();
+                }
+
+                // Basic validation
+                if (submittedJob.sys_graveId == 0 || submittedJob.sys_supplierId == 0 || submittedJob.sys_stageId == 0)
+                {
+                    TempData["ErrorMessage"] = "Grave, Supplier, and Stage are required fields.";
+                    await LoadDropdownsAsync();
+                    return RedirectToPage();
+                }
+
+                // Validation rules
+                if (submittedJob.sys_startDate > submittedJob.sys_endDate)
+                {
+                    TempData["ErrorMessage"] = "End Date must be greater than or equal to Start Date.";
+                    return RedirectToPage();
+                }
+
+
+                _context.tbl_Jobs.Add(submittedJob);
+                await _context.SaveChangesAsync();
+
+                //check if job status is "Completed" and if so, update the grave status to "Developed"
+                if (submittedJob.sys_jobStatus == "Complete")
+                {
+                    var graveToUpdate = await _context.tbl_Graves.FindAsync(submittedJob.sys_graveId);
+                    if (graveToUpdate != null)
+                    {
+                        graveToUpdate.sys_stageId = submittedJob.sys_stageId;
+                        _context.tbl_Graves.Update(graveToUpdate);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                TempData["SuccessMessage"] = "Job created successfully.";
+                _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Create", $"Created Job ID {submittedJob.sys_jobId}");
+                return RedirectToPage();
+            }
+
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"An error occurred: {ex.Message}";
+                await LoadDropdownsAsync();
+                _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error", $"Error in OnPostCreateAsync: {ex.Message}");
+                return RedirectToPage(new { id = id });
+            }
+
+
+        }
+
+        public async Task<IActionResult> OnPostEditAsync()
+        {
+            try
+            {
+                // Read values from form
+                if (!int.TryParse(Request.Form["sys_jobId"], out int jobId) ||
+                    !int.TryParse(Request.Form["sys_graveId"], out int graveId) ||
+                    !int.TryParse(Request.Form["sys_supplierId"], out int supplierId) ||
+                    !int.TryParse(Request.Form["sys_stageId"], out int stageId) ||
+
+                    !DateOnly.TryParse(Request.Form["sys_startDate"], out DateOnly startDate) ||
+                    !DateOnly.TryParse(Request.Form["sys_endDate"], out DateOnly endDate))
+                {
+                    TempData["ErrorMessage"] = "Invalid form input. Please check your values.";
+                    return RedirectToPage();
+                }
+
+                // Fetch job
+                var job = await _context.tbl_Jobs.FirstOrDefaultAsync(j => j.sys_jobId == jobId);
+                if (job == null)
+                {
+                    TempData["ErrorMessage"] = "Job not found.";
+                    return RedirectToPage();
+                }
+
+                // Validation rules
+                if (startDate > endDate)
+                {
+                    TempData["ErrorMessage"] = "End Date must be greater than or equal to Start Date.";
+                    return RedirectToPage();
+                }
+
+                var grave = await _context.tbl_Graves.FirstOrDefaultAsync(g => g.sys_graveId == graveId);
+                if (grave == null)
+                {
+                    TempData["ErrorMessage"] = "Selected grave does not exist.";
+                    return RedirectToPage();
+                }
+
+                // Optional: ensure grave belongs to a section if your design requires
+                var sectionId = grave.sys_sectionId;
+                if (sectionId <= 0)
+                {
+                    TempData["ErrorMessage"] = "Selected grave is not assigned to a valid section.";
+                    return RedirectToPage();
+                }
+
+                var supplierExists = await _context.tbl_Suppliers.AnyAsync(s => s.sys_supplierId == supplierId);
+                if (!supplierExists)
+                {
+                    TempData["ErrorMessage"] = "Selected supplier does not exist.";
+                    return RedirectToPage();
+                }
+
+                var stageExists = await _context.tbl_DevelopmentStages.AnyAsync(s => s.sys_stageId == stageId);
+                if (!stageExists)
+                {
+                    TempData["ErrorMessage"] = "Selected stage does not exist.";
+                    return RedirectToPage();
+                }
+
+                // Update job
+                job.sys_graveId = graveId;
+                job.sys_supplierId = supplierId;
+                job.sys_stageId = stageId;
+                job.sys_startDate = startDate;
+                job.sys_endDate = endDate;
+                job.sys_jobStatus = Request.Form["sys_status"];
+
+
+                await _context.SaveChangesAsync();//check if job status is "Completed" and if so, update the grave status to "Developed"
+                if (job.sys_jobStatus == "Complete")
+                {
+                    var graveToUpdate = await _context.tbl_Graves.FindAsync(job.sys_graveId);
+                    if (graveToUpdate != null)
+                    {
+                        graveToUpdate.sys_stageId = job.sys_stageId;
+                        _context.tbl_Graves.Update(graveToUpdate);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+
+                TempData["SuccessMessage"] = "Job updated successfully!";
+                _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Edit", $"Edited Job ID {job.sys_jobId}");
+                return RedirectToPage();
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error updating job: {ex.Message}";
+                _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error", $"Error in OnPostEditAsync: {ex.Message}");
+                return RedirectToPage();
+            }
+        }
+
+        public async Task<IActionResult> OnPostDeleteAsync()
+        {
+            try
+            {
+                int jobid = Int32.Parse(Request.Form["deleteJobId"]);
+                var job = await _context.tbl_Jobs.FindAsync(jobid);
+                if (job != null)
+                {
+                    _context.tbl_Jobs.Remove(job);
+                    await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = "Job deleted successfully.";
+
+                    _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Delete", $"Deleted Job ID {job.sys_jobId}");
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "Job not found.";
+                }
+                return RedirectToPage();
+            }
+
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error deleting job: {ex.Message}";
+                _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error", $"Error in OnPostDeleteAsync: {ex.Message}");
+                return RedirectToPage();
+            }
+
+
+        }
+
+        public async Task<JsonResult> OnGetPaymentsAsync(int jobId)
+        {
+            var payments = await _context.tbl_Expenses
+                .Where(p => p.sys_jobId == jobId)
+                .OrderBy(p => p.sys_date)
+                .Select(p => new PaymentDto
+                {
+                    PaymentDate = p.sys_date,
+                    AmountPaid = p.sys_amountPaid,
+                    AmountDue = p.sys_amountDue,
+                    Balance = p.sys_balanceDue
+                })
+                .ToListAsync();
+
+            return new JsonResult(payments);
+        }
+
+        public async Task<IActionResult> OnPostAddPaymentAsync(int sys_jobId, int sys_supplierId,
+            double AmountDue, double AmountPaid, DateOnly PaymentDate, int sys_paymentMethodId,
+            string PaymentNotes)
+        {
+            var previousPayments = await _context.tbl_Expenses
+                .Where(p => p.sys_jobId == sys_jobId)
+                .OrderBy(p => p.sys_date)
+                .ToListAsync();
+
+            double totalPaid = previousPayments.Sum(p => p.sys_amountPaid);
+            double balance = 0;
+
+            if (previousPayments.Count == 0)
+            {
+                // First payment: take user-entered AmountDue
+                balance = AmountDue - AmountPaid;
+            }
+            else
+            {
+                // Subsequent payments: AmountDue always 0
+                AmountDue = 0;
+                var lastBalance = previousPayments.Last().sys_balanceDue;
+                balance = lastBalance - AmountPaid;
+
+                if (balance < 0)
+                {
+                    TempData["ErrorMessage"] = "Payment exceeds the remaining balance.";
+                    await LoadDropdownsAsync();
+                    return RedirectToPage();
+                }
+            }
+
+            if (PaymentNotes == null)
+            {
+                PaymentNotes = "n/a";
+            }
+
+            var payment = new tbl_Expenses
+            {
+                sys_jobId = sys_jobId,
+                sys_amountDue = AmountDue,
+                sys_amountPaid = AmountPaid,
+                sys_balanceDue = balance,
+                sys_date = PaymentDate,
+                sys_paymentMethodId = sys_paymentMethodId,
+                sys_supplierId = sys_supplierId,
+                sys_notes = PaymentNotes
+            };
+
+            _context.tbl_Expenses.Add(payment);
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Payment saved successfully!";
+            return RedirectToPage();
+        }
+
+        public async Task<JsonResult> OnGetEvaluationParametersAsync(int jobId)
+        {
+            // Get all parameters
+            var parameters = await _context.tbl_jobEvaluationParameters
+                .Select(p => new
+                {
+                    p.sys_jobEvaluationParameterId,
+                    p.sys_parameterName
+                })
+                .ToListAsync();
+
+            // Get existing evaluations for this job
+            var existing = await _context.tbl_JobEvaluations
+                .Where(e => e.sys_jobId == jobId)
+                .ToListAsync();
+
+            // Merge
+            var result = parameters.Select(p => new
+            {
+                sys_jobEvaluationParameterId = p.sys_jobEvaluationParameterId,
+                sys_parameterName = p.sys_parameterName,
+                sys_jobEvaluation = existing
+                    .FirstOrDefault(e => e.sys_jobEvaluationParameterId == p.sys_jobEvaluationParameterId)?.sys_jobEvaluation
+            });
+
+            return new JsonResult(result);
+        }
+
+        public async Task<IActionResult> OnPostAddEvaluationAsync()
+        {
+            try
+            {
+                var jobIdStr = Request.Form["jobId"];
+                if (string.IsNullOrEmpty(jobIdStr) || !int.TryParse(jobIdStr, out int jobId))
+                {
+                    TempData["ErrorMessage"] = "Invalid Job ID.";
+                    return RedirectToPage();
+                }
+
+                // Loop through all form fields that start with "evaluation_"
+                foreach (var key in Request.Form.Keys.Where(k => k.StartsWith("evaluation_")))
+                {
+                    var paramIdStr = key.Replace("evaluation_", "");
+                    if (!int.TryParse(paramIdStr, out int paramId))
+                        continue;
+
+                    var evaluationText = Request.Form[key];
+                    if (string.IsNullOrWhiteSpace(evaluationText))
+                        continue; // skip empty entries
+
+                    // Check if evaluation already exists for this job & parameter
+                    var existingEval = await _context.tbl_JobEvaluations
+                        .FirstOrDefaultAsync(e => e.sys_jobId == jobId && e.sys_jobEvaluationParameterId == paramId);
+
+                    if (existingEval != null)
+                    {
+                        // Update
+                        existingEval.sys_jobEvaluation = evaluationText;
+                        _context.tbl_JobEvaluations.Update(existingEval);
+                    }
+                    else
+                    {
+                        // Insert
+                        var newEval = new tbl_JobEvaluations
+                        {
+                            sys_jobId = jobId,
+                            sys_jobEvaluationParameterId = paramId,
+                            sys_jobEvaluation = evaluationText
+                        };
+                        _context.tbl_JobEvaluations.Add(newEval);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Evaluations saved successfully.";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error saving evaluations: {ex.Message}";
+            }
+
+            return RedirectToPage();
+        }
+
+
+
+
+        public async Task<IActionResult> OnPostBulkDeleteAsync(string jobIds)
+        {
+            if (!string.IsNullOrEmpty(jobIds))
+            {
+                var ids = jobIds.Split(',').Select(int.Parse).ToList();
+                var jobsToDelete = await _context.tbl_Jobs.Where(j => ids.Contains(j.sys_jobId)).ToListAsync();
+
+                if (jobsToDelete.Any())
+                {
+                    _context.tbl_Jobs.RemoveRange(jobsToDelete);
+                    await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = $"{jobsToDelete.Count} jobs deleted successfully.";
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "No jobs found to delete.";
+                }
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "No jobs selected for deletion.";
+            }
+
+            return RedirectToPage();
+        }
+
     }
 
-   
+
+    // DTO for returning payments in JSON
+    public class PaymentDto
+    {
+        public DateOnly PaymentDate { get; set; }
+        public double AmountPaid { get; set; }
+        public double AmountDue { get; set; }
+        public double Balance { get; set; }
+    }
+    // -- lightweight view model used by the razor page --
+    public class JobViewModel
+    {
+        public int JobId { get; set; }
+        public int GraveID { get; set; }
+        public int SupplierID { get; set; }
+
+        public int SectionID { get; set; }
+        public int StageID { get; set; }
+
+        public int EvaluationParameterID { get; set; }
+
+        public string GravePlot { get; set; } = string.Empty;
+        public string SupplierName { get; set; } = string.Empty;
+        public string StageName { get; set; } = string.Empty;
+        public string JobStatus { get; set; } = string.Empty;
+        public DateOnly? StartDate { get; set; }
+        public DateOnly? EndDate { get; set; }
+        public double Balance { get; set; }
+    }
 }
