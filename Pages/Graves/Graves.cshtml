@@ -6,7 +6,7 @@
 }
 
 <div class="row">
-    <div class="col-lg-11 mx-auto">
+    <div class="col-lg-12 mx-auto">
         <div class="card shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center"
                  style="background-color: var(--primary-green); color: var(--primary-white);">
@@ -38,102 +38,46 @@
                     </div>
                 }
 
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <!-- Search -->
-                    <input type="text" id="searchInput" class="form-control w-50" placeholder="Search graves...">
-
-                    <!-- Delete Selected -->
-
-                        <button id="deleteSelectedBtn" type="button" class="btn btn-danger btn-sm" disabled
-                                data-bs-toggle="modal" data-bs-target="#bulkDeleteModal">
-                            <i class="bi bi-trash"></i> Delete Selected
+                <!-- Tabs -->
+                <ul class="nav nav-tabs mb-3" id="graveTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="available-tab" data-bs-toggle="tab" data-bs-target="#available" type="button" role="tab" style="background-color: #28a745; color:white;">
+                            Available
                         </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="reserved-tab" data-bs-toggle="tab" data-bs-target="#reserved" type="button" role="tab" style="background-color: #ffc107; color:black;">
+                            Reserved
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="occupied-tab" data-bs-toggle="tab" data-bs-target="#occupied" type="button" role="tab" style="background-color: #343a40; color:white;">
+                            Occupied
+                        </button>
+                    </li>
+                </ul>
 
+                <div class="tab-content">
+                    <!-- Available Graves -->
+                    <div class="tab-pane fade show active" id="available" role="tabpanel">
+                        @await Html.PartialAsync("_GravesTablePartial", new { Graves = Model.AvailableGraves, Status = "Available", PageRouteParam = "availablePage" })
+                    </div>
+
+                    <!-- Reserved Graves -->
+                    <div class="tab-pane fade" id="reserved" role="tabpanel">
+                        @await Html.PartialAsync("_GravesTablePartial", new { Graves = Model.ReservedGraves, Status = "Reserved", PageRouteParam = "reservedPage" })
+                    </div>
+
+                    <!-- Occupied Graves -->
+                    <div class="tab-pane fade" id="occupied" role="tabpanel">
+                        @await Html.PartialAsync("_GravesTablePartial", new { Graves = Model.OccupiedGraves, Status = "Occupied", PageRouteParam = "occupiedPage" })
+                    </div>
                 </div>
-
-                
-                    <table class="table table-responsive table-striped table-hover align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th><input type="checkbox" id="selectAll"></th>
-                                <th>Plot Number</th>
-                                <th>Section</th>
-                                <th>Stage</th>
-                                <th>Status</th>
-                                <th>Price</th>
-                                <th>Location</th>
-                                <th style="width:150px;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="gravesTable">
-                            @foreach (var grave in Model.PaginatedGraves)
-                            {
-                                <tr id="row-@grave.sys_graveId">
-                                    <td>
-                                        <input type="checkbox" class="row-checkbox" value="@grave.sys_graveId">
-                                    </td>
-                                    <td><a asp-page="/Graves/GraveDetails" asp-route-id="@grave.sys_graveId">@grave.sys_plotNumber</a></td>
-                                    <td>@grave.SectionName</td>
-                                    <td>@grave.StageName</td>
-                                    <td>@grave.sys_graveSaleStatus</td>
-                                    <td>@grave.sys_price.ToString("C")</td>
-                                    <td>@grave.sys_latitude,@grave.sys_longitude</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-secondary"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#editGraveModal"
-                                                data-id="@grave.sys_graveId"
-                                                data-plot="@grave.sys_plotNumber"
-                                                data-section="@grave.sys_sectionId"
-                                                data-stage="@grave.sys_stageId"
-                                                data-status="@grave.sys_graveSaleStatus"
-                                                data-price="@grave.sys_price"
-                                                data-latitude="@grave.sys_latitude"
-                                                data-longitude="@grave.sys_longitude">
-                                            Edit
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#deleteGraveModal"
-                                                data-id="@grave.sys_graveId"
-                                                data-plot="@grave.sys_plotNumber">
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-
-                    
-
-                
-            </div>
-
-            <!-- Pagination -->
-            <div class="card-footer d-flex justify-content-between align-items-center mb-lg-5"
-                 style="background-color: var(--primary-grey);">
-                <span>Page @Model.PaginatedGraves.PageIndex of @Model.PaginatedGraves.TotalPages</span>
-                <nav>
-                    <ul class="pagination">
-                        <li class="page-item @(Model.PaginatedGraves.HasPreviousPage ? "" : "disabled")">
-                            <a class="page-link" asp-route-pageIndex="@(Model.PaginatedGraves.PageIndex - 1)">Previous</a>
-                        </li>
-                        @for (int i = 1; i <= Model.PaginatedGraves.TotalPages; i++)
-                        {
-                            <li class="page-item @(i == Model.PaginatedGraves.PageIndex ? "active" : "")">
-                                <a class="page-link" asp-route-pageIndex="@i">@i</a>
-                            </li>
-                        }
-                        <li class="page-item @(Model.PaginatedGraves.HasNextPage ? "" : "disabled")">
-                            <a class="page-link" asp-route-pageIndex="@(Model.PaginatedGraves.PageIndex + 1)">Next</a>
-                        </li>
-                    </ul>
-                </nav>
             </div>
         </div>
     </div>
 </div>
+
 
 <!-- Modals -->
 @* Create Single Grave Modal *@
@@ -410,55 +354,40 @@
     });
 </script>
 
-
 <script>
-    // --- Live Search ---
-    document.getElementById("searchInput").addEventListener("keyup", function () {
-        let filter = this.value.toLowerCase();
-        let rows = document.querySelectorAll("#gravesTable tr");
-        rows.forEach(row => {
-            let text = row.innerText.toLowerCase();
-            row.style.display = text.includes(filter) ? "" : "none";
-        });
-    });
 
     // --- Checkbox Select/Deselect ---
     const selectAll = document.getElementById("selectAll");
     const deleteBtn = document.getElementById("deleteSelectedBtn");
 
     selectAll.addEventListener("change", function () {
-        let checkboxes = document.querySelectorAll(".row-checkbox");
+        let checkboxes = document.querySelectorAll("#gravesTable .row-checkbox");
         checkboxes.forEach(cb => cb.checked = this.checked);
         toggleDeleteButton();
     });
 
-    document.addEventListener("change", function (e) {
-        if (e.target.classList.contains("row-checkbox")) {
-            toggleDeleteButton();
-        }
+    document.querySelectorAll("#gravesTable .row-checkbox").forEach(cb => {
+        cb.addEventListener("change", toggleDeleteButton);
     });
 
     function toggleDeleteButton() {
-        let checked = document.querySelectorAll(".row-checkbox:checked").length;
+        let checked = document.querySelectorAll("#gravesTable .row-checkbox:checked").length;
         deleteBtn.disabled = checked === 0;
     }
 
     // --- Bulk Delete Modal Handling ---
     const bulkDeleteModal = document.getElementById("bulkDeleteModal");
-    const bulkDeleteMessage = document.getElementById("bulkDeleteMessage");
     const selectedIdsInput = document.getElementById("SelectedIds");
+    const bulkDeleteMessage = document.getElementById("bulkDeleteMessage");
 
     bulkDeleteModal.addEventListener("show.bs.modal", function () {
-        let ids = Array.from(document.querySelectorAll(".row-checkbox:checked"))
-            .map(cb => cb.value);
-
+        let ids = Array.from(document.querySelectorAll("#gravesTables .row-checkbox:checked"))
+                       .map(cb => cb.value);
         if (ids.length > 0) {
             selectedIdsInput.value = ids.join(",");
             bulkDeleteMessage.textContent = `Are you sure you want to delete ${ids.length} selected grave(s)?`;
         }
     });
 </script>
-
-
 
 

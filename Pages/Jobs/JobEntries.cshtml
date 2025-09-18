@@ -4,7 +4,7 @@
     ViewData["Title"] = "Jobs";
 }
 <div class="row">
-    <div class="col-lg-10 mx-auto">
+    <div class="col-lg-12 mx-auto">
         <div class="card shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center"
                  style="background-color: var(--primary-green); color: var(--primary-white);">
@@ -481,7 +481,7 @@
 </div>
 
 
-
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const sectionDropdown = document.getElementById("sectionDropdown");
@@ -686,27 +686,47 @@
             .then(data => {
                 let rows = "";
                 let hasPayments = data.length > 0;
+                let lastBalance = 0;
 
-                data.forEach(p => {
+                data.forEach((p, index) => {
+                    // For first payment row, use the recorded AmountDue
+                    // For subsequent rows, AmountDue = previous balance
+                    let amountDue = (index === 0) ? p.amountDue : lastBalance;
+
                     rows += `<tr>
                         <td>${p.paymentDate}</td>
-                        <td>${p.amountDue}</td>
+                        <td>${amountDue}</td>
                         <td>${p.amountPaid}</td>
                         <td>${p.balance}</td>
                     </tr>`;
+
+                    lastBalance = p.balance; // update running balance
                 });
 
                 $("#previousPaymentsBody").html(rows);
 
-                if (hasPayments) {
-                    // Already has payments -> disable AmountDue
-                    $("#amountDue").val("0").prop("readonly", true);
-                } else {
-                    // First payment -> allow entering AmountDue
-                    $("#amountDue").val("").prop("readonly", false);
-                }
+                    if (hasPayments) {
+                        $("#amountDue").val(lastBalance).prop("readonly", true);
+                        $("#currentBalance").val(lastBalance);
 
-                $("#paymentModal").modal("show");
+                    // Set max for amount paid = balance
+                $("#amountPaid").attr("max", lastBalance);
+                    }
+                    else {
+                            $("#amountDue").val("").prop("readonly", false);
+                            $("#currentBalance").val("");
+
+                            // No previous payments → max should follow manually entered AmountDue
+                            $("#amountPaid").removeAttr("max");
+                        }
+
+                            $("#paymentModal").modal("show");
             });
     }
+
+     //Optional: update max dynamically when AmountDue is typed (first payment case)
+        $("#amountDue").on("input", function () {
+            let due = parseFloat($(this).val()) || 0;
+            $("#amountPaid").attr("max", due);
+        });
 </script>

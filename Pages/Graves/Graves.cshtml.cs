@@ -27,47 +27,56 @@ namespace ZororoMemorialPark.Pages.Graves
         }
 
         public IList<tbl_Graves> Graves { get; set; } = new List<tbl_Graves>();
-        public PaginatedList<GraveViewModel> PaginatedGraves { get; set; } = new PaginatedList<GraveViewModel>(new List<GraveViewModel>(), 0, 1, 10);
+        //public PaginatedList<GraveViewModel> PaginatedGraves { get; set; } = new PaginatedList<GraveViewModel>(new List<GraveViewModel>(), 0, 1, 10);
+        public List<GraveViewModel> AvailableGraves { get; set; }
+        public List<GraveViewModel> ReservedGraves { get; set; }
+        public List<GraveViewModel> OccupiedGraves { get; set; }
         public IList<tbl_Sections> Sections { get; set; } = new List<tbl_Sections>();
         public IList<tbl_DevelopmentStages> Stages { get; set; } = new List<tbl_DevelopmentStages>();
 
-        public async Task OnGetAsync(int pageIndex = 1)
+        public async Task OnGetAsync()
         {
             try
             {
+                // Load sections and stages for dropdowns
                 Sections = await _context.tbl_Sections.AsNoTracking().ToListAsync();
                 Stages = await _context.tbl_DevelopmentStages.AsNoTracking().ToListAsync();
 
-                var query = from g in _context.tbl_Graves
-                            join s in _context.tbl_Sections on g.sys_sectionId equals s.sys_sectionId
-                            join st in _context.tbl_DevelopmentStages on g.sys_stageId equals st.sys_stageId
-                            orderby g.sys_plotNumber
-                            select new GraveViewModel
-                            {
-                                sys_graveId = g.sys_graveId,
-                                sys_plotNumber = g.sys_plotNumber,
-                                sys_graveSaleStatus = g.sys_graveSaleStatus,
-                                sys_price = g.sys_price,
-                                sys_sectionId = g.sys_sectionId,
-                                SectionName = s.sys_sectionName,
-                                sys_stageId = g.sys_stageId,
-                                StageName = st.sys_stageName,
-                                sys_latitude = g.sys_latitude,
-                                sys_longitude = g.sys_longitude
-                            };
+                // Base query for graves with section and stage info
+                var baseQuery = from g in _context.tbl_Graves
+                                join s in _context.tbl_Sections on g.sys_sectionId equals s.sys_sectionId
+                                join st in _context.tbl_DevelopmentStages on g.sys_stageId equals st.sys_stageId
+                                orderby g.sys_plotNumber
+                                select new GraveViewModel
+                                {
+                                    sys_graveId = g.sys_graveId,
+                                    sys_plotNumber = g.sys_plotNumber,
+                                    sys_graveSaleStatus = g.sys_graveSaleStatus,
+                                    sys_price = g.sys_price,
+                                    sys_sectionId = g.sys_sectionId,
+                                    SectionName = s.sys_sectionName,
+                                    sys_stageId = g.sys_stageId,
+                                    StageName = st.sys_stageName,
+                                    sys_latitude = g.sys_latitude,
+                                    sys_longitude = g.sys_longitude
+                                };
 
-                int pageSize = 10;
-                PaginatedGraves = await PaginatedList<GraveViewModel>.CreateAsync(query, pageIndex, pageSize);
+                // Load all graves by status
+                AvailableGraves = await baseQuery.Where(g => g.sys_graveSaleStatus == "Available").ToListAsync();
+                ReservedGraves = await baseQuery.Where(g => g.sys_graveSaleStatus == "Reserved").ToListAsync();
+                OccupiedGraves = await baseQuery.Where(g => g.sys_graveSaleStatus == "Sold" || g.sys_graveSaleStatus == "Occupied").ToListAsync();
 
                 // Log access
                 var userId = _userManager.GetUserId(User);
-                await _appLogger.LogActivityAsync(userId, "Access", "Accessed Graves page");
+                await _appLogger.LogActivityAsync(userId, "Access", "Accessed Graves page with tabs (no pagination)");
             }
             catch (Exception ex)
             {
                 TempData["ErrorMessage"] = "Error loading graves: " + ex.Message;
             }
         }
+
+
 
         // Single grave creation
         public async Task<IActionResult> OnPostCreateAsync()

@@ -1,0 +1,102 @@
+﻿@using ZororoMemorialPark.Pages.Graves
+@using static ZororoMemorialPark.Pages.Graves.GravesModel
+@model dynamic
+
+@{
+    var graves = Model.Graves as List<GraveViewModel>;
+    string status = Model.Status as string;
+}
+
+<div class="mb-2 d-flex justify-content-between align-items-center">
+   <div class="row">
+
+        <div class="col-auto me-2">
+        <button class="btn btn-sm btn-danger" id="deleteSelectedBtn" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal" disabled>
+            <i class="bi bi-trash"></i> Delete Selected
+        </button>
+    </div>
+        <div class="col-auto me-2">
+        <div class="form-group">
+            <!--		Show Numbers Of Rows 		-->
+            <select class="form-select" name="state" id="maxRows">
+
+                <option value="10">Show 10</option>
+                <option value="15">15</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="70">70</option>
+                <option value="100">100</option>
+                <option value="5000">ALL</option>
+            </select>
+
+        </div>
+        </div>
+        <div class="col-auto me-2">
+        <input type="text" id="search_input_all" onkeyup="FilterkeyWord_all_table()" placeholder="Search Table" class="form-control">
+        </div>
+    </div>
+
+ 
+</div>
+<div class="table-responsive">
+    <table class="table table-striped table-class table-sm" id="myTable">
+
+        <thead class="thead-light">
+        <tr>
+            <th><input type="checkbox" id="selectAll-@status"></th>
+            <th>Plot Number</th>
+            <th>Section</th>
+            <th>Stage</th>
+            <th>Status</th>
+            <th>Price</th>
+            <th>Location</th>
+            <th style="width:150px;">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var grave in graves)
+        {
+            <tr id="row-@grave.sys_graveId">
+                <td><input type="checkbox" class="row-checkbox" value="@grave.sys_graveId"></td>
+                    <td><a asp-page="/Graves/GraveDetails" asp-route-id="@grave.sys_graveId">@grave.sys_plotNumber</a></td>
+                <td>@grave.SectionName</td>
+                <td>@grave.StageName</td>
+                <td>@grave.sys_graveSaleStatus</td>
+                <td>@grave.sys_price.ToString("C")</td>
+                <td>@grave.sys_latitude, @grave.sys_longitude</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-secondary"
+                            data-bs-toggle="modal"
+                            data-bs-target="#editGraveModal"
+                            data-id="@grave.sys_graveId"
+                            data-plot="@grave.sys_plotNumber"
+                            data-section="@grave.sys_sectionId"
+                            data-stage="@grave.sys_stageId"
+                            data-status="@grave.sys_graveSaleStatus"
+                            data-price="@grave.sys_price"
+                            data-latitude="@grave.sys_latitude"
+                            data-longitude="@grave.sys_longitude">
+                        Edit
+                    </button>
+
+                        <a class="btn btn-sm btn-outline-primary" asp-page="/Graves/GraveDetails" asp-route-id="@grave.sys_graveId">View</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+    <!--		Start Pagination -->
+    <div class="pagination-container">
+        <nav>
+            <ul class="pagination">
+                <!--	Here the JS Function Will Add the Rows -->
+            </ul>
+        </nav>
+    </div>
+    <div class="rows_count">Showing 11 to 20 of 91 entries</div>
+</div>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.2/jquery.min.js'></script>
+<script src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js'></script>
+<script src="~/js/tableScript.js"></script>
+
