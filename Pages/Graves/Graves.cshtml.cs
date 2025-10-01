@@ -28,9 +28,9 @@ namespace ZororoMemorialPark.Pages.Graves
 
         public IList<tbl_Graves> Graves { get; set; } = new List<tbl_Graves>();
         //public PaginatedList<GraveViewModel> PaginatedGraves { get; set; } = new PaginatedList<GraveViewModel>(new List<GraveViewModel>(), 0, 1, 10);
-        public List<GraveViewModel> AvailableGraves { get; set; }
-        public List<GraveViewModel> ReservedGraves { get; set; }
-        public List<GraveViewModel> OccupiedGraves { get; set; }
+        public List<GraveViewModel> AvailableGraves { get; set; } = new List<GraveViewModel>();
+        public List<GraveViewModel> ReservedGraves { get; set; } = new List<GraveViewModel>();
+        public List<GraveViewModel> OccupiedGraves { get; set; } = new List<GraveViewModel>();
         public IList<tbl_Sections> Sections { get; set; } = new List<tbl_Sections>();
         public IList<tbl_DevelopmentStages> Stages { get; set; } = new List<tbl_DevelopmentStages>();
 
@@ -62,7 +62,7 @@ namespace ZororoMemorialPark.Pages.Graves
                                 };
 
                 // Load all graves by status
-                AvailableGraves = await baseQuery.Where(g => g.sys_graveSaleStatus == "Available").ToListAsync();
+                AvailableGraves = await baseQuery.Where(g => g.sys_graveSaleStatus == "Unsold").ToListAsync();
                 ReservedGraves = await baseQuery.Where(g => g.sys_graveSaleStatus == "Reserved").ToListAsync();
                 OccupiedGraves = await baseQuery.Where(g => g.sys_graveSaleStatus == "Sold" || g.sys_graveSaleStatus == "Occupied").ToListAsync();
 
@@ -189,7 +189,7 @@ namespace ZororoMemorialPark.Pages.Graves
                         sys_plotNumber = currentSeed+"-"+sectionName,
                         sys_sectionId = sectionId,
                         sys_stageId = stageId,
-                        sys_graveSaleStatus = "Available",
+                        sys_graveSaleStatus = "Unsold",
                         sys_price = price
                     });
 

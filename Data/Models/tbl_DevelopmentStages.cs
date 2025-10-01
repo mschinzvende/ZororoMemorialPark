@@ -7,6 +7,10 @@ namespace ZororoMemorialPark.Data.Models
         [Key]
         public int sys_stageId { get; set; }
         public string sys_stageName { get; set; }
+
+        public int sys_stageOrder { get; set; }
+
         
+
     }
 }

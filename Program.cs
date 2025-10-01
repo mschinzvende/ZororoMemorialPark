@@ -72,7 +72,7 @@ async Task CreateRolesAsync(IHost app)
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
 
-        string[] roleNames = { "Admin", "Accountant", "Supervisor" };
+        string[] roleNames = { "Admin", "Accountant", "Supervisor", "Agent" };
         foreach (var role in roleNames)
         {
             if (!await roleManager.RoleExistsAsync(role))

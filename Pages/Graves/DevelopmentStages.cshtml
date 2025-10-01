@@ -39,6 +39,7 @@
                         <thead>
                             <tr>
                                 <th>Stage Name</th>
+                                <th>Level</th>
                                 <th style="width:150px;">Actions</th>
                             </tr>
                         </thead>
@@ -47,12 +48,14 @@
                             {
                                 <tr id="row-@stage.sys_stageId">
                                     <td>@stage.sys_stageName</td>
+                                    <td>@stage.sys_stageOrder</td>
                                     <td>
                                         <button class="btn btn-sm btn-outline-secondary"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#editStageModal"
                                                 data-id="@stage.sys_stageId"
-                                                data-name="@stage.sys_stageName">
+                                                data-name="@stage.sys_stageName"
+                                                data-order="@stage.sys_stageOrder">
                                             Edit
                                         </button>
                                         <button class="btn btn-sm btn-outline-danger"
@@ -109,6 +112,11 @@
                         <label class="form-label fw-bold">Stage Name</label>
                         <input name="stageName" class="form-control border" style="border-color: var(--primary-green);" />
                     </div>
+
+                    <div class="mb-3">
+                    <label class="form-label fw-bold">Stage Order</label>
+                    <input name="stageOrder" class="form-control border" style="border-color: var(--primary-green);" />
+                    </div>
                     <div class="text-end">
                         <button type="submit" class="btn btn-primary">Save</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -133,6 +141,11 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold">Stage Name</label>
                         <input name="sys_stageName" class="form-control border" style="border-color: var(--primary-green);" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Stage Order</label>
+                        <input name="sys_stageOrder" class="form-control border" style="border-color: var(--primary-green);" />
                     </div>
                     <div class="text-end">
                         <button type="submit" class="btn btn-primary">Update</button>
@@ -173,10 +186,12 @@
         var button = event.relatedTarget;
         var id = button.getAttribute('data-id');
         var name = button.getAttribute('data-name');
+        var order = button.getAttribute('data-order');
 
         var modal = this;
         modal.querySelector('input[name="sys_stageId"]').value = id;
         modal.querySelector('input[name="sys_stageName"]').value = name;
+        modal.querySelector('input[name="sys_stageOrder"]').value = order;
     });
 
     var deleteModal = document.getElementById('deleteStageModal');

@@ -484,249 +484,117 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const sectionDropdown = document.getElementById("sectionDropdown");
-        const graveDropdown = document.getElementById("graveDropdown");
 
-        sectionDropdown.addEventListener("change", function () {
-            const sectionId = this.value;
+        // --- Create Job Modal ---
+        const createModal = document.getElementById("createModal");
+        if (createModal) {
+            createModal.addEventListener("show.bs.modal", function () {
+                const sectionDropdown = document.getElementById("sectionDropdown");
+                const graveDropdown = document.getElementById("graveDropdown");
 
-            // Clear existing graves
-            graveDropdown.innerHTML = '<option value="">-- Select Grave --</option>';
+                if (!sectionDropdown || !graveDropdown) return;
 
-            if (sectionId) {
-                fetch(`?handler=GetGravesBySection&sectionId=${sectionId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        data.forEach(grave => {
-                            let option = document.createElement("option");
-                            option.value = grave.sys_graveId;
-                            option.textContent = grave.sys_plotNumber;
-                            graveDropdown.appendChild(option);
-                        });
-                    });
-            }
-        });
-    });
+                graveDropdown.innerHTML = '<option value="">-- Select Grave --</option>';
 
+                sectionDropdown.onchange = function () {
+                    const sectionId = this.value;
+                    graveDropdown.innerHTML = '<option value="">-- Select Grave --</option>';
 
-    
-</script>
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        var editModal = document.getElementById("editModal");
-
-        editModal.addEventListener("show.bs.modal", function (event) {
-            var button = event.relatedTarget;
-
-            // Fill hidden Id
-            document.getElementById("editJobId").value = button.getAttribute("data-id");
-
-            // Preselect Section
-            var sectionId = button.getAttribute("data-section");
-            var graveId = button.getAttribute("data-grave");
-            var supplierId = button.getAttribute("data-supplier");
-            var stageId = button.getAttribute("data-stage");
-            var startDate = button.getAttribute("data-start");
-            var endDate = button.getAttribute("data-end");
-
-            // Section dropdown
-            var sectionDropdown = document.getElementById("EditsectionDropdown");
-            sectionDropdown.value = sectionId;
-
-            // Populate graves for that section and select correct grave
-            var graveDropdown = document.getElementById("EditgraveDropdown");
-            graveDropdown.innerHTML = '<option value="">-- Select Grave --</option>';
-
-            if (sectionId) {
-                fetch(`?handler=GetGravesBySection&sectionId=${sectionId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        data.forEach(grave => {
-                            var option = document.createElement("option");
-                            option.value = grave.sys_graveId;
-                            option.text = grave.sys_plotNumber;
-                            if (grave.sys_graveId == graveId) {
-                                option.selected = true;
-                            }
-                            graveDropdown.add(option);
-                        });
-                    })
-                    .catch(error => console.error("Error loading graves:", error));
-            }
-
-            // Supplier, Stage, Dates
-            document.getElementById("editSupplierId").value = supplierId;
-            document.getElementById("editStageId").value = stageId;
-            document.getElementById("editStartDate").value = startDate;
-            document.getElementById("editEndDate").value = endDate;
-        });
-
-        // If user changes section manually, reload graves
-        document.getElementById("EditsectionDropdown").addEventListener("change", function () {
-            var sectionId = this.value;
-            var graveDropdown = document.getElementById("EditgraveDropdown");
-            graveDropdown.innerHTML = '<option value="">-- Select Grave --</option>';
-
-            if (sectionId) {
-                fetch(`?handler=GravesBySection&sectionId=${sectionId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        data.forEach(grave => {
-                            var option = document.createElement("option");
-                            option.value = grave.sys_graveId;
-                            option.text = grave.sys_plotNumber;
-                            graveDropdown.add(option);
-                        });
-                    })
-                    .catch(error => console.error("Error loading graves:", error));
-            }
-        });
-    });
-</script>
-
-
-<script>
-
-    function openEvaluationModal(jobId) {
-        $('#evaluationJobId').val(jobId);
-
-        $.getJSON('?handler=EvaluationParameters&jobId=' + jobId, function (data) {
-            let container = $('#evaluationParametersContainer');
-            container.empty();
-
-            if (data && data.length > 0) {
-                data.forEach(param => {
-                    container.append(`
-                    <div class="col-sm-4">
-                        <div class="mb-2">
-                            <label>${param.sys_parameterName}</label>
-                            <input type="hidden" name="parameterIds" value="${param.sys_jobEvaluationParameterId}" />
-                            <input type="text" class="form-control" name="evaluation_${param.sys_jobEvaluationParameterId}" value="${param.sys_jobEvaluation ?? ''}" />
-                        </div>
-                        </div>
-                    `);
-                });
-            } else {
-                container.append(`<p class="text-muted">No evaluation parameters defined.</p>`);
-            }
-
-            $('#evaluationModal').modal('show');
-        });
-    }
-
-
-    document.addEventListener("DOMContentLoaded", function () {
-        // --- Edit Job Modal ---
-        var editModal = document.getElementById("editModal");
-        editModal.addEventListener("show.bs.modal", function (event) {
-            var button = event.relatedTarget;
-            document.getElementById("editJobId").value = button.getAttribute("data-id");
-            document.getElementById("editGraveId").value = button.getAttribute("data-grave");
-            document.getElementById("editSupplierId").value = button.getAttribute("data-supplier");
-            document.getElementById("editStageId").value = button.getAttribute("data-stage");
-            document.getElementById("editStartDate").value = button.getAttribute("data-start");
-            document.getElementById("editEndDate").value = button.getAttribute("data-end");
-            document.getElementbyId("editStatus").value = button.getAttribute("data-status");
-        });
-
-        // --- Delete Job Modal ---
-        var deleteModal = document.getElementById("deleteModal");
-        deleteModal.addEventListener("show.bs.modal", function (event) {
-            var button = event.relatedTarget;
-            document.getElementById("deleteJobId").value = button.getAttribute("data-id");
-        });
-
-
-        
-    });
-
-</script>
-
-
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const selectAll = document.getElementById("selectAll");
-        const checkboxes = document.querySelectorAll(".job-checkbox");
-        const deleteBtn = document.getElementById("deleteSelectedBtn");
-        const bulkDeleteIds = document.getElementById("bulkDeleteIds");
-
-        // Select All toggle
-        selectAll.addEventListener("change", function () {
-            checkboxes.forEach(cb => cb.checked = this.checked);
-            toggleDeleteButton();
-        });
-
-        // Enable delete button if at least one is checked
-        checkboxes.forEach(cb => {
-            cb.addEventListener("change", toggleDeleteButton);
-        });
-
-        function toggleDeleteButton() {
-            const checked = document.querySelectorAll(".job-checkbox:checked").length > 0;
-            deleteBtn.disabled = !checked;
+                    if (sectionId) {
+                        fetch(`?handler=GetGravesBySection&sectionId=${sectionId}`)
+                            .then(r => r.json())
+                            .then(data => {
+                                data.forEach(grave => {
+                                    const option = document.createElement("option");
+                                    option.value = grave.sys_graveId;
+                                    option.text = grave.sys_plotNumber;
+                                    graveDropdown.add(option);
+                                });
+                            })
+                            .catch(err => console.error("Error loading graves:", err));
+                    }
+                };
+            });
         }
 
-        // Pass selected IDs to hidden input for bulk delete
-        deleteBtn.addEventListener("click", function () {
-            const ids = Array.from(document.querySelectorAll(".job-checkbox:checked"))
-                             .map(cb => cb.value)
-                             .join(",");
-            bulkDeleteIds.value = ids;
-        });
+        // --- Edit Job Modal ---
+        const editModal = document.getElementById("editModal");
+        if (editModal) {
+            editModal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget;
+                if (!button) return;
+
+                document.getElementById("editJobId").value = button.dataset.id;
+                document.getElementById("editSupplierId").value = button.dataset.supplier;
+                document.getElementById("editStageId").value = button.dataset.stage;
+                document.getElementById("editStartDate").value = button.dataset.start;
+                document.getElementById("editEndDate").value = button.dataset.end;
+                document.getElementById("editStatus").value = button.dataset.status;
+
+                const sectionDropdown = document.getElementById("EditsectionDropdown");
+                const graveDropdown = document.getElementById("EditgraveDropdown");
+
+                if (sectionDropdown && graveDropdown) {
+                    sectionDropdown.value = button.dataset.section;
+                    graveDropdown.innerHTML = '<option value="">-- Select Grave --</option>';
+
+                    if (sectionDropdown.value) {
+                        fetch(`?handler=GetGravesBySection&sectionId=${sectionDropdown.value}`)
+                            .then(r => r.json())
+                            .then(data => {
+                                data.forEach(grave => {
+                                    const option = document.createElement("option");
+                                    option.value = grave.sys_graveId;
+                                    option.text = grave.sys_plotNumber;
+                                    graveDropdown.add(option);
+                                });
+                                graveDropdown.value = button.dataset.grave;
+                            })
+                            .catch(err => console.error("Error loading graves:", err));
+                    }
+                }
+            });
+        }
+
+        // --- Delete Job Modal ---
+        const deleteModal = document.getElementById("deleteModal");
+        if (deleteModal) {
+            deleteModal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget;
+                if (!button) return;
+
+                const jobId = button.dataset.id;
+                const input = document.getElementById("deleteJobId");
+                if (input) input.value = jobId;
+            });
+        }
+
+        // --- Bulk Delete Modal ---
+        const bulkDeleteModal = document.getElementById("bulkDeleteModal");
+        const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+        const selectAll = document.getElementById("selectAll");
+
+        if (bulkDeleteModal && deleteSelectedBtn && selectAll) {
+            bulkDeleteModal.addEventListener("show.bs.modal", function () {
+                const selectedJobs = Array.from(document.querySelectorAll(".job-checkbox:checked"))
+                    .map(cb => cb.value);
+                document.getElementById("bulkDeleteIds").value = selectedJobs.join(",");
+            });
+
+            selectAll.addEventListener("change", function () {
+                document.querySelectorAll(".job-checkbox").forEach(cb => cb.checked = this.checked);
+                toggleDeleteSelected();
+            });
+
+            document.querySelectorAll(".job-checkbox").forEach(cb => {
+                cb.addEventListener("change", toggleDeleteSelected);
+            });
+
+            function toggleDeleteSelected() {
+                const anyChecked = document.querySelectorAll(".job-checkbox:checked").length > 0;
+                deleteSelectedBtn.disabled = !anyChecked;
+            }
+        }
     });
 </script>
-<script>
-    // When opening modal, load previous payments
-    function openPaymentModal(jobId, supplierId) {
-        $("#paymentJobId").val(jobId);
-        $("#paymentSupplierId").val(supplierId);
 
-        fetch(`?handler=Payments&jobId=${jobId}`)
-            .then(r => r.json())
-            .then(data => {
-                let rows = "";
-                let hasPayments = data.length > 0;
-                let lastBalance = 0;
-
-                data.forEach((p, index) => {
-                    // For first payment row, use the recorded AmountDue
-                    // For subsequent rows, AmountDue = previous balance
-                    let amountDue = (index === 0) ? p.amountDue : lastBalance;
-
-                    rows += `<tr>
-                        <td>${p.paymentDate}</td>
-                        <td>${amountDue}</td>
-                        <td>${p.amountPaid}</td>
-                        <td>${p.balance}</td>
-                    </tr>`;
-
-                    lastBalance = p.balance; // update running balance
-                });
-
-                $("#previousPaymentsBody").html(rows);
-
-                    if (hasPayments) {
-                        $("#amountDue").val(lastBalance).prop("readonly", true);
-                        $("#currentBalance").val(lastBalance);
-
-                    // Set max for amount paid = balance
-                $("#amountPaid").attr("max", lastBalance);
-                    }
-                    else {
-                            $("#amountDue").val("").prop("readonly", false);
-                            $("#currentBalance").val("");
-
-                            // No previous payments → max should follow manually entered AmountDue
-                            $("#amountPaid").removeAttr("max");
-                        }
-
-                            $("#paymentModal").modal("show");
-            });
-    }
-
-     //Optional: update max dynamically when AmountDue is typed (first payment case)
-        $("#amountDue").on("input", function () {
-            let due = parseFloat($(this).val()) || 0;
-            $("#amountPaid").attr("max", due);
-        });
-</script>

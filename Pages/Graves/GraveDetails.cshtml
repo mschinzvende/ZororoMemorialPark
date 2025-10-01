@@ -793,6 +793,11 @@
                         <label>Notes</label>
                         <textarea name="notes" class="form-control"></textarea>
                     </div>
+
+                    <div class="mb-2">
+                        <label>Receipt Number</label>
+                        <input type="number" name="receiptNumber" min="0" step="0.01" class="form-control" required />
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-success">Save Payment</button>
@@ -1071,181 +1076,158 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    document.addEventListener("DOMContentLoaded", function(){
-        
-        var allocationModal = document.getElementById("allocationPaymentModal");
-        allocationModal.addEventListener("show.bs.modal", function(event){
-            var button = event.relatedTarget;
-            document.getElementById("allocationId").value = button.getAttribute("data-allocationid");
-        });
+    document.addEventListener("DOMContentLoaded", function () {
 
+        // --- Allocation Payment Modal ---
+        const allocationModal = document.getElementById("allocationPaymentModal");
+        if (allocationModal) {
+            allocationModal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget;
+                document.getElementById("allocationId").value = button.getAttribute("data-allocationid");
+            });
+        }
 
+        // --- Edit Job Modal ---
+        const editModal = document.getElementById("editModal");
+        if (editModal) {
+            editModal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget;
 
-       var editModal = document.getElementById("editModal");
-
-        editModal.addEventListener("show.bs.modal", function (event) {
-        var button = event.relatedTarget;
-
-                // Fill hidden Ids
                 document.getElementById("editJobId").value = button.getAttribute("data-id");
                 document.getElementById("editGraveId").value = button.getAttribute("data-grave");
-
-                // Preselect Supplier
                 document.getElementById("editSupplierId").value = button.getAttribute("data-supplier");
-
-                // Preselect Stage
                 document.getElementById("editStageId").value = button.getAttribute("data-stage");
-
-                // Pre-fill Dates
                 document.getElementById("editStartDate").value = button.getAttribute("data-start");
                 document.getElementById("editEndDate").value = button.getAttribute("data-end");
-
-                // Pre-fill Status
                 document.getElementById("editStatus").value = button.getAttribute("data-status");
-        });
-
-            // Supplier, Stage, Dates
-            document.getElementById("editSupplierId").value = supplierId;
-            document.getElementById("editStageId").value = stageId;
-            document.getElementById("editStartDate").value = startDate;
-            document.getElementById("editEndDate").value = endDate;
-       
-
-        
-
-       
+            });
+        }
 
         // --- Delete Job Modal ---
-        var deleteModal = document.getElementById("deleteModal");
-        deleteModal.addEventListener("show.bs.modal", function (event) {
-            var button = event.relatedTarget;
-            document.getElementById("deleteJobId").value = button.getAttribute("data-id");
-        });
+        const deleteModal = document.getElementById("deleteModal");
+        if (deleteModal) {
+            deleteModal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget;
+                document.getElementById("deleteJobId").value = button.getAttribute("data-id");
+            });
+        }
 
+        // --- Payment Modal Function ---
+        window.openPaymentModal = function (jobId, supplierId) {
+            $("#paymentJobId").val(jobId);
+            $("#paymentSupplierId").val(supplierId);
 
+            fetch(`?handler=Payments&jobId=${jobId}`)
+                .then(r => r.json())
+                .then(data => {
+                    let rows = "";
+                    let hasPayments = data.length > 0;
+                    let lastBalance = 0;
 
-    });
+                    data.forEach((p, index) => {
+                        let amountDue = (index === 0) ? p.amountDue : lastBalance;
+                        rows += `<tr>
+                            <td>${p.paymentDate}</td>
+                            <td>${amountDue}</td>
+                            <td>${p.amountPaid}</td>
+                            <td>${p.balance}</td>
+                        </tr>`;
+                        lastBalance = p.balance;
+                    });
 
-    function openPaymentModal(jobId, supplierId) {
-        $("#paymentJobId").val(jobId);
-        $("#paymentSupplierId").val(supplierId);
-
-        fetch(`?handler=Payments&jobId=${jobId}`)
-            .then(r => r.json())
-            .then(data => {
-                let rows = "";
-                let hasPayments = data.length > 0;
-                let lastBalance = 0;
-
-                data.forEach((p, index) => {
-                    // For first payment row, use the recorded AmountDue
-                    // For subsequent rows, AmountDue = previous balance
-                    let amountDue = (index === 0) ? p.amountDue : lastBalance;
-
-                    rows += `<tr>
-                        <td>${p.paymentDate}</td>
-                        <td>${amountDue}</td>
-                        <td>${p.amountPaid}</td>
-                        <td>${p.balance}</td>
-                    </tr>`;
-
-                    lastBalance = p.balance; // update running balance
-                });
-
-                $("#previousPaymentsBody").html(rows);
+                    $("#previousPaymentsBody").html(rows);
 
                     if (hasPayments) {
                         $("#amountDue").val(lastBalance).prop("readonly", true);
                         $("#currentBalance").val(lastBalance);
+                        $("#amountPaid").attr("max", lastBalance);
+                    } else {
+                        $("#amountDue").val("").prop("readonly", false);
+                        $("#currentBalance").val("");
+                        $("#amountPaid").removeAttr("max");
+                    }
 
-                    // Set max for amount paid = balance
-                $("#amountPaid").attr("max", lastBalance);
-                    } 
-                    else {
-                            $("#amountDue").val("").prop("readonly", false);
-                            $("#currentBalance").val("");
+                    $("#paymentModal").modal("show");
+                });
+        };
 
-                            // No previous payments → max should follow manually entered AmountDue
-                            $("#amountPaid").removeAttr("max");
-                        }
-
-                            $("#paymentModal").modal("show");
-            });
-    }
-
-     //Optional: update max dynamically when AmountDue is typed (first payment case)
+        // --- Dynamic max update ---
         $("#amountDue").on("input", function () {
             let due = parseFloat($(this).val()) || 0;
             $("#amountPaid").attr("max", due);
         });
 
-    function openEvaluationModal(jobId) {
-        $('#evaluationJobId').val(jobId);
+        // --- Evaluation Modal ---
+        window.openEvaluationModal = function (jobId) {
+            $('#evaluationJobId').val(jobId);
 
-        $.getJSON('?handler=EvaluationParameters&jobId=' + jobId, function (data) {
-            let container = $('#evaluationParametersContainer');
-            container.empty();
+            $.getJSON('?handler=EvaluationParameters&jobId=' + jobId, function (data) {
+                let container = $('#evaluationParametersContainer');
+                container.empty();
 
-            if (data && data.length > 0) {
-                data.forEach(param => {
-                    container.append(`
-                    <div class="col-sm-4">
-                        <div class="mb-2">
-                            <label>${param.sys_parameterName}</label>
-                            <input type="hidden" name="parameterIds" value="${param.sys_jobEvaluationParameterId}" />
-                            <input type="text" class="form-control" name="evaluation_${param.sys_jobEvaluationParameterId}" value="${param.sys_jobEvaluation ?? ''}" />
-                        </div>
-                        </div>
-                    `);
-                });
-            } else {
-                container.append(`<p class="text-muted">No evaluation parameters defined.</p>`);
-            }
+                if (data && data.length > 0) {
+                    data.forEach(param => {
+                        container.append(`
+                            <div class="col-sm-4">
+                                <div class="mb-2">
+                                    <label>${param.sys_parameterName}</label>
+                                    <input type="hidden" name="parameterIds" value="${param.sys_jobEvaluationParameterId}" />
+                                    <input type="text" class="form-control"
+                                        name="evaluation_${param.sys_jobEvaluationParameterId}"
+                                        value="${param.sys_jobEvaluation ?? ''}" />
+                                </div>
+                            </div>
+                        `);
+                    });
+                } else {
+                    container.append(`<p class="text-muted">No evaluation parameters defined.</p>`);
+                }
 
-            $('#evaluationModal').modal('show');
-        });
-    }
+                $('#evaluationModal').modal('show');
+            });
+        };
 
+        // --- Burial Slots ---
+        const burialDateInput = document.getElementById("burialDate");
+        if (burialDateInput) {
+            burialDateInput.addEventListener("change", async function () {
+                const burialDate = this.value;
+                const timeSelect = document.getElementById("burialTime");
+                const messageEl = document.getElementById("slotMessage");
+                const submitBtn = document.getElementById("allocateSubmitBtn");
 
-</script>
+                if (!burialDate) return;
 
-<script>
-    document.getElementById("burialDate").addEventListener("change", async function () {
-        const burialDate = this.value;
-        const timeSelect = document.getElementById("burialTime");
-        const messageEl = document.getElementById("slotMessage");
-        const submitBtn = document.getElementById("allocateSubmitBtn");
+                try {
+                    const response = await fetch(`?handler=AvailableBurialSlots&burialDate=${encodeURIComponent(burialDate)}`);
+                    const result = await response.json();
 
-        if (!burialDate) return;
+                    timeSelect.innerHTML = `<option value="">-- Select a slot --</option>`;
 
-        try {
-            const response = await fetch(`?handler=AvailableBurialSlots&burialDate=${encodeURIComponent(burialDate)}`);
-            const result = await response.json();
+                    if (result.slots.length === 0) {
+                        messageEl.textContent = result.message || "No slots available.";
+                        submitBtn.disabled = true;
+                    } else {
+                        messageEl.textContent = "";
+                        submitBtn.disabled = false;
 
-            // Clear old options
-            timeSelect.innerHTML = `<option value="">-- Select a slot --</option>`;
-
-            if (result.slots.length === 0) {
-                messageEl.textContent = result.message || "No slots available.";
-                submitBtn.disabled = true;
-            } else {
-                messageEl.textContent = "";
-                submitBtn.disabled = false;
-
-                result.slots.forEach(slot => {
-                    const date = new Date(slot);
-                    const opt = document.createElement("option");
-                    opt.value = slot;
-                    opt.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    timeSelect.appendChild(opt);
-                });
-            }
-        } catch (error) {
-            console.error("Error fetching slots:", error);
-            messageEl.textContent = "Could not load slots.";
-            submitBtn.disabled = true;
+                        result.slots.forEach(slot => {
+                            const date = new Date(slot);
+                            const opt = document.createElement("option");
+                            opt.value = slot;
+                            opt.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            timeSelect.appendChild(opt);
+                        });
+                    }
+                } catch (error) {
+                    console.error("Error fetching slots:", error);
+                    messageEl.textContent = "Could not load slots.";
+                    submitBtn.disabled = true;
+                }
+            });
         }
     });
 </script>
+
 
 

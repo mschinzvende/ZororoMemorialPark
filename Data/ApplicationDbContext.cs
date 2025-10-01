@@ -42,7 +42,12 @@ namespace ZororoMemorialPark.Data
 
         public DbSet<tbl_InvoiceItems> tbl_InvoiceItems { get; set; }
         public DbSet<tbl_IncomePayments> tbl_IncomePayments { get; set; }
+         public DbSet<tbl_Agents> tbl_Agents { get; set; }
 
+        public DbSet<tbl_CommissionPayments> tbl_CommissionPayments { get; set; }
 
+        public DbSet<tbl_CommissionsDue> tbl_CommissionsDue { get; set; }
+
+        public DbSet<tbl_ReceiptBooks> tbl_ReceiptBooks { get; set; }
     }
 }

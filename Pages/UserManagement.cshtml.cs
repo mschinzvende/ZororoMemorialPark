@@ -28,7 +28,7 @@ public class UserManagementModel : PageModel
 
     // --- Users list ---
     public List<UserViewModel> Users { get; set; } = new();
-    public List<string> AllRoles { get; set; } = new() { "Admin", "Accountant", "Supervisor" };
+    public List<string> AllRoles { get; set; } = new() { "Admin", "Accountant", "Supervisor", "Agent" };
 
     // --- Add User ---
     [BindProperty]

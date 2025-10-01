@@ -182,7 +182,6 @@ namespace ZororoMemorialPark.Pages.Graves
                             sys_notes = pay.sys_notes
                         }).ToListAsync();
 
-                    ;
                 }
 
 
@@ -565,26 +564,74 @@ namespace ZororoMemorialPark.Pages.Graves
             return RedirectToPage(new { id = id });
         }
 
-        // Allocation Payment
-        public async Task<IActionResult> OnPostAddAllocationPaymentAsync(int allocationId, double amountPaid, int paymentMethodId, string notes)
+        //Receipt Validation Script
+
+        public async Task<(bool Success, string Message)> ValidateReceiptNumber(int agentId, int receiptNumber)
         {
-            var allocation = await _context.tbl_GraveAllocations.FindAsync(allocationId);
-            if (allocation == null) return BadRequest();
+            var book = await _context.tbl_ReceiptBooks
+                .FirstOrDefaultAsync(b => b.sys_agentId == agentId && b.sys_isClosed!= true);
 
-            var invoice = await _context.tbl_Invoices.FirstOrDefaultAsync(i => i.sys_customerId == allocation.sys_customerId);
-            if (invoice == null) return BadRequest();
+            if (book == null)
+                return (false, "Receipt book not found for this agent.");
 
-            var payment = new tbl_IncomePayments
+            if (book.sys_isClosed)
+                return (false, "This receipt book is closed.");
+
+            if (receiptNumber < book.sys_startNumber || receiptNumber > book.sys_endNumber)
+                return (false, "Receipt number not in the valid range for this book.");
+
+            if (receiptNumber != book.sys_currentNumber + 1)
+                return (false, $"Invalid sequence. Next expected receipt is {book.sys_currentNumber + 1}.");
+
+            
+            return (true, "Receipt Number is Valid.");
+        }
+
+
+
+        // Allocation Payment
+        public async Task<IActionResult> OnPostAddAllocationPaymentAsync(int allocationId, double amountPaid, int paymentMethodId, int receiptNumber, string notes)
+        {
+
+            //Validate Receipt Number
+
+            //get agent id
+
+            //var currentUser = await _userManager.GetUserId(User);
+
+            var theUser = await _userManager.FindByIdAsync(_userManager.GetUserId(User));
+
+            var theAgent = await _context.tbl_Agents.FirstOrDefaultAsync(a => a.UserId == _userManager.GetUserId(User));
+
+            if (await _userManager.IsInRoleAsync(theUser, "Agent"))
             {
-                sys_invoiceId = invoice.sys_invoiceId,
-                sys_date = DateOnly.FromDateTime(DateTime.Now),
-                sys_amount = amountPaid,
-                sys_paymentMethod = _context.tbl_PaymentMethods.FirstOrDefault(pm => pm.sys_paymentMethodId == paymentMethodId)?.sys_paymentMethodName,
-                sys_notes = notes ?? "n/a"
-            };
-            _context.tbl_IncomePayments.Add(payment);
-            await _context.SaveChangesAsync();
-            return RedirectToPage(new { id = id });
+                var ValidationResult = ValidateReceiptNumber(theAgent.sys_agentId, receiptNumber);
+
+
+                var allocation = await _context.tbl_GraveAllocations.FindAsync(allocationId);
+                if (allocation == null) return BadRequest();
+
+                var invoice = await _context.tbl_Invoices.FirstOrDefaultAsync(i => i.sys_customerId == allocation.sys_customerId);
+                if (invoice == null) return BadRequest();
+
+                var payment = new tbl_IncomePayments
+                {
+                    sys_invoiceId = invoice.sys_invoiceId,
+                    sys_date = DateOnly.FromDateTime(DateTime.Now),
+                    sys_amount = amountPaid,
+                    sys_paymentMethod = _context.tbl_PaymentMethods.FirstOrDefault(pm => pm.sys_paymentMethodId == paymentMethodId)?.sys_paymentMethodName,
+                    sys_notes = notes ?? "n/a"
+                };
+                _context.tbl_IncomePayments.Add(payment);
+                await _context.SaveChangesAsync();
+                return RedirectToPage(new { id = id });
+            }
+
+            else
+            {
+                TempData["ErrorMessage"] = "Only Agents can capture payments";
+                return RedirectToPage(new { id = id });
+            }
         }
 
         // Record Reservation Payment

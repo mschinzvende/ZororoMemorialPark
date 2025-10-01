@@ -7,6 +7,8 @@ namespace ZororoMemorialPark.Data.Models
         [Key]
         public int sys_graveId { get; set; }
         public int sys_stageId { get; set; }
+
+        public int sys_previousStageId { get; set; }
         public int sys_sectionId { get; set; }
         public string sys_plotNumber { get; set; }
         public string sys_graveSaleStatus { get; set; }

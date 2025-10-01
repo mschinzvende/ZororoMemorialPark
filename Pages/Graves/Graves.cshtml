@@ -5,6 +5,27 @@
     ViewData["Title"] = "Graves";
 }
 
+<style>
+    .tab-pane {
+        border: 2px solid transparent;
+        border-radius: 0 0 .25rem .25rem; /* rounded bottom corners */
+        padding: 1rem;
+    }
+
+    /* Active tab colors */
+    #available.active.show {
+        border-color: #28a745;
+    }
+
+    #reserved.active.show {
+        border-color: #ffc107;
+    }
+
+    #occupied.active.show {
+        border-color: #343a40;
+    }
+</style>
+
 <div class="row">
     <div class="col-lg-12 mx-auto">
         <div class="card shadow-sm">
@@ -42,7 +63,7 @@
                 <ul class="nav nav-tabs mb-3" id="graveTabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="available-tab" data-bs-toggle="tab" data-bs-target="#available" type="button" role="tab" style="background-color: #28a745; color:white;">
-                            Available
+                            Unsold
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -60,7 +81,7 @@
                 <div class="tab-content">
                     <!-- Available Graves -->
                     <div class="tab-pane fade show active" id="available" role="tabpanel">
-                        @await Html.PartialAsync("_GravesTablePartial", new { Graves = Model.AvailableGraves, Status = "Available", PageRouteParam = "availablePage" })
+                        @await Html.PartialAsync("_GravesTablePartial", new { Graves = Model.AvailableGraves, Status = "Unsold", PageRouteParam = "availablePage" })
                     </div>
 
                     <!-- Reserved Graves -->
@@ -90,10 +111,16 @@
             </div>
             <div class="modal-body bg-light">
                 <form method="post" asp-page-handler="Create" id="createGraveForm">
+                    <div class="row">
+                        <div class="col-sm-6">
+
                     <div class="mb-3">
                         <label class="form-label fw-bold">Plot Number</label>
                         <input min="1" type="number" name="sys_plotNumber" class="form-control border" style="border-color: var(--primary-green);" required/>
                     </div>
+                        </div>
+
+                        <div class="col-sm-6">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Section</label>
                         <select name="sys_sectionId" class="form-select" required>
@@ -103,6 +130,9 @@
                             }
                         </select>
                     </div>
+
+                            </div>
+                                <div class="col-sm-6">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Stage</label>
                         <select name="sys_stageId" class="form-select" required>
@@ -112,32 +142,47 @@
                             }
                         </select>
                     </div>
+                    </div>
+                    <div class="col-sm-6">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Price</label>
                         <input type="number" name="sys_price" step="0.01" class="form-control" min="0" />
                     </div>
+                    </div>
+                    <div class="col-sm-6">
                     <div class="mb-3">
 
                         
                         <label class="form-label fw-bold">Sale Status</label>
                         <select name="sys_graveSaleStatus" class="form-select">
-                            <option value="Available">Available</option>
+                            <option value="Available">Unsold</option>
                             <option value="Sold">Sold</option>
                             <option value="Reserved">Reserved</option>
 
                         </select>
                     </div>
+                    </div>
+                    <div class="col-sm-6">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Latitude</label>
                         <input name="sys_Latitude" value="0.0" class="form-control border" style="border-color: var(--primary-green);" />
                     </div>
+                    </div>
+                    <div class="col-sm-6">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Longitude</label>
                         <input name="sys_Longitude" value="0.0" class="form-control border" style="border-color: var(--primary-green);" />
                     </div>
+                    </div>
+
+                    </div>
+                    <div class="row">
+                   
                     <div class="text-end">
                         <button type="submit" class="btn btn-primary">Save</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                    
                     </div>
                 </form>
             </div>
@@ -155,10 +200,17 @@
             </div>
             <div class="modal-body bg-light">
                 <form method="post" asp-page-handler="BulkGenerate" id="bulkGraveForm">
+
+                    <div class="row">
+
+                    <div class="col-sm-6">
+
                     <div class="mb-3">
                         <label class="form-label fw-bold">Number of Graves</label>
                         <input type="number" name="count" class="form-control" min="1" required/>
                     </div>
+                    </div>
+                        <div class="col-sm-6">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Section</label>
                         <select name="sys_sectionId" class="form-select" required>
@@ -168,6 +220,8 @@
                             }
                         </select>
                     </div>
+                    </div>
+                        <div class="col-sm-6">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Stage</label>
                         <select name="sys_stageId" class="form-select" required>
@@ -177,17 +231,28 @@
                             }
                         </select>
                     </div>
+                    </div>
+                        <div class="col-sm-6">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Starting Plot Number</label>
                         <input type="number" name="plotSeed" class="form-control" min="1" required/>
                     </div>
+                    </div>
+                        <div class="col-sm-6">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Price</label>
                         <input type="number" name="sys_price" step="0.01" class="form-control" min="0"/>
                     </div>
+                    </div>
+                    </div>
+
+                    <div class="row">
+
+                    
                     <div class="text-end">
                         <button type="submit" class="btn btn-primary">Generate</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
                     </div>
                 </form>
             </div>
@@ -241,7 +306,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold">Status</label>
                         <select name="sys_graveSaleStatus" class="form-select border" style="border-color: var(--primary-green);">
-                            <option value="Available">Available</option>
+                            <option value="Unsold">Unsold</option>
                             <option value="Reserved">Reserved</option>
                             <option value="Sold">Sold</option>
                         </select>
@@ -355,39 +420,65 @@
 </script>
 
 <script>
+    document.addEventListener("DOMContentLoaded", () => {
 
-    // --- Checkbox Select/Deselect ---
-    const selectAll = document.getElementById("selectAll");
-    const deleteBtn = document.getElementById("deleteSelectedBtn");
+        // --- Select/Deselect All per tab ---
+        document.querySelectorAll("input[id^='selectAll-']").forEach(selectAll => {
+            selectAll.addEventListener("change", function () {
+                // get the parent tab (the div with class="tab-pane")
+                const tabPane = this.closest(".tab-pane");
+                if (!tabPane) return;
 
-    selectAll.addEventListener("change", function () {
-        let checkboxes = document.querySelectorAll("#gravesTable .row-checkbox");
-        checkboxes.forEach(cb => cb.checked = this.checked);
-        toggleDeleteButton();
-    });
+                // toggle all row checkboxes inside this tab only
+                const checkboxes = tabPane.querySelectorAll(".row-checkbox");
+                checkboxes.forEach(cb => cb.checked = this.checked);
 
-    document.querySelectorAll("#gravesTable .row-checkbox").forEach(cb => {
-        cb.addEventListener("change", toggleDeleteButton);
-    });
+                toggleDeleteButton(tabPane);
+            });
+        });
 
-    function toggleDeleteButton() {
-        let checked = document.querySelectorAll("#gravesTable .row-checkbox:checked").length;
-        deleteBtn.disabled = checked === 0;
-    }
+        // --- Row checkbox listeners ---
+        document.querySelectorAll(".tab-pane .row-checkbox").forEach(cb => {
+            cb.addEventListener("change", function () {
+                const tabPane = this.closest(".tab-pane");
+                toggleDeleteButton(tabPane);
+            });
+        });
 
-    // --- Bulk Delete Modal Handling ---
-    const bulkDeleteModal = document.getElementById("bulkDeleteModal");
-    const selectedIdsInput = document.getElementById("SelectedIds");
-    const bulkDeleteMessage = document.getElementById("bulkDeleteMessage");
+        // --- Enable/disable delete button ---
+        function toggleDeleteButton(tabPane) {
+            const deleteBtn = tabPane.querySelector(".btn[data-bs-target='#bulkDeleteModal']");
+            if (!deleteBtn) return;
 
-    bulkDeleteModal.addEventListener("show.bs.modal", function () {
-        let ids = Array.from(document.querySelectorAll("#gravesTables .row-checkbox:checked"))
-                       .map(cb => cb.value);
-        if (ids.length > 0) {
-            selectedIdsInput.value = ids.join(",");
-            bulkDeleteMessage.textContent = `Are you sure you want to delete ${ids.length} selected grave(s)?`;
+            const checked = tabPane.querySelectorAll(".row-checkbox:checked").length;
+            deleteBtn.disabled = checked === 0;
         }
+
+        // --- Bulk Delete Modal Handling ---
+        const bulkDeleteModal = document.getElementById("bulkDeleteModal");
+        const selectedIdsInput = document.getElementById("SelectedIds");
+        const bulkDeleteMessage = document.getElementById("bulkDeleteMessage");
+
+        bulkDeleteModal.addEventListener("show.bs.modal", function (event) {
+            // which button opened the modal?
+            const triggerBtn = event.relatedTarget;
+            const tabPane = triggerBtn.closest(".tab-pane");
+
+            // collect IDs from that tab only
+            const ids = Array.from(tabPane.querySelectorAll(".row-checkbox:checked"))
+                             .map(cb => cb.value);
+
+            if (ids.length > 0) {
+                selectedIdsInput.value = ids.join(",");
+                bulkDeleteMessage.textContent = `Are you sure you want to delete ${ids.length} selected grave(s)?`;
+            } else {
+                selectedIdsInput.value = "";
+                bulkDeleteMessage.textContent = "No graves selected.";
+            }
+        });
+
     });
 </script>
+
 
 
