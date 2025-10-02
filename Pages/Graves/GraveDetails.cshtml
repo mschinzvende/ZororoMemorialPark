@@ -771,6 +771,7 @@
                 <div class="modal-header"><h5>Allocation Payment</h5></div>
                 <div class="modal-body">
                     <input type="hidden" name="allocationId" id="allocationId" />
+                    
 
                     <div class="mb-2">
                         <label>Current Balance</label>
@@ -796,7 +797,35 @@
 
                     <div class="mb-2">
                         <label>Receipt Number</label>
-                        <input type="number" name="receiptNumber" min="0" step="0.01" class="form-control" required />
+
+                        @if (Model.AgentRecordExists)
+                        {
+                            <!-- Agent with record: auto use their receipt book -->
+                            <input type="hidden" id="receiptBookId" name="receiptBookId" value="@Model.AgentReceiptBook.sys_receiptBookId" />
+                            <input type="number" id="receiptNumber" name="receiptNumber" class="form-control" required />
+                            <small class="text-muted">
+                                Book @Model.AgentReceiptBook.sys_startNumber - @Model.AgentReceiptBook.sys_endNumber
+                            </small>
+                            <div id="receiptValidationMsg" class="text-danger small mt-1"></div>
+                        }
+                        else
+                        {
+                            <!-- Agent role only: must pick a book -->
+                            <select id="receiptBookId" name="receiptBookId" class="form-select mb-2" required>
+                                <option value="">-- Select Receipt Book --</option>
+                                @foreach (var b in Model.AvailableBooks)
+                                {
+                                    <option value="@b.sys_receiptBookId"
+                                            data-start="@b.sys_startNumber"
+                                            data-end="@b.sys_endNumber"
+                                            data-current="@b.sys_currentNumber">
+                                        Book @b.sys_startNumber - @b.sys_endNumber (Agent: @b.AgentName)
+                                    </option>
+                                }
+                            </select>
+                            <input type="number" id="receiptNumber" name="receiptNumber" class="form-control" required />
+                            <div id="receiptValidationMsg" class="text-danger small mt-1"></div>
+                        }
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -1229,5 +1258,74 @@
     });
 </script>
 
+<script>
+const receiptInput = document.getElementById("receiptNumber");
+const validationMsg = document.getElementById("receiptValidationMsg");
+
+// Case 1: Agent with record (hidden input, single book)
+const hiddenBook = document.getElementById("receiptBookId");
+// Case 2: Agent role only (select with data attributes)
+const bookSelect = document.getElementById("receiptBookId") && document.getElementById("receiptBookId").tagName === "SELECT"
+    ? document.getElementById("receiptBookId")
+    : null;
+
+function validateReceipt() {
+    if (!receiptInput) return;
+
+    const receiptNumber = parseInt(receiptInput.value);
+
+    // Clear message if empty
+    if (!receiptNumber) {
+        validationMsg.textContent = "";
+        return;
+    }
+
+    // Agent with record → book info comes from server model
+    if (hiddenBook && !bookSelect) {
+        const start = parseInt("@Model.AgentReceiptBook.sys_startNumber");
+        const end = parseInt("@Model.AgentReceiptBook.sys_endNumber");
+        const current = parseInt("@Model.AgentReceiptBook.sys_currentNumber");
+
+        if (receiptNumber < start || receiptNumber > end) {
+            validationMsg.textContent = "❌ Receipt number not in valid range.";
+        } else if (receiptNumber !== current + 1) {
+            validationMsg.textContent = `❌ Invalid sequence. Next expected is ${current + 1}.`;
+        } else {
+            validationMsg.textContent = "✅ Receipt number is valid.";
+            validationMsg.className = "text-success small mt-1";
+        }
+    }
+
+    // Agent role only → book selected from dropdown
+    if (bookSelect) {
+        const selectedOption = bookSelect.options[bookSelect.selectedIndex];
+        if (!selectedOption || !selectedOption.dataset.start) {
+            validationMsg.textContent = "";
+            return;
+        }
+
+        const start = parseInt(selectedOption.dataset.start);
+        const end = parseInt(selectedOption.dataset.end);
+        const current = parseInt(selectedOption.dataset.current);
+
+        if (receiptNumber < start || receiptNumber > end) {
+            validationMsg.textContent = "❌ Receipt number not in valid range.";
+        } else if (receiptNumber !== current + 1) {
+            validationMsg.textContent = `❌ Invalid sequence. Next expected is ${current + 1}.`;
+        } else {
+            validationMsg.textContent = "✅ Receipt number is valid.";
+            validationMsg.className = "text-success small mt-1";
+        }
+    }
+}
+
+// Bind events
+if (receiptInput) {
+    receiptInput.addEventListener("input", validateReceipt);
+}
+if (bookSelect) {
+    bookSelect.addEventListener("change", validateReceipt);
+}
 
 
+</script>

@@ -47,8 +47,11 @@ namespace ZororoMemorialPark.Pages.Graves
 
         public List<tbl_JobEvaluations> JobEvaluations {  get; set; } = new();
 
+        public bool AgentRecordExists { get; set; }
+        public tbl_ReceiptBooks AgentReceiptBook { get; set; } = new();
+        public List<ReceiptBookView> AvailableBooks { get; set; } = new();
 
-
+        public int agentId { get; set; }
 
 
         // Dropdown lists (always initialized)
@@ -113,10 +116,48 @@ namespace ZororoMemorialPark.Pages.Graves
             public double Balance { get; set; }
         }
 
+        public class ReceiptBookView
+        {
+            public int sys_receiptBookId { get; set; }
+            public int sys_startNumber { get; set; }
+            public int sys_endNumber { get; set; }
+
+            public int sys_currentNumber { get; set; }
+            public string AgentName { get; set; }
+        }
+
         public async Task OnGetAsync()
         {
             try
             {
+
+                var user = await _userManager.GetUserAsync(User);
+
+                var agent = await _context.tbl_Agents
+                    
+                    .FirstOrDefaultAsync(a => a.UserId == user.Id);
+
+                if (agent != null)
+                {
+                    AgentRecordExists = true;
+                    AgentReceiptBook = await _context.tbl_ReceiptBooks.FirstOrDefaultAsync(rb => rb.sys_agentId == agent.sys_agentId && !rb.sys_isClosed);
+                }
+                else
+                {
+                    AgentRecordExists = false;
+                    AvailableBooks = await _context.tbl_ReceiptBooks
+                        .Where(b => !b.sys_isClosed)
+                        .Select(b => new ReceiptBookView
+                        {
+                            sys_receiptBookId = b.sys_receiptBookId,
+                            sys_startNumber = b.sys_startNumber,
+                            sys_endNumber = b.sys_endNumber,
+                            AgentName = b.Agent.sys_agentName
+                        })
+                        .ToListAsync();
+                }
+
+
                 await LoadDropdownsAsync();
                 // Load grave and related info
                 Grave = await _context.tbl_Graves.FindAsync(id);
@@ -587,7 +628,11 @@ namespace ZororoMemorialPark.Pages.Graves
             return (true, "Receipt Number is Valid.");
         }
 
-
+        public async Task<JsonResult> OnGetValidateReceiptNumber(int agentId, int receiptNumber)
+        {
+            var (success, message) = await ValidateReceiptNumber(agentId, receiptNumber);
+            return new JsonResult(new { success, message });
+        }
 
         // Allocation Payment
         public async Task<IActionResult> OnPostAddAllocationPaymentAsync(int allocationId, double amountPaid, int paymentMethodId, int receiptNumber, string notes)
