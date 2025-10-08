@@ -223,12 +223,19 @@
                                     }
                                     else
                                     {
-                                        <div class="alert alert-info">No allocation found.</div>
-                                        <button class="btn btn-sm btn-primary"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#allocateModal">
-                                            ➕ Allocate Grave
-                                        </button>
+                                        @if(!Model.isReadyForAllocation){
+                                            <div class="alert alert-warning">Grave not ready for allocation. Current Stage: @Model.Stage?.sys_stageName</div>
+                                        }
+                                        else{
+                                            <div class="alert alert-info">No allocation found.</div>
+                                            <button class="btn btn-sm btn-primary"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#allocateModal">
+                                                ➕ Allocate Grave
+                                            </button>
+
+                                        }
+                                        
                                     }
                                     
                                 </div>

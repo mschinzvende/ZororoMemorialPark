@@ -76,6 +76,8 @@ namespace ZororoMemorialPark.Pages.Graves
         public string AllocationPaymentStatus { get; set; }
         public string ReservationPaymentStatus { get; set; }
 
+        public bool isReadyForAllocation { get; set; }
+
         
         public class CustomerPaymentDto
         {
@@ -314,7 +316,18 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 }).ToList();
 
+                // Find current stage
+                var currentStage = await _context.tbl_DevelopmentStages
+                    .FirstOrDefaultAsync(s => s.sys_stageId == Grave.sys_stageId);
 
+                
+
+                // Find max stage order
+                int maxStageOrder = await _context.tbl_DevelopmentStages
+                    .MaxAsync(s => s.sys_stageOrder);
+
+                // Check if grave is at final stage
+                isReadyForAllocation = currentStage.sys_stageOrder == maxStageOrder;
             }
 
             catch (Exception ex)
