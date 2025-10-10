@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Shared;
 using ZororoMemorialPark.Services;
 using System.Data;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Globalization;
 
 public class AgentManagementModel : PageModel
 {
@@ -34,9 +36,16 @@ public class AgentManagementModel : PageModel
     [BindProperty] public tbl_Agents Agent { get; set; }
     [BindProperty] public tbl_CommissionPayments Payment { get; set; }
 
+    public List<SelectListItem> IsPercentageOptions { get; set; }
     public async Task OnGetAsync()
     {
         Agents = await _context.tbl_Agents.ToListAsync();
+
+        IsPercentageOptions = new List<SelectListItem>
+    {
+        new SelectListItem { Text = "Percentage", Value = "true" },
+        new SelectListItem { Text = "Fixed Amount", Value = "false" }
+    };
     }
 
     public async Task<IActionResult> OnPostAddAgentAsync()
@@ -119,35 +128,156 @@ public class AgentManagementModel : PageModel
         return RedirectToPage();
     }
 
-    public async Task<IActionResult> OnPostAddPaymentAsync()
+    public async Task<IActionResult> OnPostAddPaymentAsync([FromForm] tbl_CommissionPayments payment)
     {
-        if (!ModelState.IsValid) return Page();
-        _context.tbl_CommissionPayments.Add(Payment);
+        
+
+        _context.tbl_CommissionPayments.Add(payment);
         await _context.SaveChangesAsync();
-        return RedirectToPage();
+
+        // Update commission status if fully paid
+        var commission = await _context.tbl_CommissionsDue.FindAsync(payment.sys_commissionId);
+        if (commission != null)
+        {
+            var totalPaid = await _context.tbl_CommissionPayments
+                .Where(p => p.sys_commissionId == commission.sys_commissionId)
+                .SumAsync(p => p.sys_amountPaid);
+
+            if (totalPaid >= commission.sys_amount)
+            {
+                commission.sys_isPaid = true;
+                _context.tbl_CommissionsDue.Update(commission);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        return new JsonResult(new { success = true });
     }
 
     public async Task<IActionResult> OnGetAgentDetailsAsync(int id)
     {
-        try
+        var agent = await _context.tbl_Agents.FindAsync(id);
+
+        var commissions = await _context.tbl_CommissionsDue
+    .Where(c => c.sys_agentId == id)
+    .ToListAsync();
+
+        var result = commissions.Select(c => new
         {
-            var agent = await _context.tbl_Agents.FindAsync(id);
-            var commissions = await _context.tbl_CommissionsDue.Where(c => c.sys_agentId == id).ToListAsync();
-            var payments = await _context.tbl_CommissionPayments
-                                         .Where(p => commissions.Select(c => c.sys_commissionId).Contains(p.sys_commissionId))
-                                         .ToListAsync();
+            c.sys_commissionId,
+            c.sys_graveId,
+            c.sys_amount,
+            c.sys_isPaid,
+            amountPaid = _context.tbl_CommissionPayments
+                .Where(p => p.sys_commissionId == c.sys_commissionId)
+                .Sum(p => (decimal?)p.sys_amountPaid) ?? 0
+        }).ToList();
 
-            return new JsonResult(new { agent, commissions, payments });
-        }
+        var payments = await _context.tbl_CommissionPayments
+            .Where(p => commissions.Select(c => c.sys_commissionId).Contains(p.sys_commissionId))
+            .ToListAsync();
 
-        catch (Exception ex)
-        {
-            ErrorMessage = "Error loading agent details: " + ex.Message;
-            return RedirectToPage();
-        }
-
-
+        return new JsonResult(new { agent, commissions, payments });
     }
+
+
+
+
+
+    public async Task<IActionResult> OnPostPayCommissionsAsync(string commissionData, string paymentDate)
+    {
+        if (string.IsNullOrWhiteSpace(commissionData))
+            return new JsonResult(new { success = false, message = "No commissions selected." });
+
+        if (!DateTime.TryParse(paymentDate, out DateTime payDate))
+            payDate = DateTime.UtcNow;
+
+        // commissionData format: "id:amount,id:amount"
+        var entries = commissionData.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(e =>
+                        {
+                            var parts = e.Split(':');
+                            return (Id: int.Parse(parts[0]), Amount: double.Parse(parts[1]));
+                        })
+                        .ToList();
+
+        var ids = entries.Select(e => e.Id).ToList();
+        var commissions = await _context.tbl_CommissionsDue
+                                .Where(c => ids.Contains(c.sys_commissionId))
+                                .ToListAsync();
+
+        foreach (var entry in entries)
+        {
+            var comm = commissions.FirstOrDefault(c => c.sys_commissionId == entry.Id);
+            if (comm == null) continue;
+
+            var alreadyPaid = await _context.tbl_CommissionPayments
+                                .Where(p => p.sys_commissionId == comm.sys_commissionId)
+                                .SumAsync(p => (double?)p.sys_amountPaid) ?? 0.0;
+
+            var remaining = comm.sys_amount - alreadyPaid;
+            if (remaining <= 0) continue;
+
+            var payAmount = Math.Min(entry.Amount, remaining);
+
+            _context.tbl_CommissionPayments.Add(new tbl_CommissionPayments
+            {
+                sys_commissionId = comm.sys_commissionId,
+                sys_amountPaid = payAmount,
+                sys_paymentDate = payDate
+            });
+
+            if (alreadyPaid + payAmount >= comm.sys_amount)
+                comm.sys_isPaid = true;
+        }
+
+        await _context.SaveChangesAsync();
+
+        var agentId = commissions.First().sys_agentId;
+        var agent = await _context.tbl_Agents.FirstOrDefaultAsync(a => a.sys_agentId == agentId);
+
+        var updatedCommissions = await _context.tbl_CommissionsDue
+                                    .Where(c => c.sys_agentId == agentId)
+                                    .ToListAsync();
+
+        var commissionIdsAll = updatedCommissions.Select(c => c.sys_commissionId).ToList();
+        var updatedPayments = await _context.tbl_CommissionPayments
+                                    .Where(p => commissionIdsAll.Contains(p.sys_commissionId))
+                                    .OrderByDescending(p => p.sys_paymentDate)
+                                    .ToListAsync();
+
+        return new JsonResult(new
+        {
+            success = true,
+            message = "Payments recorded.",
+            agent,
+            commissions = updatedCommissions.Select(c => new {
+                c.sys_commissionId,
+                c.sys_graveId,
+                c.sys_amount,
+                c.sys_isPaid
+            }),
+            payments = updatedPayments.Select(p => new {
+                p.sys_commissionPaymentId,
+                p.sys_commissionId,
+                p.sys_amountPaid,
+                paymentDate = p.sys_paymentDate.ToString("yyyy-MM-dd")
+            })
+        });
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     public static string GenerateRandomPassword(PasswordOptions opts = null)
     {

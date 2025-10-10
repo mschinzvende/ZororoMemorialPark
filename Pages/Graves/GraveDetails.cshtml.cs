@@ -87,6 +87,8 @@ namespace ZororoMemorialPark.Pages.Graves
             public double sys_amount { get; set; }
             public string sys_paymentMethod { get; set; }
             public string sys_notes { get; set; }
+
+            public int sys_receiptNo { get; set; }
         }
 
         // DTO for returning payments in JSON
@@ -222,7 +224,8 @@ namespace ZororoMemorialPark.Pages.Graves
                             InvoiceNumber = inv.sys_invoiceNumber,
                             sys_amount = pay.sys_amount,
                             sys_paymentMethod = pay.sys_paymentMethod,
-                            sys_notes = pay.sys_notes
+                            sys_notes = pay.sys_notes,
+                            sys_receiptNo = pay.sys_receiptNumber
                         }).ToListAsync();
 
                 }
@@ -726,7 +729,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 await _context.SaveChangesAsync();
             }
 
-            return RedirectToPage(new { id = allocationId });
+            return RedirectToPage(new { id = allocation.sys_graveId });
         }
 
 
@@ -829,6 +832,29 @@ namespace ZororoMemorialPark.Pages.Graves
                     return RedirectToPage(new { graveId });
                 }
 
+
+                //Validate Stage order
+                // Get grave with stage info
+                var grave = await _context.tbl_Graves
+                    .FirstOrDefaultAsync(g => g.sys_graveId == submittedJob.sys_graveId);
+                // Find stage order of current stage
+                var currentStageOrder = await _context.tbl_DevelopmentStages
+                    .Where(s => s.sys_stageId == grave.sys_stageId)
+                    .Select(s => s.sys_stageOrder)
+                    .FirstOrDefaultAsync();
+
+                // Find stage order of the submitted job stage
+                var newStageOrder = await _context.tbl_DevelopmentStages
+                    .Where(s => s.sys_stageId == submittedJob.sys_stageId)
+                    .Select(s => s.sys_stageOrder)
+                    .FirstOrDefaultAsync();
+
+                if (newStageOrder != currentStageOrder + 1 && newStageOrder != currentStageOrder)
+                {
+                    TempData["ErrorMessage"] = "Check grave stage. Cannot jump development stage sequence";
+                    return RedirectToPage();
+                }
+
                 _context.tbl_Jobs.Add(submittedJob);
                 await _context.SaveChangesAsync();
 
@@ -920,6 +946,19 @@ namespace ZororoMemorialPark.Pages.Graves
                     return RedirectToPage();
                 }
 
+                //Validate Stage order
+
+
+                // Get the existing job from DB
+                var existingJob = await _context.tbl_Jobs
+                    .FirstOrDefaultAsync(j => j.sys_jobId == job.sys_jobId);
+
+                // Get the order of the existing job’s stage
+                var existingStageOrder = await _context.tbl_DevelopmentStages
+                    .Where(s => s.sys_stageId == existingJob.sys_stageId)
+                    .Select(s => s.sys_stageOrder)
+                    .FirstOrDefaultAsync();
+
                 // Update job
                 job.sys_graveId = graveId;
                 job.sys_supplierId = supplierId;
@@ -927,6 +966,19 @@ namespace ZororoMemorialPark.Pages.Graves
                 job.sys_startDate = startDate;
                 job.sys_endDate = endDate;
                 job.sys_jobStatus = Request.Form["sys_status"];
+
+
+                // Get the order of the new stage being selected
+                var editedStageOrder = await _context.tbl_DevelopmentStages
+                    .Where(s => s.sys_stageId == job.sys_stageId)
+                    .Select(s => s.sys_stageOrder)
+                    .FirstOrDefaultAsync();
+
+                if (editedStageOrder < existingStageOrder)
+                {
+                    TempData["ErrorMessage"] = "Check grave stage. Cannot jump development stage sequence";
+                    return RedirectToPage();
+                }
 
 
                 await _context.SaveChangesAsync();//check if job status is "Completed" and if so, update the grave status to "Developed"

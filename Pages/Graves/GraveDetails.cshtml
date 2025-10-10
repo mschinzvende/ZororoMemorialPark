@@ -111,49 +111,7 @@
                                     </dl>
                                 </div>
 
-                                @if(Model.Reservation ==null){
-                                    <!-- Allocation Payments Section -->
-
-                                    <div class="card p-3 mb-3 shadow-sm">
-
-                                        <h6 class="mb-3 border-bottom pb-2">Payments Made</h6>
-
-                                        @if (Model.AllocationPayments?.Any() == true)
-                                        {
-                                            <div class="table-responsive">
-                                                <table class="table table-striped mb-2">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Date</th>
-                                                            <th>Invoice</th>
-                                                            <th>Amount</th>
-                                                            <th>Method</th>
-                                                            <th>Notes</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @foreach (var p in Model.AllocationPayments)
-                                                        {
-                                                            <tr>
-                                                                <td>@p.sys_date.ToString("yyyy-MM-dd")</td>
-                                                                <td>@p.InvoiceNumber</td>
-                                                                <td>@p.sys_amount.ToString("C")</td>
-                                                                <td>@p.sys_paymentMethod</td>
-                                                                <td>@p.sys_notes</td>
-                                                            </tr>
-                                                        }
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                            <p><strong>Total Allocation Payments:</strong> @Model.AllocationPayments.Sum(x => x.sys_amount).ToString("C")</p>
-                                        }
-                                        else
-                                        {
-                                            <div class="alert alert-info">No payments found.</div>
-                                        }
-
-                                    </div>
-                                }
+                                
                             </div>
 
                             <!-- Deceased Details -->
@@ -242,7 +200,55 @@
                             </div>
                         </div>
                     
-                        
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                @if (Model.Reservation == null)
+                                {
+                                    <!-- Allocation Payments Section -->
+
+                                    <div class="card p-3 mb-3 shadow-sm">
+
+                                        <h6 class="mb-3 border-bottom pb-2">Payments Made</h6>
+
+                                        @if (Model.AllocationPayments?.Any() == true)
+                                        {
+                                            <div class="table-responsive">
+                                                <table class="table table-striped mb-2">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Date</th>
+                                                            <th>Invoice</th>
+                                                            <th>Amount</th>
+                                                            <th>Method</th>
+                                                            <th>Receipt No.</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var p in Model.AllocationPayments)
+                                                        {
+                                                            <tr>
+                                                                <td>@p.sys_date.ToString("yyyy-MM-dd")</td>
+                                                                <td>@p.InvoiceNumber</td>
+                                                                <td>@p.sys_amount.ToString("C")</td>
+                                                                <td>@p.sys_paymentMethod</td>
+                                                                <td>@p.sys_receiptNo</td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <p><strong>Total Allocation Payments:</strong> @Model.AllocationPayments.Sum(x => x.sys_amount).ToString("C")</p>
+                                        }
+                                        else
+                                        {
+                                            <div class="alert alert-info">No payments found.</div>
+                                        }
+
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
                     </div>
 
                     <!-- Reservation Tab -->
@@ -398,7 +404,7 @@
                             
                             <div class="col-md-12">
                                 <div class="card p-3 mb-3 shadow-sm">
-                                    <h6 class="mb-3 border-bottom pb-2">Jobs Done On This Garve</h6>
+                                    <h6 class="mb-3 border-bottom pb-2">Jobs Done On This Grave</h6>
                                     <div class="col-md-6 mb-3">
                                     <button class="btn btn-sm btn-primary"
                                             data-bs-toggle="modal"

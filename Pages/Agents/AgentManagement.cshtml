@@ -56,7 +56,7 @@
                     <td>@a.sys_agentPhone</td>
                     <td>@a.sys_agentEmail</td>
                     <td>
-                        <button class="btn btn-info btn-sm viewBtn" data-id="@a.sys_agentId">View</button>
+                                    <button class="btn btn-info btn-sm viewBtn" data-id="@a.sys_agentId">View</button>
                         <button class="btn btn-warning btn-sm editBtn"
                                 data-id="@a.sys_agentId"
                                 data-name="@a.sys_agentName"
@@ -64,7 +64,9 @@
                                 data-phone="@a.sys_agentPhone"
                                 data-email="@a.sys_agentEmail"
                                 data-address="@a.sys_agentAddress"
-                                data-userid="@a.UserId">
+                                data-userid="@a.UserId"
+                                data-sys_commission="@a.sys_commission"
+                                data-sys_isPercentage="@a.sys_isPercentage">
                             Edit
                         </button>
                         <button class="btn btn-danger btn-sm deleteBtn" data-id="@a.sys_agentId">Delete</button>
@@ -91,6 +93,15 @@
                     <div class="mb-2"><label>Phone</label><input asp-for="Agent.sys_agentPhone" class="form-control" /></div>
                     <div class="mb-2"><label>Email</label><input asp-for="Agent.sys_agentEmail" class="form-control" /></div>
                     <div class="mb-2"><label>Address</label><input asp-for="Agent.sys_agentAddress" class="form-control" /></div>
+                    <div class="mb-2"><label>Commission</label><input asp-for="Agent.sys_commission" class="form-control" /></div>
+                    <div class="mb-2">
+                        <label>Type</label>
+                        <select  class="form-control" asp-for="Agent.sys_isPercentage">
+                            <option value="true">Percentage</option>
+                            <option value="false">Fixed Amount</option>
+                        </select>
+
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -115,6 +126,13 @@
                     <div class="mb-2"><label>Phone</label><input asp-for="Agent.sys_agentPhone" id="editPhone" class="form-control" /></div>
                     <div class="mb-2"><label>Email</label><input asp-for="Agent.sys_agentEmail" id="editEmail" class="form-control" /></div>
                     <div class="mb-2"><label>Address</label><input asp-for="Agent.sys_agentAddress" id="editAddress" class="form-control" /></div>
+                    <div class="mb-2"><label>Commission</label><input asp-for="Agent.sys_commission" id="editCommission" class="form-control" /></div>
+                    <div class="mb-2">
+                        <label>Type</label>
+                        <select id="editIsPercentage" class="form-control" asp-for="Agent.sys_isPercentage" asp-items="Model.IsPercentageOptions"></select>
+
+                        
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -148,9 +166,28 @@
 <div class="modal fade" id="viewAgentModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);"><h5>Agent Details</h5></div>
-            <div class="modal-body" id="agentDetails">
-                <!-- Fetched dynamically -->
+            <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);">
+                <h5 class="modal-title">Agent Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>Agent Info</h6>
+                <p><strong>Name:</strong> <span id="agentName"></span></p>
+                <p><strong>Email:</strong> <span id="agentEmail"></span></p>
+                <p><strong>Phone:</strong> <span id="agentPhone"></span></p>
+                <p><strong>Address:</strong> <span id="agentAddress"></span></p>
+
+                <h6>Commissions Due</h6>
+                <table class="table table-sm table-bordered">
+                    <thead><tr><th>Grave</th><th>Amount</th><th>Paid</th><th>Remaining</th><th></th></tr></thead>
+                    <tbody id="commissionsTableBody"></tbody>
+                </table>
+
+                <h6>Payments Made</h6>
+                <table class="table table-sm table-bordered">
+                    <thead><tr><th>Date</th><th>Amount</th></tr></thead>
+                    <tbody id="paymentsTableBody"></tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -160,16 +197,25 @@
 <div class="modal fade" id="addPaymentModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post" asp-page-handler="AddPayment">
-                <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);"><h5>Record Payment</h5></div>
+            <form id="paymentForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);">
+                    <h5>Record Payment</h5>
+                </div>
                 <div class="modal-body">
-                    <input type="hidden" asp-for="Payment.sys_commissionId" id="paymentCommissionId" />
-                    <div class="mb-2"><label>Date</label><input asp-for="Payment.sys_paymentDate" type="date" class="form-control" required /></div>
-                    <div class="mb-2"><label>Amount</label><input asp-for="Payment.sys_amountPaid" type="number" step="0.01" class="form-control" required /></div>
+                    <input type="hidden" id="paymentCommissionId" name="Payment.sys_commissionId" />
+                    <div class="mb-2">
+                        <label>Date</label>
+                        <input type="date" id="paymentDate" name="Payment.sys_paymentDate" class="form-control" required />
+                    </div>
+                    <div class="mb-2">
+                        <label>Amount</label>
+                        <input type="number" step="0.01" id="paymentAmount" name="Payment.sys_amountPaid" class="form-control" required />
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button class="btn btn-primary">Save Payment</button>
+                    <button type="submit" class="btn btn-primary">Save Payment</button>
                 </div>
             </form>
         </div>
@@ -189,6 +235,8 @@
                     document.getElementById("editEmail").value = this.dataset.email;
                     document.getElementById("editAddress").value = this.dataset.address;
                    document.getElementById("editAgentUserId").value = this.dataset.userid;
+                   document.getElementById("editCommission").value = this.dataset.sys_commission;
+                   document.getElementById("editIsPercentage").value = this.dataset.sys_isPercentage;
                     new bootstrap.Modal(document.getElementById("editAgentModal")).show();
                 });
             });
@@ -201,63 +249,91 @@
                 });
             });
 
-            // View (fetch commissions + payments)
-            document.querySelectorAll(".viewBtn").forEach(btn => {
-                btn.addEventListener("click", function () {
-                    fetch(`?handler=AgentDetails&id=${this.dataset.id}`)
-                        .then(r => r.json())
-                        .then(data => {
-                            let totalCommission = data.commissions.reduce((sum, c) => sum + c.sys_amount, 0);
-                            let totalPayments = data.payments.reduce((sum, p) => sum + p.sys_amountPaid, 0);
-                            let balance = totalCommission - totalPayments;
+            
+                let currentAgentId = null;
 
-                            let html = `
-                                <h5>${data.agent.sys_agentName}</h5>
-                                <p><b>Contact:</b> ${data.agent.sys_agentContactPerson} | ${data.agent.sys_agentPhone}</p>
-                                <p><b>Email:</b> ${data.agent.sys_agentEmail}</p>
-                                <p><b>Address:</b> ${data.agent.sys_agentAddress}</p>
-                                <p><b>Total Commission:</b> $${totalCommission.toFixed(2)} |
-                                   <b>Total Payments:</b> $${totalPayments.toFixed(2)} |
-                                   <b>Balance Due:</b> $${balance.toFixed(2)}</p>
-
-                                <h6>Commissions Due</h6>
-                                <table class="table table-sm table-bordered">
-                                    <thead><tr><th>Grave</th><th>Amount</th><th></th></tr></thead>
-                                    <tbody>
-                                        ${data.commissions.map(c => `
-                                            <tr>
-                                                <td>${c.sys_graveId}</td>
-                                                <td>$${c.sys_amount}</td>
-                                                <td><button class="btn btn-success btn-sm payBtn" data-id="${c.sys_commissionId}">Pay</button></td>
-                                            </tr>`).join("")}
-                                    </tbody>
-                                </table>
-
-                                <h6>Payments Made</h6>
-                                <table class="table table-sm table-bordered">
-                                    <thead><tr><th>Date</th><th>Amount</th></tr></thead>
-                                    <tbody>
-                                        ${data.payments.map(p => `
-                                            <tr>
-                                                <td>${new Date(p.paymentDate).toLocaleDateString()}</td>
-                                                <td>$${p.amountPaid}</td>
-                                            </tr>`).join("")}
-                                    </tbody>
-                                </table>
-                            `;
-                            document.getElementById("agentDetails").innerHTML = html;
-
-                            document.querySelectorAll(".payBtn").forEach(btn => {
-                                btn.addEventListener("click", function () {
-                                    document.getElementById("paymentCommissionId").value = this.dataset.id;
-                                    new bootstrap.Modal(document.getElementById("addPaymentModal")).show();
-                                });
-                            });
-
-                            new bootstrap.Modal(document.getElementById("viewAgentModal")).show();
-                        });
-                });
+        // View Agent
+        document.querySelectorAll(".viewBtn").forEach(btn => {
+            btn.addEventListener("click", function () {
+                currentAgentId = this.dataset.id;
+                loadAgentDetails(currentAgentId);
             });
+        });
+            function loadAgentDetails(id) {
+            fetch(`?handler=AgentDetails&id=${id}`)
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById("agentName").innerText = data.agent.sys_agentName;
+                    document.getElementById("agentEmail").innerText = data.agent.sys_agentEmail;
+                    document.getElementById("agentPhone").innerText = data.agent.sys_agentPhone;
+                    document.getElementById("agentAddress").innerText = data.agent.sys_agentAddress;
+
+                    // Commissions
+                    let commHtml = "";
+                    data.commissions.forEach(c => {
+                        let remaining = (c.sys_amount - c.amountPaid);
+                        commHtml += `
+                            <tr>
+                                <td>${c.sys_graveId}</td>
+                                <td>$${c.sys_amount.toFixed(2)}</td>
+                                <td>${c.sys_isPaid ? "✅" : "❌"}</td>
+                                <td>$${remaining}</td>
+                                <td>
+                                    ${remaining > 0 ? `<button class="btn btn-success btn-sm payBtn" data-id="${c.sys_commissionId}" data-remaining="${remaining}">Pay</button>` : `<button class="btn btn-secondary btn-sm" disabled>Paid</button>`}
+                                </td>
+
+                                 
+                            </tr>`;
+                    });
+                    document.getElementById("commissionsTableBody").innerHTML = commHtml;
+
+                    // Payments
+                    let payHtml = "";
+                    data.payments.forEach(p => {
+                        payHtml += `<tr>
+                                        <td>${new Date(p.sys_paymentDate).toLocaleDateString()}</td>
+                                        <td>$${p.sys_amountPaid.toFixed(2)}</td>
+                                    </tr>`;
+                    });
+                    document.getElementById("paymentsTableBody").innerHTML = payHtml;
+
+                    // Re-bind pay buttons
+                    document.querySelectorAll(".payBtn").forEach(btn => {
+                        btn.addEventListener("click", function () {
+                            document.getElementById("paymentCommissionId").value = this.dataset.id;
+                            document.getElementById("paymentAmount").value = this.dataset.remaining;
+                            document.getElementById("paymentDate").valueAsDate = new Date();
+                            new bootstrap.Modal(document.getElementById("addPaymentModal")).show();
+                        });
+                    });
+
+                    new bootstrap.Modal(document.getElementById("viewAgentModal")).show();
+                });
+        }
+
+            // Save Payment (AJAX)
+        document.getElementById("paymentForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+                   const form = document.getElementById("paymentForm");
+        const formData = new FormData(form);
+
+            fetch("/Agents/AgentManagement?handler=AddPayment", {
+                    method: "POST",
+                    headers: {"RequestVerificationToken": form.querySelector("input[name='__RequestVerificationToken']").value
+        },
+        body: formData
+            })
+            .then(r => {
+                if (r.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById("addPaymentModal")).hide();
+                    loadAgentDetails(currentAgentId); // refresh details
+                } else {
+                    alert("Error saving payment");
+                }
+            });
+        });
+    
+
         });
     </script>
 }
