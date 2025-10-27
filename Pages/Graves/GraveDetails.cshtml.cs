@@ -138,7 +138,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 var user = await _userManager.GetUserAsync(User);
 
                 var agent = await _context.tbl_Agents
-                    
+
                     .FirstOrDefaultAsync(a => a.UserId == user.Id);
 
                 if (agent != null)
@@ -175,7 +175,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 {
                     Deceased = await _context.tbl_Deceased.FindAsync(Allocation.sys_deceasedId);
 
-                    
+
                     // Check if payment exists
                     AllocationPendingPayment = !await _context.tbl_IncomePayments.AnyAsync(p => p.sys_invoiceId == Allocation.sys_allocationId);
                 }
@@ -206,7 +206,7 @@ namespace ZororoMemorialPark.Pages.Graves
                             sys_notes = pay.sys_notes
                         }).ToListAsync();
 
-                    
+
                 }
 
                 // Payments from Allocation invoices
@@ -232,7 +232,7 @@ namespace ZororoMemorialPark.Pages.Graves
 
 
                 //Calculate totals for allocation
-                TotalPaidAllocation = AllocationPayments.Sum(CustomerPaymentDto => CustomerPaymentDto.sys_amount );
+                TotalPaidAllocation = AllocationPayments.Sum(CustomerPaymentDto => CustomerPaymentDto.sys_amount);
                 AllocationBalance = (Grave?.sys_price ?? 0) - TotalPaidAllocation;
 
                 if (AllocationBalance <= 0)
@@ -323,7 +323,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 var currentStage = await _context.tbl_DevelopmentStages
                     .FirstOrDefaultAsync(s => s.sys_stageId == Grave.sys_stageId);
 
-                
+
 
                 // Find max stage order
                 int maxStageOrder = await _context.tbl_DevelopmentStages
@@ -331,13 +331,30 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 // Check if grave is at final stage
                 isReadyForAllocation = currentStage.sys_stageOrder == maxStageOrder;
-            }
 
+                if (isReadyForAllocation)
+                {
+                    //check if the current job for that stage is complete
+
+                    var existingJob = await _context.tbl_Jobs
+                        .Where(gi => gi.sys_graveId == Grave.sys_graveId && gi.sys_stageId == currentStage.sys_stageId)
+                    .FirstOrDefaultAsync();
+
+                    if (existingJob != null)
+                    {
+                        isReadyForAllocation = existingJob.sys_jobStatus == "Complete";
+                    }
+                    else
+                    {
+                        isReadyForAllocation = false;
+                    }
+                }
+            }
             catch (Exception ex)
             {
                 // Log the exception (you can use a logging framework here)
-               TempData["ErrorMessage"] = "An error occurred while loading the grave details.";
-                _appLogger.LogActivityAsync(_userManager.GetUserName(User), "GraveDetails", "OnGetAsync"+ex.Message);
+                TempData["ErrorMessage"] = "An error occurred while loading the grave details.";
+                _appLogger.LogActivityAsync(_userManager.GetUserName(User), "GraveDetails", "OnGetAsync" + ex.Message);
             }
 
         }
@@ -980,16 +997,57 @@ namespace ZororoMemorialPark.Pages.Graves
                     return RedirectToPage();
                 }
 
-
                 await _context.SaveChangesAsync();//check if job status is "Completed" and if so, update the grave status to "Developed"
                 if (job.sys_jobStatus == "Complete")
                 {
+                    var nextStage = await _context.tbl_DevelopmentStages
+                        .Where(s => s.sys_stageOrder == editedStageOrder + 1)
+                        .FirstOrDefaultAsync();
                     var graveToUpdate = await _context.tbl_Graves.FindAsync(job.sys_graveId);
                     if (graveToUpdate != null)
                     {
-                        graveToUpdate.sys_stageId = job.sys_stageId;
+                        if (nextStage != null)
+                        {
+                            graveToUpdate.sys_stageId = nextStage.sys_stageId;
+                        }
+                        else
+                        {
+                            graveToUpdate.sys_stageId = job.sys_stageId;
+                        }
+
                         _context.tbl_Graves.Update(graveToUpdate);
                         await _context.SaveChangesAsync();
+                    }
+
+                    //If status is complete, create a new job entry for that grave and asign next stage
+
+
+                    if (nextStage != null)
+                    {
+                        var newJob = new tbl_Jobs
+                        {
+                            sys_graveId = job.sys_graveId,
+                            sys_supplierId = 11, //Default Supplier ID for system tasks
+                            sys_stageId = nextStage.sys_stageId,
+                            sys_startDate = DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
+                            sys_endDate = DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
+                            sys_jobStatus = "Pending"
+                        };
+                        _context.tbl_Jobs.Add(newJob);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    //check if next stage is null meaning the grave has reached last stage and set sale status to unsold
+
+                    if (nextStage == null)
+                    {
+                        var graveToMarkUnsold = await _context.tbl_Graves.FindAsync(job.sys_graveId);
+                        if (graveToMarkUnsold != null)
+                        {
+                            graveToMarkUnsold.sys_graveSaleStatus = "Unsold";
+                            _context.tbl_Graves.Update(graveToMarkUnsold);
+                            await _context.SaveChangesAsync();
+                        }
                     }
                 }
 

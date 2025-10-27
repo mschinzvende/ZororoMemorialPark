@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace ZororoMemorialPark.Pages.Graves
 {
@@ -27,10 +28,14 @@ namespace ZororoMemorialPark.Pages.Graves
         }
 
         public IList<tbl_Graves> Graves { get; set; } = new List<tbl_Graves>();
+
+
         //public PaginatedList<GraveViewModel> PaginatedGraves { get; set; } = new PaginatedList<GraveViewModel>(new List<GraveViewModel>(), 0, 1, 10);
         public List<GraveViewModel> AvailableGraves { get; set; } = new List<GraveViewModel>();
         public List<GraveViewModel> ReservedGraves { get; set; } = new List<GraveViewModel>();
-        public List<GraveViewModel> OccupiedGraves { get; set; } = new List<GraveViewModel>();
+        public List<OccupiedGraveViewModel> OccupiedGraves { get; set; } = new List<OccupiedGraveViewModel>();
+
+        public List<UnderConstructionGraveViewModel> UnderConstructionGraves { get; set; } = new List<UnderConstructionGraveViewModel>();
         public IList<tbl_Sections> Sections { get; set; } = new List<tbl_Sections>();
         public IList<tbl_DevelopmentStages> Stages { get; set; } = new List<tbl_DevelopmentStages>();
 
@@ -61,11 +66,72 @@ namespace ZororoMemorialPark.Pages.Graves
                                     sys_longitude = g.sys_longitude
                                 };
 
+                var occupiedBaseQuery = from g in _context.tbl_Graves
+                                        join s in _context.tbl_Sections on g.sys_sectionId equals s.sys_sectionId
+                                        join o in _context.tbl_GraveAllocations on g.sys_graveId equals o.sys_graveId
+                                        join dc in _context.tbl_Deceased on o.sys_deceasedId equals dc.sys_deceasedId
+                                        
+                                        orderby g.sys_plotNumber
+                                        select new OccupiedGraveViewModel
+                                        {
+                                            sys_graveId = g.sys_graveId,
+                                            sys_plotNumber = g.sys_plotNumber,
+                                            sys_occupationDate = o.sys_allocatedOn,
+                                            sys_saleStatus = g.sys_graveSaleStatus, 
+                                            sys_nextOfKinName = dc.sys_deceasedNextOfKinName,
+                                            sys_nextOfKinContact = dc.sys_deceasedNextOfKinPhone,
+                                            sys_sectionId = g.sys_sectionId,
+                                            SectionName = s.sys_sectionName,
+                                            sys_latitude = g.sys_latitude,
+                                            sys_longitude = g.sys_longitude,
+
+                                            // ? Automatically compute Tomb Status
+                                            sys_graveTombStatus = DateOnly.FromDateTime(DateTime.Now).DayNumber - o.sys_allocatedOn.DayNumber >= 365
+                                                ? "Ready for Tombstone"
+                                                : "Not Ready"
+                                        };
+
+
+
+                // Get the maximum stage order value
+                var maxStageOrder = await _context.tbl_DevelopmentStages
+                    .MaxAsync(s => s.sys_stageOrder);
+                var underConstructionBaseQuery = from g in _context.tbl_Graves
+                                                 join s in _context.tbl_Sections on g.sys_sectionId equals s.sys_sectionId
+                                                 join st in _context.tbl_DevelopmentStages on g.sys_stageId equals st.sys_stageId
+                                                 join j in _context.tbl_Jobs on g.sys_graveId equals j.sys_graveId
+                                                 join sup in _context.tbl_Suppliers on j.sys_supplierId equals sup.sys_supplierId
+                                                 where st.sys_stageOrder <= maxStageOrder
+                                                 orderby g.sys_plotNumber
+                                                 select new UnderConstructionGraveViewModel
+                                                 {
+                                                     sys_graveId = g.sys_graveId,
+                                                     sys_plotNumber = g.sys_plotNumber,
+                                                     sys_graveSaleStatus = g.sys_graveSaleStatus,
+                                                     sys_price = g.sys_price,
+                                                     sys_sectionId = g.sys_sectionId,
+                                                     SectionName = s.sys_sectionName,
+                                                     sys_stageId = g.sys_stageId,
+                                                     StageName = st.sys_stageName,
+                                                     sys_endDate = j.sys_endDate,
+                                                     sys_jobId = j.sys_jobId,
+                                                     sys_jobStatus = j.sys_jobStatus,
+                                                     sys_supplierId = sup.sys_supplierId,
+                                                     sys_supplierName = sup.sys_supplierName,
+                                                     sys_latitude = g.sys_latitude,
+                                                     sys_longitude = g.sys_longitude
+                                                 };
+
+               
+
+                UnderConstructionGraves = await underConstructionBaseQuery
+                    .Where(g => g.sys_jobStatus == "In Progress" || g.sys_jobStatus == "Pending")
+                    .ToListAsync();
+
                 // Load all graves by status
                 AvailableGraves = await baseQuery.Where(g => g.sys_graveSaleStatus == "Unsold").ToListAsync();
                 ReservedGraves = await baseQuery.Where(g => g.sys_graveSaleStatus == "Reserved").ToListAsync();
-                OccupiedGraves = await baseQuery.Where(g => g.sys_graveSaleStatus == "Sold" || g.sys_graveSaleStatus == "Occupied").ToListAsync();
-
+                OccupiedGraves = await occupiedBaseQuery.Where(g => g.sys_saleStatus == "Occupied").ToListAsync();
                 // Log access
                 var userId = _userManager.GetUserId(User);
                 await _appLogger.LogActivityAsync(userId, "Access", "Accessed Graves page with tabs (no pagination)");
@@ -128,6 +194,21 @@ namespace ZororoMemorialPark.Pages.Graves
                 _context.tbl_Graves.Add(grave);
                 await _context.SaveChangesAsync();
 
+
+                //insert a default job with status pending
+
+                var defaultJob = new tbl_Jobs
+                {
+                    sys_graveId = grave.sys_graveId,
+                    sys_stageId = stageId,
+                    sys_jobStatus = "Pending",
+                    sys_startDate = DateOnly.FromDateTime(DateTime.Now),
+                    sys_endDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7)), // Default end date a week later
+                    sys_supplierId = 11 // Default supplier
+                };
+                _context.tbl_Jobs.Add(defaultJob);
+                await _context.SaveChangesAsync();
+
                 TempData["SuccessMessage"] = "Grave created successfully.";
                 await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Create", $"Created grave: {plot}");
 
@@ -163,53 +244,64 @@ namespace ZororoMemorialPark.Pages.Graves
                     return RedirectToPage();
                 }
 
-                var NewSeed = seed + "-" + sectionName;
-
                 var gravesToAdd = new List<tbl_Graves>();
                 string currentSeed = seed;
 
                 for (int i = 0; i < count; i++)
                 {
-                    // Check duplicates
-                    bool exists = await _context.tbl_Graves.AnyAsync(g => g.sys_plotNumber == NewSeed && g.sys_sectionId == sectionId);
+                    string newPlot = currentSeed + "-" + sectionName;
+
+                    // Avoid duplicates
+                    bool exists = await _context.tbl_Graves.AnyAsync(g => g.sys_plotNumber == newPlot && g.sys_sectionId == sectionId);
                     if (exists)
                     {
-                        TempData["ErrorMessage"] = $"Duplicate found: Plot {NewSeed} already exists in the section.";
-                        _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Bulk Generate Error", $"Duplicate plot {NewSeed} found during bulk generation.");
+                        TempData["ErrorMessage"] = $"Duplicate found: Plot {newPlot} already exists in the section.";
+                        _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Bulk Generate Error", $"Duplicate plot {newPlot} found during bulk generation.");
+
                         if (int.TryParse(currentSeed, out int seedNumr))
-                        {
                             currentSeed = (seedNumr + 1).ToString();
-                            NewSeed = currentSeed + "-" + sectionName;
-                        }
+
                         continue;
                     }
 
-                    gravesToAdd.Add(new tbl_Graves
+                    var grave = new tbl_Graves
                     {
-                        sys_plotNumber = currentSeed+"-"+sectionName,
+                        sys_plotNumber = newPlot,
                         sys_sectionId = sectionId,
                         sys_stageId = stageId,
-                        sys_graveSaleStatus = "Unsold",
+                        sys_graveSaleStatus = "Under Construction",
                         sys_price = price
-                    });
+                    };
 
-                    // Increment plot number (assumes numeric seed)
+                    gravesToAdd.Add(grave);
+
+                    // Increment numeric plot number
                     if (int.TryParse(currentSeed, out int seedNum))
-                    {
                         currentSeed = (seedNum + 1).ToString();
-                    }
                     else
-                    {
-                        // If seed is not numeric, just append i
                         currentSeed = seed + (i + 1);
-                    }
                 }
 
+                // Save all graves first
                 _context.tbl_Graves.AddRange(gravesToAdd);
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = $"{count} graves generated successfully.";
-                await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Bulk Generate", $"Generated {count} graves starting at {seed}");
+                // ? Insert default jobs for all generated graves
+                var defaultJobs = gravesToAdd.Select(grave => new tbl_Jobs
+                {
+                    sys_graveId = grave.sys_graveId,
+                    sys_stageId = stageId,
+                    sys_jobStatus = "Pending",
+                    sys_startDate = DateOnly.FromDateTime(DateTime.Now),
+                    sys_endDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7)), // Default: 1 week
+                    sys_supplierId = 11 // Default supplier
+                }).ToList();
+
+                _context.tbl_Jobs.AddRange(defaultJobs);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"{count} graves and corresponding jobs generated successfully.";
+                await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Bulk Generate", $"Generated {count} graves with default jobs starting at {seed}");
 
                 return RedirectToPage();
             }
@@ -220,6 +312,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 return RedirectToPage();
             }
         }
+
 
         // Edit grave
         public async Task<IActionResult> OnPostEditAsync()
@@ -342,6 +435,47 @@ namespace ZororoMemorialPark.Pages.Graves
             public string SectionName { get; set; }
             public int sys_stageId { get; set; }
             public string StageName { get; set; }
+            public double sys_latitude { get; set; }
+            public double sys_longitude { get; set; }
+        }
+
+        public class OccupiedGraveViewModel
+        {
+            public int sys_graveId { get; set; }
+            public string sys_plotNumber { get; set; }
+            public string sys_graveTombStatus { get; set; } //for checking if its eligible for tombstone
+            public DateOnly sys_occupationDate { get; set; }
+
+            public string sys_saleStatus { get; set; }
+
+            public string sys_nextOfKinName { get; set; }
+
+            public string sys_nextOfKinContact { get; set; }
+            public int sys_sectionId { get; set; }
+            public string SectionName { get; set; }
+            
+            public double sys_latitude { get; set; }
+            public double sys_longitude { get; set; }
+        }
+
+        public class UnderConstructionGraveViewModel
+        {
+            public int sys_graveId { get; set; }
+            public string sys_plotNumber { get; set; }
+            public string sys_graveSaleStatus { get; set; }
+            public double sys_price { get; set; }
+            public int sys_sectionId { get; set; }
+            public string SectionName { get; set; }
+            public int sys_stageId { get; set; }
+            public string StageName { get; set; }
+
+            public DateOnly sys_endDate { get; set; }
+
+            public int sys_jobId { get; set; }
+            public string sys_jobStatus { get; set; }
+
+            public int sys_supplierId { get; set; } 
+            public string sys_supplierName { get; set; }
             public double sys_latitude { get; set; }
             public double sys_longitude { get; set; }
         }

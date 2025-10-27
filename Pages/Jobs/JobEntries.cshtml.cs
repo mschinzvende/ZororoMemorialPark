@@ -346,12 +346,54 @@ namespace ZororoMemorialPark.Pages.Jobs
                 await _context.SaveChangesAsync();//check if job status is "Completed" and if so, update the grave status to "Developed"
                 if (job.sys_jobStatus == "Complete")
                 {
+                    var nextStage = await _context.tbl_DevelopmentStages
+                        .Where(s => s.sys_stageOrder == editedStageOrder + 1)
+                        .FirstOrDefaultAsync();
                     var graveToUpdate = await _context.tbl_Graves.FindAsync(job.sys_graveId);
                     if (graveToUpdate != null)
                     {
-                        graveToUpdate.sys_stageId = job.sys_stageId;
+                        if(nextStage != null)
+                        {
+                            graveToUpdate.sys_stageId = nextStage.sys_stageId;
+                        }
+                        else
+                        {
+                            graveToUpdate.sys_stageId = job.sys_stageId;
+                        }
+                           
                         _context.tbl_Graves.Update(graveToUpdate);
                         await _context.SaveChangesAsync();
+                    }
+
+                    //If status is complete, create a new job entry for that grave and asign next stage
+
+                    
+                    if (nextStage != null)
+                    {
+                        var newJob = new tbl_Jobs
+                        {
+                            sys_graveId = job.sys_graveId,
+                            sys_supplierId = 11, //Default Supplier ID for system tasks
+                            sys_stageId = nextStage.sys_stageId,
+                            sys_startDate = DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
+                            sys_endDate = DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
+                            sys_jobStatus = "Pending"
+                        };
+                        _context.tbl_Jobs.Add(newJob);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    //check if next stage is null meaning the grave has reached last stage and set sale status to unsold
+
+                    if (nextStage == null)
+                    {
+                        var graveToMarkUnsold = await _context.tbl_Graves.FindAsync(job.sys_graveId);
+                        if (graveToMarkUnsold != null)
+                        {
+                            graveToMarkUnsold.sys_graveSaleStatus = "Unsold";
+                            _context.tbl_Graves.Update(graveToMarkUnsold);
+                            await _context.SaveChangesAsync();
+                        }
                     }
                 }
 

@@ -1,0 +1,231 @@
+﻿@page
+@model ManageTombstonesModel
+@{
+    ViewData["Title"] = "Tombstone Stock Management";
+}
+
+
+<div class="row">
+    <div class="col-lg-12 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center"
+                 style="background-color: var(--primary-green); color: var(--primary-white);">
+                <h5 class="mb-0">Tombstone Management</h5>
+                <div>
+                    <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addTombstoneModal">
+                        + Add Tombstone
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-body">
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert" id="successMessage">
+                        @TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @TempData["ErrorMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+
+
+   
+
+                <div class="table-responsive">
+        <table class="table table-striped table-class table-sm" id="myTable">
+
+            <thead class="thead-light">
+            <tr>
+                <th>Image</th>
+                <th>Name</th>
+                <th>Material</th>
+                <th>Size</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in Model.Tombstones)
+            {
+                <tr>
+                    <td>
+                        @if (!string.IsNullOrEmpty(t.sys_imagePath))
+                        {
+                            <img src="@t.sys_imagePath" alt="@t.sys_tombstoneName" width="80" class="rounded">
+                        }
+                        else
+                        {
+                            <span class="text-muted">No Image</span>
+                        }
+                    </td>
+                    <td>@t.sys_tombstoneName</td>
+                    <td>@t.sys_material</td>
+                    <td>@t.sys_size</td>
+                    <td>$@t.sys_price.ToString("N2")</td>
+                    <td>@t.sys_quantityAvailable</td>
+                    <td>
+                        <span class="badge @(t.sys_quantityAvailable <= 0 ? "bg-danger" : t.sys_quantityAvailable < 5 ? "bg-warning text-dark" : "bg-success")">
+                            @(t.sys_quantityAvailable <= 0 ? "Out of Stock" : t.sys_quantityAvailable < 5 ? "Low Stock" : "Available")
+                        </span>
+                    </td>
+                    <td>
+                                        <button class="btn btn-sm btn-primary editBtn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editTombstoneModal"
+                                                data-id="@t.sys_tombstoneId"
+                                                data-name="@t.sys_tombstoneName"
+                                                data-material="@t.sys_material"
+                                                data-size="@t.sys_size"
+                                                data-price="@t.sys_price"
+                                                data-quantity="@t.sys_quantityAvailable"
+                                                data-description="@t.sys_description"
+                                                data-image="@t.sys_imagePath">
+                                            Edit
+                                        </button>
+                                        <button class="btn btn-sm btn-danger deleteBtn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteTombstoneModal"
+                                                data-id="@t.sys_tombstoneId"
+                                                data-name="@t.sys_tombstoneName">
+                                            Delete
+                                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Modal -->
+<div class="modal fade" id="addTombstoneModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" enctype="multipart/form-data" asp-page-handler="AddTombstone">
+                <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);">
+                    <h5 class="modal-title">Add New Tombstone</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body row g-3">
+                    <partial name="_TombstoneFormPartial" for="Tombstone" />
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editTombstoneModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" enctype="multipart/form-data" asp-page-handler="EditTombstone">
+                <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);">
+                    <h5 class="modal-title">Edit Tombstone</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body row g-3">
+                    <input type="hidden" name="Tombstone.sys_tombstoneId" id="editId" />
+                    <div class="col-md-6">
+                        <label class="form-label">Name</label>
+                        <input name="Tombstone.sys_tombstoneName" id="editName" class="form-control" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Material</label>
+                        <input name="Tombstone.sys_material" id="editMaterial" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Size</label>
+                        <input name="Tombstone.sys_size" id="editSize" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Price</label>
+                        <input name="Tombstone.sys_price" id="editPrice" type="number" class="form-control" step="0.01" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Quantity</label>
+                        <input name="Tombstone.sys_quantityAvailable" id="editQuantity" type="number" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Image</label>
+                        <input type="file" name="ImageFile" id="editImage" class="form-control" accept="image/*" />
+                        <div id="currentImagePreview" class="mt-2"></div>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Description</label>
+                        <textarea name="Tombstone.sys_description" id="editDescription" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteTombstoneModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="DeleteTombstone">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="TombstoneId" id="deleteId" />
+                    <p>Are you sure you want to delete <strong id="deleteName"></strong>?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const editButtons = document.querySelectorAll(".editBtn");
+    editButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.getElementById("editId").value = btn.dataset.id;
+            document.getElementById("editName").value = btn.dataset.name;
+            document.getElementById("editMaterial").value = btn.dataset.material;
+            document.getElementById("editSize").value = btn.dataset.size;
+            document.getElementById("editPrice").value = btn.dataset.price;
+            document.getElementById("editQuantity").value = btn.dataset.quantity;
+            document.getElementById("editDescription").value = btn.dataset.description;
+
+            const imagePreview = document.getElementById("currentImagePreview");
+            if (btn.dataset.image) {
+                imagePreview.innerHTML = `<img src="${btn.dataset.image}" width="100" class="rounded mt-2"/>`;
+            } else {
+                imagePreview.innerHTML = `<span class="text-muted">No image uploaded</span>`;
+            }
+        });
+    });
+
+    const deleteButtons = document.querySelectorAll(".deleteBtn");
+    deleteButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.getElementById("deleteId").value = btn.dataset.id;
+            document.getElementById("deleteName").textContent = btn.dataset.name;
+        });
+    });
+</script>
