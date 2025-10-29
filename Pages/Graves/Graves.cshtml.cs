@@ -35,6 +35,8 @@ namespace ZororoMemorialPark.Pages.Graves
         public List<GraveViewModel> ReservedGraves { get; set; } = new List<GraveViewModel>();
         public List<OccupiedGraveViewModel> OccupiedGraves { get; set; } = new List<OccupiedGraveViewModel>();
 
+        public IList<tbl_Tombstones> AvailableTombstones { get; set; }
+
         public List<UnderConstructionGraveViewModel> UnderConstructionGraves { get; set; } = new List<UnderConstructionGraveViewModel>();
         public IList<tbl_Sections> Sections { get; set; } = new List<tbl_Sections>();
         public IList<tbl_DevelopmentStages> Stages { get; set; } = new List<tbl_DevelopmentStages>();
@@ -46,6 +48,8 @@ namespace ZororoMemorialPark.Pages.Graves
                 // Load sections and stages for dropdowns
                 Sections = await _context.tbl_Sections.AsNoTracking().ToListAsync();
                 Stages = await _context.tbl_DevelopmentStages.AsNoTracking().ToListAsync();
+
+                
 
                 // Base query for graves with section and stage info
                 var baseQuery = from g in _context.tbl_Graves
@@ -70,7 +74,9 @@ namespace ZororoMemorialPark.Pages.Graves
                                         join s in _context.tbl_Sections on g.sys_sectionId equals s.sys_sectionId
                                         join o in _context.tbl_GraveAllocations on g.sys_graveId equals o.sys_graveId
                                         join dc in _context.tbl_Deceased on o.sys_deceasedId equals dc.sys_deceasedId
+                                        join al in _context.tbl_GraveAllocations on g.sys_graveId equals al.sys_graveId
                                         
+
                                         orderby g.sys_plotNumber
                                         select new OccupiedGraveViewModel
                                         {
@@ -88,7 +94,7 @@ namespace ZororoMemorialPark.Pages.Graves
                                             // ? Automatically compute Tomb Status
                                             sys_graveTombStatus = DateOnly.FromDateTime(DateTime.Now).DayNumber - o.sys_allocatedOn.DayNumber >= 365
                                                 ? "Ready for Tombstone"
-                                                : "Not Ready"
+                                                : al.sys_tombstoneStatus
                                         };
 
 
@@ -132,6 +138,13 @@ namespace ZororoMemorialPark.Pages.Graves
                 AvailableGraves = await baseQuery.Where(g => g.sys_graveSaleStatus == "Unsold").ToListAsync();
                 ReservedGraves = await baseQuery.Where(g => g.sys_graveSaleStatus == "Reserved").ToListAsync();
                 OccupiedGraves = await occupiedBaseQuery.Where(g => g.sys_saleStatus == "Occupied").ToListAsync();
+
+                // load available tombstones
+                AvailableTombstones = await _context.tbl_Tombstones
+           .Where(t => t.sys_status == "Available" && t.sys_quantityAvailable > 0)
+           .ToListAsync();
+
+
                 // Log access
                 var userId = _userManager.GetUserId(User);
                 await _appLogger.LogActivityAsync(userId, "Access", "Accessed Graves page with tabs (no pagination)");
@@ -423,9 +436,118 @@ namespace ZororoMemorialPark.Pages.Graves
 
 
 
+        public async Task<IActionResult> OnPostSaveTombstoneOrderAsync()
+        {
+            try
+            {
+                // Extract form data
+                int graveId = int.Parse(Request.Form["sys_graveId"]);
+                int tombstoneId = int.Parse(Request.Form["sys_tombstoneId"]);
+                string buyerName = Request.Form["sys_buyerName"];
+                string buyerContact = Request.Form["sys_buyerContact"];
+                double amountPaid = double.Parse(Request.Form["sys_amountPaid"]);
+                DateOnly installationDate = DateOnly.FromDateTime(DateTime.Parse(Request.Form["sys_installationDate"]));
+                string installedBy = Request.Form["sys_installedBy"];
+                string remarks = Request.Form["sys_remarks"];
 
-        // ViewModel to include Section and Stage names for display
-        public class GraveViewModel
+                var tombstone = await _context.tbl_Tombstones.FindAsync(tombstoneId);
+
+                //create a customer record
+
+                var customer = new tbl_Customers
+                {
+                    sys_paymentMadeBy = buyerName + "(Tombstone Purchase)"
+                };
+
+                _context.tbl_Customers.Add(customer);
+                await _context.SaveChangesAsync();
+
+
+                // Generate Invoice
+                string invoiceNumber = "TSINV-" + DateTime.Now.ToString("yyyyMMddHHmmss");
+
+
+                var invoice = new tbl_Invoices
+                {
+                    sys_invoiceDate = DateOnly.FromDateTime(DateTime.Now),
+                    sys_invoiceNumber = invoiceNumber,
+                    sys_customerId = customer.sys_customerId, // Linked to customer
+                    sys_invoiceDueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7))
+                };
+                _context.tbl_Invoices.Add(invoice);
+                await _context.SaveChangesAsync();
+
+                // Add Invoice Item
+
+                var invoiceItem = new tbl_InvoiceItems
+                {
+                    sys_invoiceId = invoice.sys_invoiceId,
+                    sys_itemName = $"Tombstone - {tombstone.sys_tombstoneName}",
+                    sys_itemCost = tombstone.sys_price
+                };
+                _context.tbl_InvoiceItems.Add(invoiceItem);
+                await _context.SaveChangesAsync();
+
+                // Create Sale/Payment
+                var sale = new tbl_TombstoneSales
+                {
+                    
+                    sys_tombstoneId = tombstoneId,
+                    sys_buyerName = buyerName,
+                    sys_buyerContact = buyerContact,
+                    sys_amountPaid = amountPaid,
+                    sys_paymentStatus = tombstone.sys_price <= amountPaid ? "Paid" : "Payment Due",
+                    sys_installationStatus = "Not Installed",
+                    sys_saleDate = DateOnly.FromDateTime(DateTime.Now),
+                    sys_invoiceId = invoice.sys_invoiceId
+                };
+                _context.tbl_TombstoneSales.Add(sale);
+                await _context.SaveChangesAsync();
+
+                // Create Installation record
+                var installation = new tbl_TombstoneInstallations
+                {
+                    sys_saleId = sale.sys_saleId,
+                    sys_graveId = graveId,
+                    sys_installationDate = installationDate,
+                    sys_installedBy = installedBy,
+                    sys_remarks = remarks, //Permit details
+                    sys_status = "Pending"
+                };
+                _context.tbl_TombstoneInstallations.Add(installation);
+                await _context.SaveChangesAsync();
+
+                
+
+                // Update stock
+                tombstone.sys_quantityAvailable -= 1;
+                if (tombstone.sys_quantityAvailable <= 0)
+                    tombstone.sys_status = "Out of Stock";
+
+                // Update grave tombstone status
+
+                var graveAllocation = await _context.tbl_GraveAllocations
+                                        .FirstOrDefaultAsync(t => t.sys_graveId == graveId);
+
+                
+                graveAllocation.sys_tombstoneStatus = "Awaiting Installation";
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Tombstone sale, installation, and invoice created successfully.";
+                return RedirectToPage();
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error saving tombstone order: {ex.Message}";
+                return RedirectToPage();
+            }
+        }
+    }
+
+
+    // ViewModel to include Section and Stage names for display
+    public class GraveViewModel
         {
             public int sys_graveId { get; set; }
             public string sys_plotNumber { get; set; }
@@ -480,4 +602,3 @@ namespace ZororoMemorialPark.Pages.Graves
             public double sys_longitude { get; set; }
         }
     }
-}

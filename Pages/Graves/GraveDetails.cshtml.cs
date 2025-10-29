@@ -8,6 +8,7 @@ using System.Diagnostics;
 using ZororoMemorialPark.Data;
 using ZororoMemorialPark.Data.Models;
 using ZororoMemorialPark.Pages.Jobs;
+using ZororoMemorialPark.Pages.Tombstones;
 using ZororoMemorialPark.Services;
 
 namespace ZororoMemorialPark.Pages.Graves
@@ -33,19 +34,19 @@ namespace ZororoMemorialPark.Pages.Graves
         public tbl_Graves Grave { get; set; } = new();
         public tbl_Sections Section { get; set; } = new();
         public tbl_DevelopmentStages Stage { get; set; } = new();
-        public tbl_GraveAllocations Allocation { get; set; } = new(); 
+        public tbl_GraveAllocations Allocation { get; set; } = new();
         public tbl_Deceased Deceased { get; set; } = new();
-        public bool AllocationPendingPayment { get; set; } 
+        public bool AllocationPendingPayment { get; set; }
         public tbl_GraveReservations Reservation { get; set; } = new();
         public tbl_Customers Customer { get; set; } = new();
         public List<tbl_Beneficiaries> Beneficiaries { get; set; } = new();
-        
+
         public List<CustomerPaymentDto> AllocationPayments { get; set; } = new();
         public List<CustomerPaymentDto> ReservationPayments { get; set; } = new();
-        
+
         public List<tbl_PaymentMethods> PaymentMethods { get; set; } = new();
 
-        public List<tbl_JobEvaluations> JobEvaluations {  get; set; } = new();
+        public List<tbl_JobEvaluations> JobEvaluations { get; set; } = new();
 
         public bool AgentRecordExists { get; set; }
         public tbl_ReceiptBooks AgentReceiptBook { get; set; } = new();
@@ -58,7 +59,7 @@ namespace ZororoMemorialPark.Pages.Graves
         public List<tbl_Graves> Graves { get; set; } = new();
         public List<tbl_Suppliers> Suppliers { get; set; } = new();
         public List<tbl_DevelopmentStages> Stages { get; set; } = new();
-        
+
         public List<tbl_jobEvaluationParameters> JobParameters { get; set; } = new();
 
         public List<tbl_Sections> Sections { get; set; } = new();
@@ -78,7 +79,11 @@ namespace ZororoMemorialPark.Pages.Graves
 
         public bool isReadyForAllocation { get; set; }
 
+        public TombstoneDetailsViewModel TombstoneInfo { get; set; }
+
         
+
+
         public class CustomerPaymentDto
         {
             public int sys_incomeId { get; set; }
@@ -349,6 +354,30 @@ namespace ZororoMemorialPark.Pages.Graves
                         isReadyForAllocation = false;
                     }
                 }
+
+
+
+                TombstoneInfo = await (from s in _context.tbl_TombstoneSales
+                                       join ins in _context.tbl_TombstoneInstallations on s.sys_saleId equals ins.sys_saleId
+                                       join t in _context.tbl_Tombstones on s.sys_tombstoneId equals t.sys_tombstoneId
+                                       join i in _context.tbl_Invoices on s.sys_invoiceId equals i.sys_invoiceId
+                                       where ins.sys_graveId == Grave.sys_graveId
+                                       select new TombstoneDetailsViewModel
+                                       {
+                                           GraveId = Grave.sys_graveId,
+                                           Tombstone = t,
+                                           Invoice = i,
+                                           Payments = _context.tbl_TombstoneSales
+                                               .Where(x => x.sys_invoiceId == s.sys_invoiceId)
+                                               .ToList(),
+                                           PaymentStatus = s.sys_paymentStatus
+                                       }).FirstOrDefaultAsync();
+
+                if (TombstoneInfo != null)
+                {
+                    double totalPaid = TombstoneInfo.Payments.Sum(p => p.sys_amountPaid);
+                    TombstoneInfo.IsFullyPaid = totalPaid >= TombstoneInfo.Tombstone.sys_price;
+                }
             }
             catch (Exception ex)
             {
@@ -358,6 +387,27 @@ namespace ZororoMemorialPark.Pages.Graves
             }
 
         }
+
+        // Record an addtional tombstone payment
+        public async Task<IActionResult> OnPostAddTombstonePaymentAsync(int invoiceId, int tombstoneId, int graveId, double amountPaid)
+        {
+            var newPayment = new tbl_TombstoneSales
+            {
+                sys_invoiceId = invoiceId,
+                sys_tombstoneId = tombstoneId,
+
+                sys_saleDate = DateOnly.FromDateTime(DateTime.Now),
+                sys_amountPaid = amountPaid,
+                sys_paymentStatus = "Paid"
+            };
+
+            _context.tbl_TombstoneSales.Add(newPayment);
+            await _context.SaveChangesAsync();
+
+            return RedirectToPage(new { graveId });
+        }
+
+
 
         // Allocate Grave
         public async Task<IActionResult> OnPostAllocateGraveAsync(int graveId, string deceasedFullName, DateOnly deceasedDOB,
@@ -437,7 +487,8 @@ namespace ZororoMemorialPark.Pages.Graves
                         sys_customerId = customer.sys_customerId,
                         sys_allocatedOn = DateOnly.FromDateTime(DateTime.Now),
                         sys_repatriationSource = repatriationSource ?? "n/a",
-                        sys_dateTimeOfBurial = burialDateTime
+                        sys_dateTimeOfBurial = burialDateTime,
+                        sys_tombstoneStatus = "Not Installed"
                     };
                     _context.tbl_GraveAllocations.Add(allocation);
                     await _context.SaveChangesAsync();
@@ -544,8 +595,8 @@ namespace ZororoMemorialPark.Pages.Graves
 
 
         // Create Reservation
-        public async Task<IActionResult> OnPostCreateReservationAsync(int graveId, string customerName, 
-            string beneficiaryFullName, DateOnly beneficiaryDOB, string beneficiaryRelationship )
+        public async Task<IActionResult> OnPostCreateReservationAsync(int graveId, string customerName,
+            string beneficiaryFullName, DateOnly beneficiaryDOB, string beneficiaryRelationship)
         {
             var customer = new tbl_Customers { sys_paymentMadeBy = customerName };
             _context.tbl_Customers.Add(customer);
@@ -559,20 +610,20 @@ namespace ZororoMemorialPark.Pages.Graves
             _context.tbl_GraveReservations.Add(reservation);
             await _context.SaveChangesAsync();
 
-            
-           var b = new tbl_Beneficiaries
-             {
-                  sys_benefitFullName = beneficiaryFullName ,
-                  sys_benefitDOB = beneficiaryDOB,
-                  sys_benefitRelationship = beneficiaryRelationship,
-                  sys_reservationId = reservation.sys_reservationId
-             };
-              _context.tbl_Beneficiaries.Add(b);
-             await _context.SaveChangesAsync();
+
+            var b = new tbl_Beneficiaries
+            {
+                sys_benefitFullName = beneficiaryFullName,
+                sys_benefitDOB = beneficiaryDOB,
+                sys_benefitRelationship = beneficiaryRelationship,
+                sys_reservationId = reservation.sys_reservationId
+            };
+            _context.tbl_Beneficiaries.Add(b);
+            await _context.SaveChangesAsync();
 
 
             //Create a reservation invoice
-            
+
             var invoice = new tbl_Invoices
             {
 
@@ -643,7 +694,7 @@ namespace ZororoMemorialPark.Pages.Graves
         public async Task<(bool Success, string Message)> ValidateReceiptNumber(int agentId, int receiptNumber)
         {
             var book = await _context.tbl_ReceiptBooks
-                .FirstOrDefaultAsync(b => b.sys_agentId == agentId && b.sys_isClosed!= true);
+                .FirstOrDefaultAsync(b => b.sys_agentId == agentId && b.sys_isClosed != true);
 
             if (book == null)
                 return (false, "Receipt book not found for this agent.");
@@ -657,7 +708,7 @@ namespace ZororoMemorialPark.Pages.Graves
             if (receiptNumber != book.sys_currentNumber + 1)
                 return (false, $"Invalid sequence. Next expected receipt is {book.sys_currentNumber + 1}.");
 
-            
+
             return (true, "Receipt Number is Valid.");
         }
 
@@ -683,15 +734,15 @@ namespace ZororoMemorialPark.Pages.Graves
             var book = await _context.tbl_ReceiptBooks
                 .FirstOrDefaultAsync(b => b.sys_receiptBookId == receiptBookId);
 
-           // if (book == null) return BadRequest("Receipt book not found.");
+            // if (book == null) return BadRequest("Receipt book not found.");
             //if (book.sys_isClosed) return BadRequest("Receipt book is closed.");
 
             // --- Validate Receipt ---
-           // if (receiptNumber < book.sys_startNumber || receiptNumber > book.sys_endNumber)
+            // if (receiptNumber < book.sys_startNumber || receiptNumber > book.sys_endNumber)
             //    return BadRequest("Receipt number not in range for this book.");
 
-           // if (receiptNumber != book.sys_currentNumber + 1)
-           //     return BadRequest($"Invalid sequence. Next expected is {book.sys_currentNumber + 1}.");
+            // if (receiptNumber != book.sys_currentNumber + 1)
+            //     return BadRequest($"Invalid sequence. Next expected is {book.sys_currentNumber + 1}.");
 
             // --- Save Payment ---
             var payment = new tbl_IncomePayments
@@ -708,8 +759,8 @@ namespace ZororoMemorialPark.Pages.Graves
             _context.tbl_IncomePayments.Add(payment);
             await _context.SaveChangesAsync();
 
-            
-            if(book != null)
+
+            if (book != null)
             {
                 // --- Update Current Receipt ---
                 book.sys_currentNumber = receiptNumber;
@@ -720,7 +771,7 @@ namespace ZororoMemorialPark.Pages.Graves
                     book.sys_isClosed = true;
                 }
             }
-            
+
 
             // --- Calculate Commission ---
             var agent = await _context.tbl_Agents.FindAsync(book.sys_agentId);
@@ -774,7 +825,7 @@ namespace ZororoMemorialPark.Pages.Graves
 
 
 
-        
+
         ///////////////////////////////////////////////////////////
         //Job details Methods/////
 
@@ -1253,7 +1304,8 @@ namespace ZororoMemorialPark.Pages.Graves
         }
 
 
-    }
+    } 
+}
 
 
     // DTO for returning payments in JSON
@@ -1284,4 +1336,4 @@ namespace ZororoMemorialPark.Pages.Graves
         public DateOnly? EndDate { get; set; }
         public double Balance { get; set; }
     }
-}
+

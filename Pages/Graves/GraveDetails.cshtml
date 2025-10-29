@@ -40,6 +40,10 @@
                     <li class="nav-item">
                         <a class="nav-link" id="jobs-tab" data-bs-toggle="tab" href="#jobs" role="tab">Jobs</a>
                     </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" id="tombstone-tab" data-bs-toggle="tab" href="#tombstone" role="tab">Tombstone</a>
+                    </li>
                     
                 </ul>
 
@@ -511,6 +515,12 @@
                         </div>
                         </div>
                      </div>
+
+                     <!--Tombstone Tab-->
+
+                    <div class="tab-pane fade" id="tombstone" role="tabpanel">
+                        <partial name="_TombstoneDetailsPartial" model="Model.TombstoneInfo" />
+                    </div>
                        
 
 

@@ -151,10 +151,31 @@ else if(status =="Occupied" && occupiedGraves !=null)
 
                         <td>@occupiedGrave.sys_latitude, @occupiedGrave.sys_longitude</td>
                         <td>
-                            <button class="btn btn-sm btn-outline-secondary">
-                                    
-                                Process Tombstone
+                            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#tombstoneOrderModal"
+                                    data-graveid="@occupiedGrave.sys_graveId">
+                                Order Tombstone
                             </button>
+                            @if (occupiedGrave.sys_graveTombStatus == "Ready for Tombstone")
+                                {
+                                <button class="btn btn-outline-success btn-sm applyTombstoneBtn"
+                                        data-graveid="@occupiedGrave.sys_graveId">
+                                    Apply Tombstone
+                                </button>
+                                }
+                            else if (occupiedGrave.sys_graveTombStatus == "Installed")
+                                {
+                                <span class="badge bg-success">Installed</span>
+                                }
+                            else if (occupiedGrave.sys_graveTombStatus == "Not Installed")
+                            {
+                                <span class="badge bg-secondary">Not Installed</span>
+                            }
+                                else
+                                {
+                                <span class="badge bg-secondary">@occupiedGrave.sys_graveTombStatus</span>
+                                }
+                        
+
 
                             <a class="btn btn-sm btn-outline-primary" asp-page="/Graves/GraveDetails" asp-route-id="@occupiedGrave.sys_graveId">View</a>
                         </td>
