@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Diagnostics;
 using ZororoMemorialPark.Data;
@@ -79,9 +80,17 @@ namespace ZororoMemorialPark.Pages.Graves
 
         public bool isReadyForAllocation { get; set; }
 
-        public TombstoneDetailsViewModel TombstoneInfo { get; set; }
 
-        
+
+        [BindProperty]
+        public tbl_TombstoneSales TombstoneSale { get; set; } = new();
+
+        public tbl_TombstoneInstallations TombInstallation { get; set; } = new();
+
+        public tbl_Tombstones Tombstone { get; set; } = new();
+        public List<tbl_TombstoneSales> Payments { get; set; } = new();
+
+
 
 
         public class CustomerPaymentDto
@@ -357,27 +366,49 @@ namespace ZororoMemorialPark.Pages.Graves
 
 
 
-                TombstoneInfo = await (from s in _context.tbl_TombstoneSales
-                                       join ins in _context.tbl_TombstoneInstallations on s.sys_saleId equals ins.sys_saleId
-                                       join t in _context.tbl_Tombstones on s.sys_tombstoneId equals t.sys_tombstoneId
-                                       join i in _context.tbl_Invoices on s.sys_invoiceId equals i.sys_invoiceId
-                                       where ins.sys_graveId == Grave.sys_graveId
-                                       select new TombstoneDetailsViewModel
-                                       {
-                                           GraveId = Grave.sys_graveId,
-                                           Tombstone = t,
-                                           Invoice = i,
-                                           Payments = _context.tbl_TombstoneSales
-                                               .Where(x => x.sys_invoiceId == s.sys_invoiceId)
-                                               .ToList(),
-                                           PaymentStatus = s.sys_paymentStatus
-                                       }).FirstOrDefaultAsync();
+                // Step 1: Get the installation record for this grave
+    var installation = await _context.tbl_TombstoneInstallations
+        .FirstOrDefaultAsync(i => i.sys_graveId == Grave.sys_graveId);
 
-                if (TombstoneInfo != null)
+    // Initialize everything safely
+    TombstoneSale = new tbl_TombstoneSales();
+    Tombstone = new tbl_Tombstones();
+                TombInstallation = new tbl_TombstoneInstallations();
+                Payments = new List<tbl_TombstoneSales>();
+
+                if (installation == null)
                 {
-                    double totalPaid = TombstoneInfo.Payments.Sum(p => p.sys_amountPaid);
-                    TombstoneInfo.IsFullyPaid = totalPaid >= TombstoneInfo.Tombstone.sys_price;
+                    // No installation record — no tombstone activity for this grave
+                    return; // Model is initialized, view will show "no tombstone" message
                 }
+
+                // Step 2: Get the sale linked to that installation
+                var sale = await _context.tbl_TombstoneSales
+                    .FirstOrDefaultAsync(s => s.sys_saleId == installation.sys_saleId);
+
+                if (sale == null)
+                {
+                    return; // No sale yet
+                }
+
+                TombstoneSale = sale;
+                TombInstallation = installation;
+
+                // Step 3: Get the tombstone details
+                Tombstone = await _context.tbl_Tombstones
+                    .FirstOrDefaultAsync(t => t.sys_tombstoneId == TombstoneSale.sys_tombstoneId) ?? new tbl_Tombstones();
+
+                // Step 4: Get all payments for the same invoice
+                if (TombstoneSale.sys_invoiceId != 0)
+                {
+                    Payments = await _context.tbl_TombstoneSales
+                        .Where(p => p.sys_invoiceId == TombstoneSale.sys_invoiceId)
+                        .OrderBy(p => p.sys_saleDate)
+                        .ToListAsync();
+                }
+
+
+
             }
             catch (Exception ex)
             {
@@ -389,23 +420,62 @@ namespace ZororoMemorialPark.Pages.Graves
         }
 
         // Record an addtional tombstone payment
-        public async Task<IActionResult> OnPostAddTombstonePaymentAsync(int invoiceId, int tombstoneId, int graveId, double amountPaid)
+        public async Task<IActionResult> OnPostAddTombstonePaymentAsync(int SaleId, double AmountPaid)
         {
-            var newPayment = new tbl_TombstoneSales
+            var mainSale = await _context.tbl_TombstoneSales.FindAsync(SaleId);
+            if (mainSale == null)
             {
-                sys_invoiceId = invoiceId,
-                sys_tombstoneId = tombstoneId,
+                return NotFound();
+            }
 
-                sys_saleDate = DateOnly.FromDateTime(DateTime.Now),
-                sys_amountPaid = amountPaid,
-                sys_paymentStatus = "Paid"
+            // Step 1: Find the grave linked to this sale via installation
+            var installation = await _context.tbl_TombstoneInstallations
+                .FirstOrDefaultAsync(i => i.sys_saleId == SaleId);
+            if (installation == null)
+            {
+                TempData["Error"] = "No installation found for this sale.";
+                return RedirectToPage(new { id = 0 });
+            }
+
+            // Step 2: Get tombstone details
+            var tombstone = await _context.tbl_Tombstones
+                .FirstOrDefaultAsync(t => t.sys_tombstoneId == mainSale.sys_tombstoneId);
+            var totalCost = tombstone.sys_price;
+
+            // Step 3: Calculate total paid so far
+            var totalPaid = await _context.tbl_TombstoneSales
+                .Where(p => p.sys_invoiceId == mainSale.sys_invoiceId)
+                .SumAsync(p => p.sys_amountPaid);
+
+            var balance = totalCost - totalPaid;
+
+            // Step 4: Prevent overpayment
+            if (AmountPaid > balance)
+            {
+                TempData["Error"] = "Payment exceeds remaining balance.";
+                return RedirectToPage(new { id = installation.sys_graveId });
+            }
+
+            // Step 5: Add new payment
+            var payment = new tbl_TombstoneSales
+            {
+                sys_tombstoneId = mainSale.sys_tombstoneId,
+                sys_invoiceId = mainSale.sys_invoiceId,
+                sys_amountPaid = AmountPaid,
+                sys_buyerName = mainSale.sys_buyerName,
+                sys_buyerContact = mainSale.sys_buyerContact,
+                sys_paymentStatus = "Paid",
+                sys_installationStatus = mainSale.sys_installationStatus
             };
 
-            _context.tbl_TombstoneSales.Add(newPayment);
+            _context.tbl_TombstoneSales.Add(payment);
             await _context.SaveChangesAsync();
 
-            return RedirectToPage(new { graveId });
+            TempData["SuccessMessage"] = "Tombstone payment recorded successfully.";
+
+            return RedirectToPage(new { id = installation.sys_graveId });
         }
+
 
 
 

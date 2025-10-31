@@ -56,6 +56,9 @@ namespace ZororoMemorialPark.Data
 
         public DbSet<tbl_TombstoneSales> tbl_TombstoneSales { get; set; }
 
+        public DbSet<tbl_ProductsAndServices> tbl_ProductsAndServices { get; set; }
+        public DbSet<tbl_StockTransactions> tbl_StockTransactions { get; set; }
+
 
     }
 }

@@ -534,8 +534,9 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = "Tombstone sale, installation, and invoice created successfully.";
-                return RedirectToPage();
+                TempData["SuccessMessage"] = "Tombstone sale created successfully.";
+
+                return RedirectToPage(new { id = graveId });
             }
             catch (Exception ex)
             {
