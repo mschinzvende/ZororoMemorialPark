@@ -21,11 +21,14 @@ namespace ZororoMemorialPark.Pages.Graves
 
         private readonly IAppLogger _appLogger;
 
-        public GraveDetailsModel(ApplicationDbContext context, UserManager<IdentityUser> userManager, IAppLogger appLogger)
+        private readonly IWebHostEnvironment _env;
+
+        public GraveDetailsModel(ApplicationDbContext context, UserManager<IdentityUser> userManager, IAppLogger appLogger, IWebHostEnvironment env)
         {
             _context = context;
             _userManager = userManager;
             _appLogger = appLogger;
+            _env = env;
         }
 
         [BindProperty(SupportsGet = true)]
@@ -89,6 +92,9 @@ namespace ZororoMemorialPark.Pages.Graves
 
         public tbl_Tombstones Tombstone { get; set; } = new();
         public List<tbl_TombstoneSales> Payments { get; set; } = new();
+
+        [BindProperty]
+        public IFormFile? burialOrder { get; set; }
 
 
 
@@ -550,6 +556,29 @@ namespace ZororoMemorialPark.Pages.Graves
                     await _context.SaveChangesAsync();
 
                     // Create Allocation
+
+                    string fileName = "Invalid file";
+                    if (burialOrder != null || burialOrder.Length != 0)
+                    {
+                        // Ensure uploads folder exists
+                        string uploadDir = Path.Combine(_env.WebRootPath, "uploads");
+                        if (!Directory.Exists(uploadDir))
+                            Directory.CreateDirectory(uploadDir);
+
+                        // Generate unique file name
+                        fileName = $"{Guid.NewGuid()}{Path.GetExtension(burialOrder.FileName)}";
+                        string filePath = Path.Combine(uploadDir, fileName);
+
+                        // Save the file
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await burialOrder.CopyToAsync(stream);
+                        }
+                    }
+
+
+
+
                     var allocation = new tbl_GraveAllocations
                     {
                         sys_graveId = graveId,
@@ -558,7 +587,8 @@ namespace ZororoMemorialPark.Pages.Graves
                         sys_allocatedOn = DateOnly.FromDateTime(DateTime.Now),
                         sys_repatriationSource = repatriationSource ?? "n/a",
                         sys_dateTimeOfBurial = burialDateTime,
-                        sys_tombstoneStatus = "Not Installed"
+                        sys_tombstoneStatus = "Not Installed",
+                        sys_burialOrder = burialOrder == null || burialOrder.Length == 0 ? "InvalidFile" : $"/uploads/{fileName}"
                     };
                     _context.tbl_GraveAllocations.Add(allocation);
                     await _context.SaveChangesAsync();
@@ -586,6 +616,28 @@ namespace ZororoMemorialPark.Pages.Graves
                     if (customer == null) return BadRequest("Customer not found for existing reservation.");
 
                     // Create Allocation
+
+                    string fileName = "Invalid file";
+                    if (burialOrder != null || burialOrder.Length != 0)
+                    {
+                        // Ensure uploads folder exists
+                        string uploadDir = Path.Combine(_env.WebRootPath, "uploads");
+                        if (!Directory.Exists(uploadDir))
+                            Directory.CreateDirectory(uploadDir);
+
+                        // Generate unique file name
+                         fileName= $"{Guid.NewGuid()}{Path.GetExtension(burialOrder.FileName)}";
+                        string filePath = Path.Combine(uploadDir, fileName);
+
+                        // Save the file
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await burialOrder.CopyToAsync(stream);
+                        }
+                    }
+                    
+
+
                     var allocation = new tbl_GraveAllocations
                     {
                         sys_graveId = graveId,
@@ -593,7 +645,8 @@ namespace ZororoMemorialPark.Pages.Graves
                         sys_customerId = customer.sys_customerId,
                         sys_allocatedOn = DateOnly.FromDateTime(DateTime.Now),
                         sys_repatriationSource = repatriationSource ?? "n/a",
-                        sys_dateTimeOfBurial = burialDateTime
+                        sys_dateTimeOfBurial = burialDateTime,
+                        sys_burialOrder = burialOrder==null || burialOrder.Length==0 ? "InvalidFile" : $"/uploads/{fileName}"
                     };
                     _context.tbl_GraveAllocations.Add(allocation);
                     await _context.SaveChangesAsync();
@@ -1291,7 +1344,6 @@ namespace ZororoMemorialPark.Pages.Graves
 
         public async Task<JsonResult> OnGetEvaluationParametersAsync(int jobId)
         {
-            // Get all parameters
             var parameters = await _context.tbl_jobEvaluationParameters
                 .Select(p => new
                 {
@@ -1300,35 +1352,44 @@ namespace ZororoMemorialPark.Pages.Graves
                 })
                 .ToListAsync();
 
-            // Get existing evaluations for this job
             var existing = await _context.tbl_JobEvaluations
                 .Where(e => e.sys_jobId == jobId)
                 .ToListAsync();
 
-            // Merge
+            var links = await _context.tbl_EvaluationParameterProducts
+                .Include(l => l.tbl_ProductsAndServices)
+                .ToListAsync();
+
             var result = parameters.Select(p => new
             {
-                sys_jobEvaluationParameterId = p.sys_jobEvaluationParameterId,
-                sys_parameterName = p.sys_parameterName,
+                p.sys_jobEvaluationParameterId,
+                p.sys_parameterName,
                 sys_jobEvaluation = existing
-                    .FirstOrDefault(e => e.sys_jobEvaluationParameterId == p.sys_jobEvaluationParameterId)?.sys_jobEvaluation
+                    .FirstOrDefault(e => e.sys_jobEvaluationParameterId == p.sys_jobEvaluationParameterId)?.sys_jobEvaluation,
+                linkedProducts = links
+                    .Where(l => l.sys_jobEvaluationParameterId == p.sys_jobEvaluationParameterId)
+                    .Select(lp => new
+                    {
+                        lp.tbl_ProductsAndServices.sys_itemId,
+                        lp.tbl_ProductsAndServices.sys_itemName,
+                        lp.sys_defaultQty
+                    }).ToList()
             });
 
             return new JsonResult(result);
         }
-
         public async Task<IActionResult> OnPostAddEvaluationAsync()
         {
             try
             {
-                var jobIdStr = Request.Form["jobId"];
+                var jobIdStr = Request.Form["JobId"];
                 if (string.IsNullOrEmpty(jobIdStr) || !int.TryParse(jobIdStr, out int jobId))
                 {
                     TempData["ErrorMessage"] = "Invalid Job ID.";
                     return RedirectToPage();
                 }
 
-                // Loop through all form fields that start with "evaluation_"
+                // Step 1: Save evaluations
                 foreach (var key in Request.Form.Keys.Where(k => k.StartsWith("evaluation_")))
                 {
                     var paramIdStr = key.Replace("evaluation_", "");
@@ -1337,33 +1398,53 @@ namespace ZororoMemorialPark.Pages.Graves
 
                     var evaluationText = Request.Form[key];
                     if (string.IsNullOrWhiteSpace(evaluationText))
-                        continue; // skip empty entries
+                        continue;
 
-                    // Check if evaluation already exists for this job & parameter
                     var existingEval = await _context.tbl_JobEvaluations
                         .FirstOrDefaultAsync(e => e.sys_jobId == jobId && e.sys_jobEvaluationParameterId == paramId);
 
                     if (existingEval != null)
                     {
-                        // Update
                         existingEval.sys_jobEvaluation = evaluationText;
                         _context.tbl_JobEvaluations.Update(existingEval);
                     }
                     else
                     {
-                        // Insert
-                        var newEval = new tbl_JobEvaluations
+                        _context.tbl_JobEvaluations.Add(new tbl_JobEvaluations
                         {
                             sys_jobId = jobId,
                             sys_jobEvaluationParameterId = paramId,
                             sys_jobEvaluation = evaluationText
-                        };
-                        _context.tbl_JobEvaluations.Add(newEval);
+                        });
                     }
                 }
 
+                // Step 2: Save product usage
+                foreach (var key in Request.Form.Keys.Where(k => k.StartsWith("product_")))
+                {
+                    var parts = key.Split('_');
+                    if (parts.Length != 3) continue;
+
+                    int.TryParse(parts[1], out int paramId);
+                    int.TryParse(parts[2], out int productId);
+
+                    double.TryParse(Request.Form[key], out double qtyUsed);
+                    if (qtyUsed <= 0) continue;
+
+                    var usage = new tbl_JobEvaluationProductUsage
+                    {
+                        sys_jobId = jobId,
+                        sys_jobEvaluationParameterId = paramId,
+                        sys_itemId = productId,
+                        sys_quantityUsed = qtyUsed,
+                        sys_dateUsed = DateTime.Now
+                    };
+
+                    _context.tbl_JobEvaluationProductUsage.Add(usage);
+                }
+
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Evaluations saved successfully.";
+                TempData["SuccessMessage"] = "Evaluations and product usage saved successfully.";
             }
             catch (Exception ex)
             {

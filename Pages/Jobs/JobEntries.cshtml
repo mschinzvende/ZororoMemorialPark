@@ -368,7 +368,7 @@
 </div>
 
 
-<!-- Payment Modal -->
+<!-- Payment For Supplier Modal -->
 <div class="modal fade" id="paymentModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -378,7 +378,7 @@
                 </div>
                 <div class="modal-body">
                     <input type="hidden" id="paymentJobId" name="sys_jobId" />
-                    <input type="hidden" id="paymentSupplierId" name="sys_supplierId"/>
+                    <input type="hidden" id="paymentSupplierId" name="sys_supplierId" />
 
                     <!-- Previous Payments -->
                     <h6>Previous Payments</h6>
@@ -413,35 +413,32 @@
                         <div class="col-sm-6">
                             <div class="mb-2">
                                 <label>Amount Paid</label>
-                                <input type="number" class="form-control" id="amountPaid" name="AmountPaid" required />
+                                <input type="number" class="form-control" id="amountPaid" name="AmountPaid" required min="0" step="0.01" />
                             </div>
                         </div>
                         <div class="col-sm-6">
-                        <div class="mb-2">
-                            <label>Payment Date</label>
-                            <input type="date" class="form-control" name="PaymentDate" value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
-                        </div>
+                            <div class="mb-2">
+                                <label>Payment Date</label>
+                                <input type="date" class="form-control" name="PaymentDate" value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                            </div>
                         </div>
                         <div class="col-sm-6">
-                        <div class="mb-2">
-                            <label>Payment Method</label>
-                            <select class="form-select" name="sys_paymentMethodId"
-                                    asp-items="@(new SelectList(Model.PaymentMethods, "sys_paymentMethodId", "sys_paymentMethodName"))">
-                            </select>
-                        </div>
+                            <div class="mb-2">
+                                <label>Payment Method</label>
+                                <select class="form-select" name="sys_paymentMethodId"
+                                        asp-items="@(new SelectList(Model.PaymentMethods, "sys_paymentMethodId", "sys_paymentMethodName"))">
+                                </select>
+                            </div>
                         </div>
 
                         <div class="col-sm-6">
                             <div class="mb-2">
                                 <label>Notes</label>
-                                <input type="text"  class="form-control" name="PaymentNotes" />
+                                <input type="text" class="form-control" name="PaymentNotes" />
+                            </div>
                         </div>
-                    </div>
 
-                    
-                    
-                    
-                </div>
+                    </div>
 
                 </div>
                 <div class="modal-footer">
@@ -598,5 +595,96 @@
             }
         }
     });
+
+     // --- Evaluation Modal ---
+         window.openEvaluationModal = function (jobId) {
+        $('#evaluationJobId').val(jobId);
+
+        $.getJSON('?handler=EvaluationParameters&jobId=' + jobId, function (data) {
+            let container = $('#evaluationParametersContainer');
+            container.empty();
+
+            if (data && data.length > 0) {
+                data.forEach(param => {
+                    let productSection = '';
+
+                    if (param.linkedProducts && param.linkedProducts.length > 0) {
+                        productSection += `<div class="ms-3 mt-2 border rounded p-2">
+                            <strong>Products Used:</strong>`;
+                        param.linkedProducts.forEach(prod => {
+                            productSection += `
+                                <div class="row mb-1">
+                                    <div class="col-6">
+                                        <label>${prod.sys_itemName} (Default: ${prod.sys_defaultQty})</label>
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="number" step="0.01" class="form-control"
+                                            name="product_${param.sys_jobEvaluationParameterId}_${prod.sys_itemId}"
+                                            placeholder="Qty Used" />
+                                    </div>
+                                </div>`;
+                        });
+                        productSection += `</div>`;
+                    }
+
+                    container.append(`
+                        <div class="col-12 mb-3">
+                            <label><strong>${param.sys_parameterName}</strong></label>
+                            <input type="hidden" name="parameterIds" value="${param.sys_jobEvaluationParameterId}" />
+                            <input type="text" class="form-control mb-2"
+                                name="evaluation_${param.sys_jobEvaluationParameterId}"
+                                value="${param.sys_jobEvaluation ?? ''}" />
+                            ${productSection}
+                        </div>
+                    `);
+                });
+            } else {
+                container.append(`<p class="text-muted">No evaluation parameters defined.</p>`);
+            }
+
+            $('#evaluationModal').modal('show');
+        });
+    };
+
+
+     // --- Payment Modal Function ---
+        window.openPaymentModal = function (jobId, supplierId) {
+            $("#paymentJobId").val(jobId);
+            $("#paymentSupplierId").val(supplierId);
+
+            fetch(`?handler=Payments&jobId=${jobId}`)
+                .then(r => r.json())
+                .then(data => {
+                    let rows = "";
+                    let hasPayments = data.length > 0;
+                    let lastBalance = 0;
+
+                    data.forEach((p, index) => {
+                        let amountDue = (index === 0) ? p.amountDue : lastBalance;
+                        rows += `<tr>
+                            <td>${p.paymentDate}</td>
+                            <td>${amountDue}</td>
+                            <td>${p.amountPaid}</td>
+                            <td>${p.balance}</td>
+                        </tr>`;
+                        lastBalance = p.balance;
+                    });
+
+                    $("#previousPaymentsBody").html(rows);
+
+                    if (hasPayments) {
+                        $("#amountDue").val(lastBalance).prop("readonly", true);
+                        $("#currentBalance").val(lastBalance);
+                        $("#amountPaid").attr("max", lastBalance);
+                    } else {
+                        $("#amountDue").val("").prop("readonly", false);
+                        $("#currentBalance").val("");
+                        $("#amountPaid").removeAttr("max");
+                    }
+
+                    $("#paymentModal").modal("show");
+                });
+        };
+
 </script>
 

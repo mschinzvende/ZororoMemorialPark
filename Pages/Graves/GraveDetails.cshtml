@@ -154,6 +154,53 @@
                                             <dt class="col-sm-5">Repatriation Source</dt>
                                             <dd class="col-sm-7">@Model.Allocation.sys_repatriationSource</dd>
 
+                                            <dt class="col-sm-5">Burial Order</dt>
+
+                                            @if (!string.IsNullOrEmpty(Model.Allocation.sys_burialOrder))
+                                            {
+
+                                                @if (Model.Allocation.sys_burialOrder.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                                                    {
+                                                        <!-- For PDFs: show a view/download link -->
+                                                    <dd class="col-sm-5">
+                                                        <a href="@Model.Allocation.sys_burialOrder" target="_blank" class="btn btn-outline-primary">
+                                                            <i class="bi bi-file-earmark-pdf"></i> View PDF
+                                                        </a></dd>
+                                                    }
+                                                    else if (
+                                                Model.Allocation.sys_burialOrder.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                                                Model.Allocation.sys_burialOrder.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ||
+                                                Model.Allocation.sys_burialOrder.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+                                                    )
+                                                    {
+                                                        <dd class="col-sm-5">
+                                                        <!-- For Images: show thumbnail preview -->
+                                                        <div class="card shadow-sm mt-2" style="width: 200px;">
+                                                        <img src="@Model.Allocation.sys_burialOrder" alt="buriaOrder"
+                                                                 class="card-img-top rounded" style="object-fit: cover; height: 150px;">
+                                                            <div class="card-body text-center p-2">
+                                                            <a href="@Model.Allocation.sys_burialOrder" target="_blank" class="btn btn-sm btn-outline-secondary">View Full Image</a>
+                                                            </div>
+                                                        </div>
+                                                        </dd>
+                                                    }
+                                                    else
+                                                    {
+                                                        <dd class="col-sm-5">
+                                                        <span class="badge bg-info text-dark">File not present</span>
+                                                        </dd>
+                                                    }
+                                               
+                                            }
+                                            else
+                                            {
+                                                <p class="text-muted">No file uploaded</p>
+                                            }
+
+
+
+
+
                                             <dt class="col-sm-5">Next of Kin</dt>
                                             <dd class="col-sm-7">@Model.Deceased.sys_deceasedNextOfKinName</dd>
 
@@ -676,7 +723,7 @@
     <div class="modal-dialog modal-lg">
         <!-- wider modal for 3 columns -->
         <div class="modal-content">
-            <form method="post" asp-page-handler="AllocateGrave">
+            <form method="post"  enctype="multipart/form-data" asp-page-handler="AllocateGrave">
                 <div class="modal-header">
                     <h5 class="modal-title">Allocate Grave</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -783,6 +830,14 @@
                                 <option value="">-- Select a slot --</option>
                             </select>
                             <div id="slotMessage" class="text-danger mt-1"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="burialOder" class="form-label">Attache Burial Order</label>
+
+
+                            <input type="file" id="burialOrder" name="burialOrder" class="form-control" accept=".jpg,.jpeg,.png,.pdf" />
+                            
                         </div>
 
                     </div>
@@ -1314,34 +1369,54 @@
         });
 
         // --- Evaluation Modal ---
-        window.openEvaluationModal = function (jobId) {
-            $('#evaluationJobId').val(jobId);
+         window.openEvaluationModal = function (jobId) {
+        $('#evaluationJobId').val(jobId);
 
-            $.getJSON('?handler=EvaluationParameters&jobId=' + jobId, function (data) {
-                let container = $('#evaluationParametersContainer');
-                container.empty();
+        $.getJSON('?handler=EvaluationParameters&jobId=' + jobId, function (data) {
+            let container = $('#evaluationParametersContainer');
+            container.empty();
 
-                if (data && data.length > 0) {
-                    data.forEach(param => {
-                        container.append(`
-                            <div class="col-sm-4">
-                                <div class="mb-2">
-                                    <label>${param.sys_parameterName}</label>
-                                    <input type="hidden" name="parameterIds" value="${param.sys_jobEvaluationParameterId}" />
-                                    <input type="text" class="form-control"
-                                        name="evaluation_${param.sys_jobEvaluationParameterId}"
-                                        value="${param.sys_jobEvaluation ?? ''}" />
-                                </div>
-                            </div>
-                        `);
-                    });
-                } else {
-                    container.append(`<p class="text-muted">No evaluation parameters defined.</p>`);
-                }
+            if (data && data.length > 0) {
+                data.forEach(param => {
+                    let productSection = '';
 
-                $('#evaluationModal').modal('show');
-            });
-        };
+                    if (param.linkedProducts && param.linkedProducts.length > 0) {
+                        productSection += `<div class="ms-3 mt-2 border rounded p-2">
+                            <strong>Products Used:</strong>`;
+                        param.linkedProducts.forEach(prod => {
+                            productSection += `
+                                <div class="row mb-1">
+                                    <div class="col-6">
+                                        <label>${prod.sys_itemName} (Default: ${prod.sys_defaultQty})</label>
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="number" step="0.01" class="form-control"
+                                            name="product_${param.sys_jobEvaluationParameterId}_${prod.sys_itemId}"
+                                            placeholder="Qty Used" />
+                                    </div>
+                                </div>`;
+                        });
+                        productSection += `</div>`;
+                    }
+
+                    container.append(`
+                        <div class="col-12 mb-3">
+                            <label><strong>${param.sys_parameterName}</strong></label>
+                            <input type="hidden" name="parameterIds" value="${param.sys_jobEvaluationParameterId}" />
+                            <input type="text" class="form-control mb-2"
+                                name="evaluation_${param.sys_jobEvaluationParameterId}"
+                                value="${param.sys_jobEvaluation ?? ''}" />
+                            ${productSection}
+                        </div>
+                    `);
+                });
+            } else {
+                container.append(`<p class="text-muted">No evaluation parameters defined.</p>`);
+            }
+
+            $('#evaluationModal').modal('show');
+        });
+    };
 
         // --- Burial Slots ---
         const burialDateInput = document.getElementById("burialDate");
