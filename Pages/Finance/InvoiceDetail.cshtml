@@ -1,0 +1,102 @@
+﻿@page "{id:int}"
+@model ZororoMemorialPark.Pages.Finance.InvoiceDetailModel
+@{
+    ViewData["Title"] = "Invoice Details";
+}
+
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center"
+         style="background-color: var(--primary-green); color: var(--primary-white);">
+        <h5 class="mb-0">Invoice @Model.Invoice?.sys_invoiceNumber</h5>
+        <div>
+            <a asp-page="./InvoicesList" class="btn btn-light btn-sm">Back</a>
+            <form method="get" class="d-inline" asp-page-handler="Pdf" asp-route-id="@Model.Invoice.sys_invoiceId">
+                <button type="submit" class="btn btn-outline-white btn-sm" style="background:white;color:#006A46;">Download PDF</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card-body">
+        @if (Model.Invoice == null)
+        {
+            <div class="alert alert-warning">Invoice not found.</div>
+        }
+        else
+        {
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <h6>Invoice</h6>
+                    <p><strong>Number:</strong> @Model.Invoice.sys_invoiceNumber</p>
+                    <p><strong>Date:</strong> @Model.Invoice.sys_invoiceDate.ToString("yyyy-MM-dd")</p>
+                    <p><strong>Due:</strong> @Model.Invoice.sys_invoiceDueDate.ToString("yyyy-MM-dd")</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <h6>Customer</h6>
+                    <p>@Model.CustomerName</p>
+                </div>
+            </div>
+
+            <h6>Items</h6>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th class="text-end">Cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var it in Model.Items)
+                    {
+                        <tr>
+                            <td>@it.sys_itemName</td>
+                            <td class="text-end">$@it.sys_itemCost.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td class="text-end"><strong>Total</strong></td>
+                        <td class="text-end">$@Model.Total.ToString("N2")</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <h6>Payments</h6>
+            <table class="table table-sm table-bordered">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th class="text-end">Amount</th>
+                        <th>Method</th>
+                        <th>Receipt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.Payments)
+                    {
+                        <tr>
+                            <td>@p.sys_date.ToString("yyyy-MM-dd")</td>
+                            <td class="text-end">$@p.sys_amount.ToString("N2")</td>
+                            <td>@p.sys_paymentMethod</td>
+                            <td>@p.sys_receiptNumber</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td class="text-end"><strong>Paid</strong></td>
+                        <td class="text-end">$@Model.Paid.ToString("N2")</td>
+                        <td colspan="2"></td>
+                    </tr>
+                    <tr>
+                        <td class="text-end"><strong>Balance</strong></td>
+                        <td class="text-end">
+                            <span class="@(Model.Balance <= 0 ? "text-success" : "text-danger")">$@Model.Balance.ToString("N2")</span>
+                        </td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        }
+    </div>
+</div>
