@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ZororoMemorialPark.Data;
 using Serilog;
+using ZororoMemorialPark.Services;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +30,9 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
 builder.Services.AddScoped<IAppLogger, AppLogger>();
+builder.Services.AddSingleton<InvoicePdfService>();
 
+QuestPDF.Settings.License = LicenseType.Community;
 builder.Services.AddRazorPages();
 
 builder.Services.AddRazorPages(options =>

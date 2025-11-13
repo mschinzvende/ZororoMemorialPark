@@ -14,12 +14,12 @@ namespace ZororoMemorialPark.Pages.Finance
     public class InvoiceDetailModel : PageModel
     {
         private readonly ApplicationDbContext _context;
-       // private readonly InvoicePdfService _pdfService;
+       private readonly InvoicePdfService _pdfService;
 
-        public InvoiceDetailModel(ApplicationDbContext context) //InvoicePdfService pdfService)
+        public InvoiceDetailModel(ApplicationDbContext context, InvoicePdfService pdfService)
         {
             _context = context;
-            //_pdfService = pdfService;
+            _pdfService = pdfService;
         }
 
         public tbl_Invoices Invoice { get; set; }
@@ -50,7 +50,7 @@ namespace ZororoMemorialPark.Pages.Finance
         }
 
         // GET handler to return PDF
-      /*  public async Task<IActionResult> OnGetPdfAsync(int id)
+        public async Task<IActionResult> OnGetPdfAsync(int id)
         {
             var invoice = await _context.tbl_Invoices.FindAsync(id);
             if (invoice == null) return NotFound();
@@ -80,6 +80,6 @@ namespace ZororoMemorialPark.Pages.Finance
                 payments);
 
             return File(pdfBytes, "application/pdf", $"{invoice.sys_invoiceNumber}.pdf");
-        }*/
+        }
     }
 }

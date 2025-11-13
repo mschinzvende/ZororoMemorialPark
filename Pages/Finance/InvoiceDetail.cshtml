@@ -10,9 +10,13 @@
         <h5 class="mb-0">Invoice @Model.Invoice?.sys_invoiceNumber</h5>
         <div>
             <a asp-page="./InvoicesList" class="btn btn-light btn-sm">Back</a>
-            <form method="get" class="d-inline" asp-page-handler="Pdf" asp-route-id="@Model.Invoice.sys_invoiceId">
-                <button type="submit" class="btn btn-outline-white btn-sm" style="background:white;color:#006A46;">Download PDF</button>
-            </form>
+            <a asp-page-handler="Pdf"
+               asp-route-id="@Model.Invoice.sys_invoiceId"
+               class="btn btn-outline-white btn-sm"
+               style="background:white;color:#006A46;">
+                Download PDF
+            </a>
+
         </div>
     </div>
 

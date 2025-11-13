@@ -1,0 +1,163 @@
+﻿@page
+@model ZororoMemorialPark.Pages.Finance.CreateInvoiceModel
+@{
+    ViewData["Title"] = "Create Invoice";
+}
+
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center"
+         style="background-color:#006A46; color:white;">
+        <h5>Create Invoice</h5>
+    </div>
+    <div class="card-body">
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success">@TempData["Success"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger">@TempData["Error"]</div>
+        }
+
+        <form method="post" id="invoiceForm">
+            <div class="mb-3">
+                <label>Invoice Number</label>
+                <input type="text" name="InvoiceNumber" class="form-control" required />
+            </div>
+
+            <div class="mb-3">
+                <label>Customer</label>
+                <select name="CustomerId" class="form-select" required>
+                    <option value="">--Select Customer--</option>
+                    @foreach (var c in Model.Customers)
+                    {
+                        <option value="@c.sys_customerId">@c.sys_paymentMadeBy</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label>Invoice Type</label>
+                <select id="invoiceTypeSelect" class="form-select" multiple>
+                    <option value="ProductService">Products/Services</option>
+                    <option value="Tombstone">Tombstones</option>
+                </select>
+            </div>
+
+            <!-- Products / Services -->
+            <div class="mb-3" id="productServiceSection" style="display:none;">
+                <label>Select Products / Services</label>
+                <input type="text" id="productSearch" class="form-control mb-2" placeholder="Search products/services" />
+
+                <div style="max-height:300px; overflow:auto; border:1px solid #ddd; padding:5px;" id="productList">
+                    @foreach (var p in Model.ProductServices)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div>
+                                <input type="checkbox" class="productCheck" value="@p.sys_itemId" />
+                                @p.sys_itemName (@p.sys_category) - $@p.sys_sellingPrice
+                            </div>
+                            <div style="width:80px;">
+                                <input type="number" class="form-control form-control-sm productQty" value="1" min="1" />
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Tombstones -->
+            <div class="mb-3" id="tombstoneSection" style="display:none;">
+                <label>Select Tombstones</label>
+                <input type="text" id="tombstoneSearch" class="form-control mb-2" placeholder="Search tombstones" />
+
+                <div style="max-height:300px; overflow:auto; border:1px solid #ddd; padding:5px;" id="tombstoneList">
+                    @foreach (var t in Model.Tombstones)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div>
+                                <input type="checkbox" class="tombstoneCheck" value="@t.sys_tombstoneId" />
+                                @t.sys_tombstoneName - $@t.sys_price
+                            </div>
+                            <div style="width:80px;">
+                                <input type="number" class="form-control form-control-sm tombstoneQty" value="1" min="1" />
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-success">Save Invoice</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Show / hide sections
+        const typeSelect = document.getElementById('invoiceTypeSelect');
+        const productSection = document.getElementById('productServiceSection');
+        const tombstoneSection = document.getElementById('tombstoneSection');
+
+        typeSelect.addEventListener('change', () => {
+            const selected = Array.from(typeSelect.selectedOptions).map(o => o.value);
+            productSection.style.display = selected.includes('ProductService') ? 'block' : 'none';
+            tombstoneSection.style.display = selected.includes('Tombstone') ? 'block' : 'none';
+        });
+
+        // Search filter for products
+        document.getElementById('productSearch').addEventListener('input', e => {
+            const filter = e.target.value.toLowerCase();
+            document.querySelectorAll('#productList > div').forEach(div => {
+                div.style.display = div.innerText.toLowerCase().includes(filter) ? 'flex' : 'none';
+            });
+        });
+
+        // Search filter for tombstones
+        document.getElementById('tombstoneSearch').addEventListener('input', e => {
+            const filter = e.target.value.toLowerCase();
+            document.querySelectorAll('#tombstoneList > div').forEach(div => {
+                div.style.display = div.innerText.toLowerCase().includes(filter) ? 'flex' : 'none';
+            });
+        });
+
+        // On form submit, collect selected items and quantities
+        document.getElementById('invoiceForm').addEventListener('submit', e => {
+            e.preventDefault();
+            const form = e.target;
+
+            // Create hidden inputs for selected products
+            document.querySelectorAll('.productCheck:checked').forEach((cb, i) => {
+                const qty = document.querySelectorAll('.productQty')[i].value;
+                const inputId = document.createElement('input');
+                inputId.type = 'hidden';
+                inputId.name = 'ProductIds';
+                inputId.value = cb.value;
+                form.appendChild(inputId);
+
+                const inputQty = document.createElement('input');
+                inputQty.type = 'hidden';
+                inputQty.name = 'ProductQty_' + cb.value;
+                inputQty.value = qty;
+                form.appendChild(inputQty);
+            });
+
+            // Hidden inputs for tombstones
+            document.querySelectorAll('.tombstoneCheck:checked').forEach((cb, i) => {
+                const qty = document.querySelectorAll('.tombstoneQty')[i].value;
+                const inputId = document.createElement('input');
+                inputId.type = 'hidden';
+                inputId.name = 'TombstoneIds';
+                inputId.value = cb.value;
+                form.appendChild(inputId);
+
+                const inputQty = document.createElement('input');
+                inputQty.type = 'hidden';
+                inputQty.name = 'TombstoneQty_' + cb.value;
+                inputQty.value = qty;
+                form.appendChild(inputQty);
+            });
+
+            form.submit();
+        });
+    </script>
+}
