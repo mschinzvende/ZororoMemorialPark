@@ -132,7 +132,7 @@ else if(status =="Occupied" && occupiedGraves !=null)
                     <th>Occupied On</th>
                     <th>Next of kin</th>
                     <th>Contact #</th>
-                    <th>Tomb Status</th>
+                    <th>Tombstone Status</th>
                     <th>Location</th>
                     <th style="width:150px;">Actions</th>
                 </tr>
@@ -142,41 +142,35 @@ else if(status =="Occupied" && occupiedGraves !=null)
                 {
                     <tr id="row-@occupiedGrave.sys_graveId">
                         <td><input type="checkbox" class="row-checkbox" value="@occupiedGrave.sys_graveId"></td>
-                        <td><a asp-page="/Graves/GraveDetails" asp-route-id="@occupiedGrave.sys_graveId">@occupiedGrave.sys_plotNumber</a></td>
+
+                        @if(occupiedGrave.topBuildStatus!="N/A" && occupiedGrave.sys_reminderPeriod !=0)
+                        {
+                            <td><a asp-page="/Graves/GraveDetails" asp-route-id="@occupiedGrave.sys_graveId">@occupiedGrave.sys_plotNumber</a><br><span class="badge bg-success">@occupiedGrave.topBuildStatus</span></td>
+                        }
+                        else
+                        {
+                            <td><a asp-page="/Graves/GraveDetails" asp-route-id="@occupiedGrave.sys_graveId">@occupiedGrave.sys_plotNumber</a></td>
+                        }
+
+
+                        
                         <td>@occupiedGrave.SectionName</td>
                         <td>@occupiedGrave.sys_occupationDate</td>
                         <td>@occupiedGrave.sys_nextOfKinName</td>
                         <td>@occupiedGrave.sys_nextOfKinContact</td>
-                        <td>@occupiedGrave.sys_graveTombStatus</td>
+                        <td><span class="badge bg-secondary">@occupiedGrave.sys_graveTombStatus</span></td>
 
                         <td>@occupiedGrave.sys_latitude, @occupiedGrave.sys_longitude</td>
                         <td>
-                            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#tombstoneOrderModal"
-                                    data-graveid="@occupiedGrave.sys_graveId">
-                                Order Tombstone
-                            </button>
+                            
                             @if (occupiedGrave.sys_graveTombStatus == "Ready for Tombstone")
                                 {
-                                <button class="btn btn-outline-success btn-sm applyTombstoneBtn"
+                                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#tombstoneOrderModal"
                                         data-graveid="@occupiedGrave.sys_graveId">
-                                    Apply Tombstone
+                                    Order Tombstone
                                 </button>
                                 }
-                            else if (occupiedGrave.sys_graveTombStatus == "Installed")
-                                {
-                                <span class="badge bg-success">Installed</span>
-                                }
-                            else if (occupiedGrave.sys_graveTombStatus == "Not Installed")
-                            {
-                                <span class="badge bg-secondary">Not Installed</span>
-                            }
-                                else
-                                {
-                                <span class="badge bg-secondary">@occupiedGrave.sys_graveTombStatus</span>
-                                }
-                        
-
-
+                           
                             <a class="btn btn-sm btn-outline-primary" asp-page="/Graves/GraveDetails" asp-route-id="@occupiedGrave.sys_graveId">View</a>
                         </td>
                     </tr>

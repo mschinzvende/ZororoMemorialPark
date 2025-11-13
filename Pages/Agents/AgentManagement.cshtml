@@ -270,7 +270,7 @@
 
                     // Commissions
                     let commHtml = "";
-                    data.commissions.forEach(c => {
+                    data.result.forEach(c => {
                         let remaining = (c.sys_amount - c.amountPaid);
                         commHtml += `
                             <tr>

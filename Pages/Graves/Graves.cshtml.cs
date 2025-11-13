@@ -90,6 +90,15 @@ namespace ZororoMemorialPark.Pages.Graves
                                             SectionName = s.sys_sectionName,
                                             sys_latitude = g.sys_latitude,
                                             sys_longitude = g.sys_longitude,
+                                            sys_jobReminder = s.sys_jobReminder,
+                                            sys_reminderPeriod = s.sys_reminderPeriod,
+
+
+                                            
+                                            //Compute Top Build Status
+                                            topBuildStatus = DateOnly.FromDateTime(DateTime.Now).DayNumber - o.sys_allocatedOn.DayNumber >= 365* s.sys_reminderPeriod
+                                                ? $"Ready for {s.sys_jobReminder}"
+                                                : "N/A",
 
                                             // ? Automatically compute Tomb Status
                                             sys_graveTombStatus = DateOnly.FromDateTime(DateTime.Now).DayNumber - o.sys_allocatedOn.DayNumber >= 365
@@ -576,7 +585,9 @@ namespace ZororoMemorialPark.Pages.Graves
             public string sys_nextOfKinContact { get; set; }
             public int sys_sectionId { get; set; }
             public string SectionName { get; set; }
-            
+        public string sys_jobReminder { get; set; }
+        public int sys_reminderPeriod { get; set; }
+            public string topBuildStatus { get; set; }
             public double sys_latitude { get; set; }
             public double sys_longitude { get; set; }
         }

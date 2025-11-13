@@ -177,7 +177,7 @@ public class AgentManagementModel : PageModel
             .Where(p => commissions.Select(c => c.sys_commissionId).Contains(p.sys_commissionId))
             .ToListAsync();
 
-        return new JsonResult(new { agent, commissions, payments });
+        return new JsonResult(new { agent, result, payments });
     }
 
 

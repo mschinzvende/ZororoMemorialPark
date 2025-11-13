@@ -41,6 +41,8 @@
                             <thead>
                                 <tr>
                                     <th>Section Name</th>
+                                    <th>Reminder</th>
+                                    <th>Period</th>
                                     <th style="width:150px;">Actions</th>
                                 </tr>
                             </thead>
@@ -49,6 +51,8 @@
                                 {
                                     <tr id="row-@grave_section.sys_sectionId">
                                         <td>@grave_section.sys_sectionName</td>
+                                        <td> @grave_section.sys_jobReminder</td>
+                                        <td>@grave_section.sys_reminderPeriod Year(s)</td>
                                         <td>
                                             <button class="btn btn-sm btn-outline-secondary"
                                                     data-bs-toggle="modal"
@@ -113,10 +117,31 @@
             </div>
             <div class="modal-body bg-light">
                 <form method="post" asp-page-handler="Create" id="createSectionForm">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Section Name</label>
-                        <input name="sectionName" class="form-control border" style="border-color: var(--primary-green);" />
+                    
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Section Name</label>
+                                <input name="sectionName" class="form-control border" style="border-color: var(--primary-green);" />
+                            </div>
+                        </div>
+
+                        <div class="col-sm-3">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Job Reminder</label>
+                                <input value="N/A" name="jobReminder" class="form-control border" style="border-color: var(--primary-green);" />
+                            </div>
+                        </div>
+
+                        <div class="col-sm-3">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Period (years)</label>
+                                <input value="0" type="number" min="0" step="1" name="reminderPeriod" class="form-control border" style="border-color: var(--primary-green);" />
+                            </div>
+                        </div>
                     </div>
+                    
+                    
                     <div class="text-end">
                         <button type="submit" class="btn btn-primary">Save</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -138,10 +163,29 @@
             <div class="modal-body bg-light">
                 <form method="post" asp-page-handler="Edit" id="editSectionForm">
                     <input type="hidden" name="sys_sectionId" />
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Section Name</label>
-                        <input name="sys_sectionName" class="form-control border" style="border-color: var(--primary-green);" />
+                    
+                    <div class="row">
+                    <div class="col-sm-3">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Section Name</label>
+                            <input name="sys_sectionName" class="form-control border" style="border-color: var(--primary-green);" />
+                        </div>
                     </div>
+
+                    <div class="col-sm-3">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Job Reminder</label>
+                            <input   name="sys_jobReminder" class="form-control border" style="border-color: var(--primary-green);" />
+                        </div>
+                    </div>
+
+                    <div class="col-sm-3">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Period (years)</label>
+                            <input name="sys_reminderPeriod" class="form-control border" style="border-color: var(--primary-green);" />
+                        </div>
+                    </div>
+            </div>
                     <div class="text-end">
                         <button type="submit" class="btn btn-primary">Update</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
