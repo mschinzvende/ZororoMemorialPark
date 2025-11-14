@@ -1,163 +1,276 @@
 ﻿@page
-@model ZororoMemorialPark.Pages.Finance.CreateInvoiceModel
+@model CreateInvoiceModel
 @{
     ViewData["Title"] = "Create Invoice";
 }
 
-<div class="card shadow-sm">
-    <div class="card-header d-flex justify-content-between align-items-center"
-         style="background-color:#006A46; color:white;">
+<div class="card shadow-sm mb-5">
+    <div class="card-header bg-success text-white">
         <h5>Create Invoice</h5>
     </div>
     <div class="card-body">
-        @if (TempData["Success"] != null)
-        {
-            <div class="alert alert-success">@TempData["Success"]</div>
-        }
-        @if (TempData["Error"] != null)
-        {
-            <div class="alert alert-danger">@TempData["Error"]</div>
-        }
 
-        <form method="post" id="invoiceForm">
-            <div class="mb-3">
-                <label>Invoice Number</label>
-                <input type="text" name="InvoiceNumber" class="form-control" required />
-            </div>
+        <!-- CUSTOMER SELECTION -->
+        <div class="row">
+            <div class="col-sm-3">
+                <div class="mb-3">
+                    <label class="form-label">Customer Name</label>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="customerName" name="customerName" class="form-control" required />
 
-            <div class="mb-3">
-                <label>Customer</label>
-                <select name="CustomerId" class="form-select" required>
-                    <option value="">--Select Customer--</option>
-                    @foreach (var c in Model.Customers)
-                    {
-                        <option value="@c.sys_customerId">@c.sys_paymentMadeBy</option>
-                    }
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label>Invoice Type</label>
-                <select id="invoiceTypeSelect" class="form-select" multiple>
-                    <option value="ProductService">Products/Services</option>
-                    <option value="Tombstone">Tombstones</option>
-                </select>
-            </div>
-
-            <!-- Products / Services -->
-            <div class="mb-3" id="productServiceSection" style="display:none;">
-                <label>Select Products / Services</label>
-                <input type="text" id="productSearch" class="form-control mb-2" placeholder="Search products/services" />
-
-                <div style="max-height:300px; overflow:auto; border:1px solid #ddd; padding:5px;" id="productList">
-                    @foreach (var p in Model.ProductServices)
-                    {
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <div>
-                                <input type="checkbox" class="productCheck" value="@p.sys_itemId" />
-                                @p.sys_itemName (@p.sys_category) - $@p.sys_sellingPrice
-                            </div>
-                            <div style="width:80px;">
-                                <input type="number" class="form-control form-control-sm productQty" value="1" min="1" />
-                            </div>
-                        </div>
-                    }
+                    </div>
                 </div>
             </div>
+            <div class="col-sm-3">
+                <div class="mb-3">
+                    <label class="form-label">Customer Phone</label>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="customerPhone" name="customerPhone" class="form-control" required />
 
-            <!-- Tombstones -->
-            <div class="mb-3" id="tombstoneSection" style="display:none;">
-                <label>Select Tombstones</label>
-                <input type="text" id="tombstoneSearch" class="form-control mb-2" placeholder="Search tombstones" />
+                    </div>
+                </div>
+            </div>
+        </div>
+        
 
-                <div style="max-height:300px; overflow:auto; border:1px solid #ddd; padding:5px;" id="tombstoneList">
+
+        <!-- ITEMS PICKER (TOP 3 ROWS) -->
+        <div class="row">
+            <div class="col-md-4">
+                <label class="form-label">Sellable Products</label>
+                <select id="productSelect" class="form-select">
+                    <option value="">-- Select Product --</option>
+                    @foreach (var p in Model.Products)
+                    {
+                        <option value="@p.sys_itemId" data-price="@p.sys_sellingPrice">
+                            @p.sys_itemName - $@p.sys_sellingPrice
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Services</label>
+                <select id="serviceSelect" class="form-select">
+                    <option value="">-- Select Service --</option>
+                    @foreach (var s in Model.Services)
+                    {
+                        <option value="@s.sys_itemId" data-price="@s.sys_sellingPrice">
+                            @s.sys_itemName - $@s.sys_sellingPrice
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Tombstones</label>
+                <select id="tombstoneSelect" class="form-select">
+                    <option value="">-- Select Tombstone --</option>
                     @foreach (var t in Model.Tombstones)
                     {
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <div>
-                                <input type="checkbox" class="tombstoneCheck" value="@t.sys_tombstoneId" />
-                                @t.sys_tombstoneName - $@t.sys_price
-                            </div>
-                            <div style="width:80px;">
-                                <input type="number" class="form-control form-control-sm tombstoneQty" value="1" min="1" />
-                            </div>
-                        </div>
+                        <option value="@t.sys_tombstoneId" data-price="@t.sys_price" data-type="tombstone">
+                            @t.sys_tombstoneName - $@t.sys_price
+                        </option>
                     }
-                </div>
+                </select>
             </div>
+        </div>
 
-            <button type="submit" class="btn btn-success">Save Invoice</button>
-        </form>
+
+        <!-- INVOICE ITEMS TABLE -->
+        <div class="mt-4">
+            <h5>Invoice Items</h5>
+            <table class="table table-striped table-class table-sm" id="invoiceItemsTable">
+
+                <thead class="thead-light">
+                    <tr>
+                        <th>Item</th>
+                        <th width="100">Price</th>
+                        <th width="100">Qty</th>
+                        <th width="100">Discount</th>
+                        <th width="120">Total</th>
+                        <th width="50"></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+
+        <!-- TOTALS -->
+        <div class="text-end mt-3">
+            <h6>Subtotal: $<span id="subtotal">0.00</span></h6>
+            <!--<h6>VAT (15%): $<span id="vat">0.00</span></h6>-->
+            <h4>Total: $<span id="grandTotal">0.00</span></h4>
+        </div>
+
+        <button class="btn btn-success mt-4" type="submit" form="invoiceForm">Save Invoice</button>
     </div>
 </div>
 
+
+<!-- HIDDEN FORM FOR SUBMISSION -->
+<form method="post" id="invoiceForm">
+    <input type="hidden" name="hiddenCustomerName" id="hiddenCustomerName" />
+    <input type="hidden" name="hiddenCustomerPhone" id="hiddenCustomerPhone" />
+    <div id="invoiceItemsContainer"></div>
+</form>
+
+
+<!-- CREATE CUSTOMER MODAL -->
+<div class="modal fade" id="createCustomerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5>Add Customer</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <label>Name</label>
+                <input id="newCustomerName" class="form-control" />
+
+                <label class="mt-2">Phone</label>
+                <input id="newCustomerPhone" class="form-control" />
+
+                <label class="mt-2">Email</label>
+                <input id="newCustomerEmail" class="form-control" />
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" id="saveCustomerBtn" class="btn btn-success">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 @section Scripts {
     <script>
-        // Show / hide sections
-        const typeSelect = document.getElementById('invoiceTypeSelect');
-        const productSection = document.getElementById('productServiceSection');
-        const tombstoneSection = document.getElementById('tombstoneSection');
+        // ------------------------------------------
+        // ADD ITEMS TO INVOICE TABLE
+        // ------------------------------------------
 
-        typeSelect.addEventListener('change', () => {
-            const selected = Array.from(typeSelect.selectedOptions).map(o => o.value);
-            productSection.style.display = selected.includes('ProductService') ? 'block' : 'none';
-            tombstoneSection.style.display = selected.includes('Tombstone') ? 'block' : 'none';
+        function addItem(id, name, price, type) {
+            const table = document.querySelector("#invoiceItemsTable tbody");
+
+            // Prevent duplicates
+            if (document.getElementById("row_" + type + "_" + id)) {
+                alert("Item already added.");
+                return;
+            }
+
+                   const row = `
+            <tr id="row_${type}_${id}">
+                <td>${name}</td>
+                <td>$${price}</td>
+                <td><input type="number" class="form-control qty-input" value="1" min="1" data-price="${price}" /></td>
+                <td><input type="number" class="form-control discount-input" value="0" min="0" data-price="${price}" /></td>
+                <td class="line-total">$${price}</td>
+                <td><button type="button" class="btn btn-danger btn-sm remove-item">&times;</button></td>
+            </tr>
+        `;
+
+
+            table.insertAdjacentHTML("beforeend", row);
+            updateTotals();
+            updateHiddenForm();
+        }
+
+        document.getElementById("productSelect").addEventListener("change", function () {
+            const opt = this.selectedOptions[0];
+            addItem(opt.value, opt.text, opt.dataset.price, "product");
+            this.value = "";
         });
 
-        // Search filter for products
-        document.getElementById('productSearch').addEventListener('input', e => {
-            const filter = e.target.value.toLowerCase();
-            document.querySelectorAll('#productList > div').forEach(div => {
-                div.style.display = div.innerText.toLowerCase().includes(filter) ? 'flex' : 'none';
-            });
+        document.getElementById("serviceSelect").addEventListener("change", function () {
+            const opt = this.selectedOptions[0];
+            addItem(opt.value, opt.text, opt.dataset.price, "service");
+            this.value = "";
         });
 
-        // Search filter for tombstones
-        document.getElementById('tombstoneSearch').addEventListener('input', e => {
-            const filter = e.target.value.toLowerCase();
-            document.querySelectorAll('#tombstoneList > div').forEach(div => {
-                div.style.display = div.innerText.toLowerCase().includes(filter) ? 'flex' : 'none';
-            });
+        document.getElementById("tombstoneSelect").addEventListener("change", function () {
+            const opt = this.selectedOptions[0];
+            addItem(opt.value, opt.text, opt.dataset.price, "tombstone");
+            this.value = "";
         });
 
-        // On form submit, collect selected items and quantities
-        document.getElementById('invoiceForm').addEventListener('submit', e => {
-            e.preventDefault();
-            const form = e.target;
+        // Update totals when qty changes
+        document.addEventListener("input", function (e) {
+            if (e.target.classList.contains("qty-input")) {
+                const qty = e.target.value;
+                const price = e.target.dataset.price;
 
-            // Create hidden inputs for selected products
-            document.querySelectorAll('.productCheck:checked').forEach((cb, i) => {
-                const qty = document.querySelectorAll('.productQty')[i].value;
-                const inputId = document.createElement('input');
-                inputId.type = 'hidden';
-                inputId.name = 'ProductIds';
-                inputId.value = cb.value;
-                form.appendChild(inputId);
+                const row = e.target.closest("tr");
+                row.querySelector(".line-total").innerText = "$" + (qty * price);
 
-                const inputQty = document.createElement('input');
-                inputQty.type = 'hidden';
-                inputQty.name = 'ProductQty_' + cb.value;
-                inputQty.value = qty;
-                form.appendChild(inputQty);
-            });
+                updateTotals();
+                updateHiddenForm();
+            }
 
-            // Hidden inputs for tombstones
-            document.querySelectorAll('.tombstoneCheck:checked').forEach((cb, i) => {
-                const qty = document.querySelectorAll('.tombstoneQty')[i].value;
-                const inputId = document.createElement('input');
-                inputId.type = 'hidden';
-                inputId.name = 'TombstoneIds';
-                inputId.value = cb.value;
-                form.appendChild(inputId);
 
-                const inputQty = document.createElement('input');
-                inputQty.type = 'hidden';
-                inputQty.name = 'TombstoneQty_' + cb.value;
-                inputQty.value = qty;
-                form.appendChild(inputQty);
-            });
+            if (e.target.classList.contains("discount-input")) {
+                const row = e.target.closest("tr");
+                const qty = row.querySelector(".qty-input").value;
+                const price = e.target.dataset.price;
+                const discount = e.target.value || 0;
 
-            form.submit();
+                const lineTotal = (qty * price) - Number(discount);
+                row.querySelector(".line-total").innerText = "$" + lineTotal.toFixed(2);
+
+                updateTotals();
+                updateHiddenForm();
+            }
         });
+
+        // Remove item
+        document.addEventListener("click", function (e) {
+            if (e.target.classList.contains("remove-item")) {
+                e.target.closest("tr").remove();
+                updateTotals();
+                updateHiddenForm();
+            }
+        });
+
+        // Calculate totals
+        function updateTotals() {
+            let subtotal = 0;
+
+            document.querySelectorAll(".line-total").forEach(x => {
+                subtotal += Number(x.innerText.replace("$", ""));
+            });
+
+            //let vat = subtotal * 0.15;
+            let total = subtotal;
+
+            document.getElementById("subtotal").innerText = subtotal.toFixed(2);
+            //document.getElementById("vat").innerText = vat.toFixed(2);
+            document.getElementById("grandTotal").innerText = total.toFixed(2);
+        }
+
+
+        // Prepare form for backend
+        function updateHiddenForm() {
+            const container = document.getElementById("invoiceItemsContainer");
+            container.innerHTML = "";
+            document.getElementById("hiddenCustomerName").value = document.getElementById("customerName").value;
+            document.getElementById("hiddenCustomerPhone").value = document.getElementById("customerPhone").value;
+
+            document.querySelectorAll("#invoiceItemsTable tbody tr").forEach((row, index) => {
+                const cols = row.children;
+                const itemName = cols[0].innerText;
+                const price = cols[1].innerText.replace("$", "");
+                const qty = cols[2].querySelector(".qty-input").value;
+                const discount = cols[3].querySelector(".discount-input").value;
+
+
+                container.insertAdjacentHTML("beforeend", `
+                    <input type="hidden" name="Items[${index}].Name" value="${itemName}" />
+                    <input type="hidden" name="Items[${index}].Price" value="${price}" />
+                    <input type="hidden" name="Items[${index}].Qty" value="${qty}" />
+                    <input type="hidden" name="Items[${index}].Discount" value="${discount}" />
+                `);
+            });
+        }
     </script>
 }
