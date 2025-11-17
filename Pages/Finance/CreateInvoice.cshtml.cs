@@ -83,7 +83,7 @@ namespace ZororoMemorialPark.Pages.Finance
                 return BadRequest("No invoice items selected.");
 
             // CREATE INVOICE NUMBER
-            string invoiceNumber = "INV-" + DateTime.Now.ToString("yyyyMMddHHmmss");
+            //string invoiceNumber = "INV-" + DateTime.Now.ToString("yyyyMMddHHmmss");
 
             var customer = new tbl_Customers
             {
@@ -97,7 +97,7 @@ namespace ZororoMemorialPark.Pages.Finance
             var invoice = new tbl_Invoices
             {
                 sys_customerId = customer.sys_customerId,
-                sys_invoiceNumber = invoiceNumber,
+               
                 sys_invoiceDate = DateOnly.Parse (DateTime.Now.ToString("dd-MM-yyyy")),
                 sys_invoiceDueDate = DateOnly.Parse(DateTime.Now.AddDays(7).ToString("dd-MM-yyyy"))
                 

@@ -479,7 +479,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 var invoice = new tbl_Invoices
                 {
                     sys_invoiceDate = DateOnly.FromDateTime(DateTime.Now),
-                    sys_invoiceNumber = invoiceNumber,
+                   
                     sys_customerId = customer.sys_customerId, // Linked to customer
                     sys_invoiceDueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7))
                 };

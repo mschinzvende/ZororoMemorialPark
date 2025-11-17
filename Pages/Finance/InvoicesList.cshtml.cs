@@ -17,6 +17,9 @@ namespace ZororoMemorialPark.Pages.Finance
             _context = context;
         }
 
+        public List<tbl_PaymentMethods> PaymentMethods { get; set; }
+
+
         public List<InvoiceRow> Invoices { get; set; } = new();
         [BindProperty(SupportsGet = true)]
         public int? ExpandedId { get; set; }
@@ -24,6 +27,11 @@ namespace ZororoMemorialPark.Pages.Finance
         public async Task OnGetAsync(int? expandedId)
         {
             ExpandedId = expandedId;
+
+            PaymentMethods = await _context.tbl_PaymentMethods
+                            .OrderBy(x => x.sys_paymentMethodName)
+                            .ToListAsync();
+
 
             var invoices = await _context.tbl_Invoices
                 .OrderByDescending(i => i.sys_invoiceDate)
@@ -58,7 +66,7 @@ namespace ZororoMemorialPark.Pages.Finance
                 Invoices.Add(new InvoiceRow
                 {
                     sys_invoiceId = inv.sys_invoiceId,
-                    sys_invoiceNumber = inv.sys_invoiceNumber,
+                   
                     sys_invoiceDate = inv.sys_invoiceDate,
                     CustomerName = customerName,
                     InvoiceType = type,
@@ -68,6 +76,57 @@ namespace ZororoMemorialPark.Pages.Finance
                 });
             }
         }
+
+
+        public async Task<IActionResult> OnPostCapturePaymentAsync(
+         int InvoiceId,
+         double Amount,
+         int PaymentMethodId,
+         string Notes="n/a")
+        {
+            var invoice = await _context.tbl_Invoices
+                .FirstOrDefaultAsync(i => i.sys_invoiceId == InvoiceId);
+
+            if (invoice == null)
+                return NotFound();
+
+            var items = await _context.tbl_InvoiceItems
+                .Where(i => i.sys_invoiceId == InvoiceId)
+                .ToListAsync();
+
+            var payments = await _context.tbl_IncomePayments
+                .Where(p => p.sys_invoiceId == InvoiceId)
+                .ToListAsync();
+
+            var total = items.Sum(i => i.sys_itemCost);
+            var paid = payments.Sum(p => p.sys_amount);
+            var balance = total - paid;
+
+            if (Amount > balance)
+            {
+                ModelState.AddModelError(string.Empty, "Payment exceeds invoice balance.");
+                return Page();
+            }
+
+            var method = await _context.tbl_PaymentMethods.FindAsync(PaymentMethodId);
+
+            var payment = new tbl_IncomePayments
+            {
+                sys_invoiceId = InvoiceId,
+                sys_amount = Amount,
+                sys_paymentMethod = method.sys_paymentMethodName,
+                sys_notes = Notes,
+                sys_date = DateOnly.FromDateTime(DateTime.Now),
+                sys_receiptNumber = InvoiceId
+            };
+
+            _context.tbl_IncomePayments.Add(payment);
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Payment captured successfully.";
+            return RedirectToPage("/Finance/InvoiceDetail", new { id = InvoiceId });
+        }
+
+
 
         public class InvoiceRow
         {

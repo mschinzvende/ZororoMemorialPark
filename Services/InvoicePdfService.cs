@@ -67,9 +67,9 @@ namespace ZororoMemorialPark.Services
                         {
                             r.RelativeItem().Column(c =>
                             {
-                                c.Item().Text($"Invoice No: {invoice.sys_invoiceNumber}").Bold();
-                                c.Item().Text($"Date: {invoice.sys_invoiceDate:yyyy-MM-dd}");
-                                c.Item().Text($"Due Date: {invoice.sys_invoiceDueDate:yyyy-MM-dd}");
+                                c.Item().Text($"Invoice No: {invoice.sys_invoiceId}").Bold();
+                                c.Item().Text($"Date: {invoice.sys_invoiceDate:dd-MM-yyyy}");
+                                c.Item().Text($"Due Date: {invoice.sys_invoiceDueDate:dd-MM-yyyy}");
                             });
 
                             r.RelativeItem().AlignRight().Column(c =>
@@ -128,7 +128,7 @@ namespace ZororoMemorialPark.Services
 
                                     foreach (var p in payments)
                                     {
-                                        table.Cell().Element(CellStyle).Text(p.sys_date.ToString("yyyy-MM-dd"));
+                                        table.Cell().Element(CellStyle).Text(p.sys_date.ToString("dd-MM-yyyy"));
                                         table.Cell().Element(CellStyle).AlignRight().Text($"${p.sys_amount:N2}");
                                     }
                                 });

@@ -1,0 +1,213 @@
+﻿@page
+@model ZororoMemorialPark.Pages.Inventory.ServicesModel
+@{
+    ViewData["Title"] = "Services";
+}
+
+<div class="card shadow-sm mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center"
+         style="background-color:#006A46; color:white;">
+        <h5 class="mb-0">Services</h5>
+
+        <button class="btn btn-light btn-sm"
+                data-bs-toggle="modal"
+                data-bs-target="#createServiceModal"
+                style="color:#006A46;">
+            Add Service
+        </button>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <table class="table" id="servicesTable">
+            <thead style="background:#006A46; color:white;">
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Status</th>
+                    <th style="width:150px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Model.Services)
+                {
+                    <tr>
+                        <td>@s.sys_itemName</td>
+                        <td>@s.sys_description</td>
+                        <td>@s.sys_category</td>
+                        <td>$@s.sys_sellingPrice</td>
+
+                        <td>
+                            @if (s.sys_isActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Inactive</span>
+                            }
+                        </td>
+
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editServiceModal"
+                                    data-id="@s.sys_itemId"
+                                    data-name="@s.sys_itemName"
+                                    data-desc="@s.sys_description"
+                                    data-category="@s.sys_category"
+                                    data-price="@s.sys_sellingPrice">
+                                Edit
+                            </button>
+
+                            <form method="post" asp-page-handler="ToggleStatus"
+                                  class="d-inline">
+                                <input type="hidden" name="id" value="@s.sys_itemId" />
+
+                                <button class="btn btn-sm btn-outline-danger">
+                                    @(s.sys_isActive ? "Deactivate" : "Activate")
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="modal fade" id="createServiceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+
+            <div class="modal-header" style="background:#006A46; color:white;">
+                <h5 class="modal-title">Add Service</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form method="post" asp-page-handler="Create">
+                <div class="modal-body">
+
+                    <div class="row">
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Service Name</label>
+                            <input type="text" class="form-control"
+                                   name="sys_itemName" required />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Category</label>
+                            <select class="form-select" name="sys_category">
+                                <option selected value="Sellable">Sellable</option>
+                                
+                            </select>
+                        </div>
+
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold">Description</label>
+                            <textarea class="form-control" name="sys_description"
+                                      rows="3"></textarea>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Selling Price</label>
+                            <input type="number" class="form-control"
+                                   step="0.01" min="0" name="sys_sellingPrice" required />
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn" style="background:#006A46; color:white;">
+                        Save
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editServiceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+
+            <div class="modal-header" style="background:#006A46; color:white;">
+                <h5 class="modal-title">Edit Service</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form method="post" asp-page-handler="Edit">
+                <div class="modal-body">
+
+                    <input type="hidden" id="edit_serviceId" name="sys_itemId" />
+
+                    <div class="row">
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Service Name</label>
+                            <input type="text" class="form-control"
+                                   id="edit_name" name="sys_itemName" required />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Category</label>
+                            <select class="form-select" id="edit_category" name="sys_category">
+                                <option value="Sellable">Sellable</option>
+                                <option value="Consumable">Consumable</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold">Description</label>
+                            <textarea class="form-control"
+                                      id="edit_desc"
+                                      name="sys_description" rows="3">
+                            </textarea>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Selling Price</label>
+                            <input type="number" class="form-control"
+                                   step="0.01" id="edit_price"
+                                   name="sys_sellingPrice" required />
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn" style="background:#006A46; color:white;">
+                        Update
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+
+<script>
+    const editModal = document.getElementById("editServiceModal");
+
+    editModal.addEventListener("show.bs.modal", function (event) {
+        const button = event.relatedTarget;
+
+        document.getElementById("edit_serviceId").value = button.getAttribute("data-id");
+        document.getElementById("edit_name").value = button.getAttribute("data-name");
+        document.getElementById("edit_desc").value = button.getAttribute("data-desc");
+        document.getElementById("edit_category").value = button.getAttribute("data-category");
+        document.getElementById("edit_price").value = button.getAttribute("data-price");
+    });
+</script>
+
+
+
+

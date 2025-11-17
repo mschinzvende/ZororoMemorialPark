@@ -73,7 +73,7 @@
                     var balance = inv.TotalAmount - inv.PaidAmount;
                     <tr>
                         <td>
-                            <a asp-page="./InvoiceDetail" asp-route-expandedId="@inv.sys_invoiceId">@inv.sys_invoiceNumber</a>
+                            <a asp-page="./InvoiceDetail" asp-route-id="@inv.sys_invoiceId" >@inv.sys_invoiceId</a>
                         </td>
                         <td>@inv.sys_invoiceDate.ToString("yyyy-MM-dd")</td>
                         <td>@inv.CustomerName</td>
@@ -100,6 +100,17 @@
                         </td>
                         <td class="text-end">
                             <a asp-page="./InvoiceDetail" asp-route-id="@inv.sys_invoiceId" class="btn btn-sm btn-outline-primary">View</a>
+
+                            @if (inv.InvoiceType != "GraveSale" && inv.InvoiceType != "Reservation")
+                            {
+                                <button class="btn btn-sm btn-success"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#paymentModal"
+                                        data-invoice="@inv.sys_invoiceId"
+                                data-balance="@balance">
+                                    Capture Payment
+                                </button>
+                            }
                         </td>
                     </tr>
 
@@ -155,6 +166,118 @@
         <div class="rows_count">Showing 11 to 20 of 91 entries</div>
     </div>
 </div>
+
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+
+            <div class="modal-header" style="background:#006A46; color:white;">
+                <h5 class="modal-title">Capture Payment</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form method="post" asp-page-handler="CapturePayment">
+                <div class="modal-body">
+
+                    <!-- Hidden Invoice ID -->
+                    <input type="hidden" id="InvoiceIdField" name="InvoiceId" />
+
+                    <!-- Hidden Invoice Balance (for client validation) -->
+                    <input type="hidden" id="InvoiceBalanceField" name="InvoiceBalance" />
+
+                    <div class="row">
+
+                        <!-- LEFT COLUMN -->
+                        <div class="col-md-6">
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Amount</label>
+                                <input type="number" min="1" step="0.01"
+                                       class="form-control"
+                                       id="AmountField"
+                                       name="Amount"
+                                       required />
+                                <small id="BalanceWarning" class="text-danger" style="display:none;">
+                                    Payment cannot exceed invoice balance.
+                                </small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Payment Method</label>
+                                <select class="form-select" name="PaymentMethodId" required>
+                                    <option value="">-- Select Method --</option>
+
+                                    @foreach (var pm in Model.PaymentMethods)
+                                    {
+                                        <option value="@pm.sys_paymentMethodId">
+                                            @pm.sys_paymentMethodName
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+
+                        </div>
+
+                        <!-- RIGHT COLUMN -->
+                        <div class="col-md-6">
+
+                            
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Remaining Balance</label>
+                                <input class="form-control" id="BalanceField" readonly />
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn" id="SubmitPaymentBtn"
+                            style="background:#006A46; color:white;">
+                        Save Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    const paymentModal = document.getElementById("paymentModal");
+
+    paymentModal.addEventListener("show.bs.modal", function (event) {
+        const button = event.relatedTarget;
+
+        const invoiceId = button.getAttribute("data-invoice");
+        const balance = button.getAttribute("data-balance");
+
+        document.getElementById("InvoiceIdField").value = invoiceId;
+        document.getElementById("InvoiceBalanceField").value = balance;
+        document.getElementById("BalanceField").value = balance;
+    });
+
+    document.getElementById("AmountField")?.addEventListener("input", function () {
+        const amount = parseFloat(this.value || 0);
+        const balance = parseFloat(document.getElementById("InvoiceBalanceField").value);
+
+        const warning = document.getElementById("BalanceWarning");
+        const submitBtn = document.getElementById("SubmitPaymentBtn");
+
+        if (amount > balance) {
+            warning.style.display = "block";
+            submitBtn.disabled = true;
+        } 
+        
+        else {
+            warning.style.display = "none";
+            submitBtn.disabled = false;
+        }
+    });
+</script>
 
 
 

@@ -220,7 +220,7 @@ namespace ZororoMemorialPark.Pages.Graves
                         {
                             sys_incomeId = pay.sys_incomeId,
                             sys_date = pay.sys_date,
-                            InvoiceNumber = inv.sys_invoiceNumber,
+                            
                             sys_amount = pay.sys_amount,
                             sys_paymentMethod = pay.sys_paymentMethod,
                             sys_notes = pay.sys_notes
@@ -241,7 +241,7 @@ namespace ZororoMemorialPark.Pages.Graves
                         {
                             sys_incomeId = pay.sys_incomeId,
                             sys_date = pay.sys_date,
-                            InvoiceNumber = inv.sys_invoiceNumber,
+                            
                             sys_amount = pay.sys_amount,
                             sys_paymentMethod = pay.sys_paymentMethod,
                             sys_notes = pay.sys_notes,
@@ -535,7 +535,7 @@ namespace ZororoMemorialPark.Pages.Graves
                     {
 
                         sys_invoiceDate = DateOnly.FromDateTime(DateTime.Now),
-                        sys_invoiceNumber = $"INV-{DateTime.Now.Ticks}",
+                        
                         sys_customerId = customer.sys_customerId,
                         sys_invoiceDueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7))
                     };
@@ -751,7 +751,7 @@ namespace ZororoMemorialPark.Pages.Graves
             {
 
                 sys_invoiceDate = DateOnly.FromDateTime(DateTime.Now),
-                sys_invoiceNumber = $"INV-{DateTime.Now.Ticks}",
+               
                 sys_customerId = customer.sys_customerId,
                 sys_invoiceDueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7))
             };

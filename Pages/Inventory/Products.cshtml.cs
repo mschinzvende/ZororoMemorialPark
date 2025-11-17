@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -9,9 +10,14 @@ namespace ZororoMemorialPark.Pages.Inventory
     public class ProductsModel : PageModel
     {
         private readonly ApplicationDbContext _context;
-        public ProductsModel(ApplicationDbContext context)
+
+        private readonly UserManager<IdentityUser> _userManager;
+        private readonly IAppLogger _appLogger;
+        public ProductsModel(ApplicationDbContext context, UserManager<IdentityUser> userManager, IAppLogger appLogger)
         {
             _context = context;
+            _userManager = userManager;
+            _appLogger = appLogger;
         }
 
         public List<tbl_ProductsAndServices> Products { get; set; } = new();
@@ -29,6 +35,7 @@ namespace ZororoMemorialPark.Pages.Inventory
                 .OrderBy(p => p.sys_itemName)
                 .ToListAsync();
 
+            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Access", "Accessed Products page");
             return Page();
         }
 
@@ -52,10 +59,13 @@ namespace ZororoMemorialPark.Pages.Inventory
                 await _context.SaveChangesAsync();
 
                 SuccessMessage = "Product added successfully.";
+
+                await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Create", $"Added new product: {product.sys_itemName}");
             }
             catch (Exception ex)
             {
                 ErrorMessage = "Error adding product: " + ex.Message;
+                await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error", $"Error adding product: {ex.Message}");
             }
 
             return RedirectToPage();
@@ -85,10 +95,13 @@ namespace ZororoMemorialPark.Pages.Inventory
                 await _context.SaveChangesAsync();
 
                 SuccessMessage = "Product updated successfully.";
+
+                await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Edit", $"Edited product: {product.sys_itemName}");
             }
             catch (Exception ex)
             {
                 ErrorMessage = "Error updating product: " + ex.Message;
+                await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error", $"Error updating product: {ex.Message}");
             }
 
             return RedirectToPage();
@@ -111,10 +124,13 @@ namespace ZororoMemorialPark.Pages.Inventory
                 await _context.SaveChangesAsync();
 
                 SuccessMessage = "Product deleted successfully.";
+
+                await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Delete", $"Deleted product: {product.sys_itemName}");
             }
             catch (Exception ex)
             {
                 ErrorMessage = "Error deleting product: " + ex.Message;
+                await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error", $"Error deleting product: {ex.Message}");
             }
 
             return RedirectToPage();
