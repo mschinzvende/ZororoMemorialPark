@@ -39,7 +39,7 @@ builder.Services.AddRazorPages(options =>
 {
     options.Conventions.AuthorizeFolder("/"); // Protect all pages
 });
-//builder.Services.AddScoped<GraveOccupancyPdfService>();
+builder.Services.AddScoped<BurialRegisterPdfService>();
 
 var app = builder.Build();
 
