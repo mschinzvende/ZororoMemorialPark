@@ -149,13 +149,13 @@
 
                     <div class="row">
 
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Service Name</label>
                             <input type="text" class="form-control"
                                    id="edit_name" name="sys_itemName" required />
                         </div>
 
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Category</label>
                             <select class="form-select" id="edit_category" name="sys_category">
                                 <option value="Sellable">Sellable</option>
@@ -163,16 +163,16 @@
                             </select>
                         </div>
 
-                        <div class="col-md-12 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Description</label>
-                            <textarea class="form-control"
+                            <input type="text" class="form-control"
                                       id="edit_desc"
-                                      name="sys_description" rows="3">
-                            </textarea>
+                                      name="sys_description" value="n/a" />
+                            
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">Selling Price</label>
+                            <label class="form-label fw-bold">Price</label>
                             <input type="number" class="form-control"
                                    step="0.01" id="edit_price"
                                    name="sys_sellingPrice" required />

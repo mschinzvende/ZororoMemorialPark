@@ -1,0 +1,58 @@
+﻿@page
+@model ZororoMemorialPark.Pages.Reports.ReportsDashModel
+@{
+}
+
+<div class="container mt-4">
+
+
+    <div class="row">
+
+        <!-- Grave Management Reports -->
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background:#006A46;color:white;">
+                    Grave Management
+                </div>
+                <div class="card-body">
+
+                    <a class="btn btn-outline-success w-100 mb-2"
+                       asp-page="/Reports/GraveOccupancy">
+                        Grave Occupancy
+                    </a>
+
+                    <button class="btn btn-outline-success w-100 mb-2" asp-page="Reports/Burials">Burial Register</button>
+                    <button class="btn btn-outline-success w-100 mb-2" asp-page="Reports/Reservations">Reservations Report</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Finance Reports -->
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background:#006A46;color:white;">
+                    Finance & Invoicing
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-outline-success w-100 mb-2" asp-page="Reports/Revenue">Revenue Report</button>
+                    <button class="btn btn-outline-success w-100 mb-2" asp-page="Reports/Payments">Payment Ledger</button>
+                    <button class="btn btn-outline-success w-100 mb-2" asp-page="Reports/Outstanding">Outstanding Balances</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stock/Consumables -->
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background:#006A46;color:white;">
+                    Stock & Consumables
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-outline-success w-100 mb-2" asp-page="Reports/StockLevels">Stock Levels</button>
+                    <button class="btn btn-outline-success w-100 mb-2" asp-page="Reports/StockMovement">Stock Movement</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

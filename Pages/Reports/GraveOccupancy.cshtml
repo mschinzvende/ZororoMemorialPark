@@ -1,0 +1,282 @@
+﻿@page
+@model ZororoMemorialPark.Pages.Reports.GraveOccupancyModel
+@using System.Text.Json
+
+@{
+    ViewData["Title"] = "Grave Occupancy Report";
+
+    var occupancyJson = JsonSerializer.Serialize(Model.OccupancySummary);
+    var sectionJson = JsonSerializer.Serialize(Model.SectionOccupancy);
+}
+
+<div class="row">
+    <div class="col-lg-12 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center"
+                 style="background-color: var(--primary-green); color: var(--primary-white);">
+                <h5 class="mb-0">Grave Occupancy Report</h5>
+                <span class="small">
+                    Total Graves:
+                    <strong>@Model.TotalGraves</strong>
+                </span>
+            </div>
+
+            <div class="card-body">
+                <!-- Top summary stats -->
+                <div class="row mb-3">
+                    <div class="col-md-3 mb-2">
+                        <div class="p-3 rounded"
+                             style="background-color:#e8f5e9;border-left:4px solid var(--primary-green);">
+                            <div class="text-muted small">Occupied</div>
+                            <div class="fw-bold fs-4">@Model.OccupiedCount</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <div class="p-3 rounded"
+                             style="background-color:#fff8e1;border-left:4px solid #fbc02d;">
+                            <div class="text-muted small">Reserved</div>
+                            <div class="fw-bold fs-4">@Model.ReservedCount</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <div class="p-3 rounded"
+                             style="background-color:#e3f2fd;border-left:4px solid #1976d2;">
+                            <div class="text-muted small">Available</div>
+                            <div class="fw-bold fs-4">@Model.AvailableCount</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <div class="p-3 rounded"
+                             style="background-color:#ffebee;border-left:4px solid #c62828;">
+                            <div class="text-muted small">Under Construction</div>
+                            <div class="fw-bold fs-4">@Model.UnderConstructionCount</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <ul class="nav nav-tabs" id="reportTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="charts-tab" data-bs-toggle="tab"
+                                data-bs-target="#charts" type="button" role="tab">
+                            Charts
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="table-tab" data-bs-toggle="tab"
+                                data-bs-target="#tableView" type="button" role="tab">
+                            Table View
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content pt-3">
+
+                    <!-- Charts Tab -->
+                    <div class="tab-pane fade show active" id="charts" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <div class="card ">
+                                    <div class="card-header"
+                                         style="background-color: var(--primary-grey); color: var(--primary-black);">
+                                        <h6 class="mb-0">Overall Occupancy</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="chart-wrapper" style="width: 100vw; height:70vh;">
+                                        <canvas id="occupancyPie"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header"
+                                         style="background-color: var(--primary-grey); color: var(--primary-black);">
+                                        <h6 class="mb-0">Occupancy by Section</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="sectionBar"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table Tab -->
+
+                    <div class="tab-pane fade" id="tableView" role="tabpanel">
+                        <div class="card mb-4">
+                            <div class="card-header"
+                                 style="background-color: var(--primary-grey); color: var(--primary-black);">
+                                <h6 class="mb-0">Grave Occupancy Detail</h6>
+                            </div>
+                            <div class="card-body">
+
+                                <div class="row">
+                                    <div class="col-auto me-2">
+                                        <div class="form-group">
+                                            <!--		Show Numbers Of Rows 		-->
+                                            <select class="form-select" name="state" id="maxRows">
+
+                                                <option value="10">Show 10</option>
+                                                <option value="15">15</option>
+                                                <option value="20">20</option>
+                                                <option value="50">50</option>
+                                                <option value="70">70</option>
+                                                <option value="100">100</option>
+                                                <option value="5000">ALL</option>
+                                            </select>
+
+                                        </div>
+                                    </div>
+                                    <div class="col-auto me-2">
+                                        <input type="text" id="search_input_all" onkeyup="FilterkeyWord_all_table()" placeholder="Search Table" class="form-control">
+                                    </div>
+                                </div>
+
+
+
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-class table-sm" id="myTable">
+
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th>Section</th>
+                                                <th>Plot</th>
+                                                <th>Status</th>
+                                                <th>Customer</th>
+                                                <th>Deceased</th>
+                                                <th>Allocation Date</th>
+                                                <th>Has Reservation</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var g in Model.GraveRows)
+                                            {
+                                                var statusBadgeClass = g.Status switch
+                                                {
+                                                    "Occupied" => "badge bg-success",
+                                                    "Reserved" => "badge bg-warning text-dark",
+                                                    "Available" => "badge bg-primary",
+                                                    "Under Construction" => "badge bg-danger",
+                                                    _ => "badge bg-secondary"
+                                                };
+
+                                                <tr>
+                                                    <td>@g.SectionName</td>
+                                                    <td>@g.PlotNumber</td>
+                                                    <td><span class="@statusBadgeClass">@g.Status</span></td>
+                                                    <td>@(string.IsNullOrWhiteSpace(g.CustomerName) ? "-" : g.CustomerName)</td>
+                                                    <td>@(string.IsNullOrWhiteSpace(g.DeceasedName) ? "-" : g.DeceasedName)</td>
+                                                    <td>@(g.AllocationDate.HasValue ? g.AllocationDate.Value.ToString("yyyy-MM-dd") : "-")</td>
+                                                    <td>@(g.HasReservation ? "Yes" : "No")</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+
+                                    <!--		Start Pagination -->
+                                    <div class="pagination-container">
+                                        <nav>
+                                            <ul class="pagination">
+                                                <!--	Here the JS Function Will Add the Rows -->
+                                            </ul>
+                                        </nav>
+                                    </div>
+                                    <div class="rows_count">Showing 11 to 20 of 91 entries</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        
+
+                    </div> <!-- end table tab -->
+                </div> <!-- end tab-content -->
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.2/jquery.min.js'></script>
+    <script src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js'></script>
+    <script src="~/js/tableScript.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        (function () {
+            const occupancy = @Html.Raw(occupancyJson);
+            const sectionData = @Html.Raw(sectionJson);
+
+            // Overall Occupancy Pie
+            const ctxPie = document.getElementById('occupancyPie');
+            if (ctxPie && occupancy) {
+                new Chart(ctxPie, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Occupied', 'Reserved', 'Available', 'Under Construction'],
+                        datasets: [{
+                            data: [
+                                occupancy.occupied ?? occupancy.Occupied,
+                                occupancy.reserved ?? occupancy.Reserved,
+                                occupancy.available ?? occupancy.Available,
+                                occupancy.underConstruction ?? occupancy.UnderConstruction
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { position: 'top' },
+                            title: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Section Occupancy Bar
+            const ctxBar = document.getElementById('sectionBar');
+            if (ctxBar && Array.isArray(sectionData)) {
+                const labels = sectionData.map(s => s.sectionName ?? s.SectionName);
+                const occupied = sectionData.map(s => s.occupied ?? s.Occupied);
+                const available = sectionData.map(s => s.available ?? s.Available);
+                const underConstruction = sectionData.map(s => s.underConstruction ?? s.UnderConstruction);
+
+                new Chart(ctxBar, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Occupied',
+                                data: occupied
+                            },
+                            {
+                                label: 'Available',
+                                data: available
+                            },
+                            {
+                                label: 'Under Construction',
+                                data: underConstruction
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: { stacked: false },
+                            y: { beginAtZero: true }
+                        },
+                        plugins: {
+                            legend: { position: 'top' },
+                            title: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+        })();
+    </script>
+}
