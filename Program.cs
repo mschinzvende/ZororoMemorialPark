@@ -41,6 +41,8 @@ builder.Services.AddRazorPages(options =>
 });
 builder.Services.AddScoped<BurialRegisterPdfService>();
 
+builder.Services.AddTransient<RevenueReportPdfService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

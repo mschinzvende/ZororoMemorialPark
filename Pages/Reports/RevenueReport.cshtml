@@ -1,0 +1,357 @@
+﻿@page
+@model ZororoMemorialPark.Pages.Reports.RevenueReportModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Revenue Report";
+    var summary = Model.Summary;
+    // Prepare data for charts
+    var dailyLabels = Model.DailyTotals.Select(d => d.Date.ToString("yyyy-MM-dd")).ToList();
+    var dailyValues = Model.DailyTotals.Select(d => d.TotalAmount).ToList();
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-3">
+        <div class="col-lg-12 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center"
+                     style="background-color: var(--primary-green); color: var(--primary-white);">
+                    <h5 class="mb-0">Revenue Report</h5>
+                    <form method="get" asp-page-handler="ExportPdf" class="d-inline">
+                        <input type="hidden" name="fromDate" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
+                        <input type="hidden" name="toDate" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
+                        <button type="submit" class="btn btn-sm btn-light">
+                            <i class="bi bi-filetype-pdf"></i> Export PDF
+                        </button>
+                    </form>
+                </div>
+                <div class="card-body">
+                    <!-- Filters -->
+                    <form method="get" class="row g-3">
+                        <div class="col-sm-4">
+                            <label class="form-label">From Date</label>
+                            <input type="date" name="FromDate"
+                                   value="@(Model.FromDate?.ToString("yyyy-MM-dd"))"
+                                   class="form-control" />
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="form-label">To Date</label>
+                            <input type="date" name="ToDate"
+                                   value="@(Model.ToDate?.ToString("yyyy-MM-dd"))"
+                                   class="form-control" />
+                        </div>
+                        <div class="col-sm-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-success w-100">Apply Filters</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0" style="border-top: 4px solid #006A46;">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Revenue</h6>
+                    <h4 class="fw-bold">$@summary.TotalRevenue.ToString("N2")</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0" style="border-top: 4px solid #198754;">
+                <div class="card-body">
+                    <h6 class="text-muted">Grave Sales (Allocations)</h6>
+                    <h5 class="fw-bold">$@summary.GraveSalesRevenue.ToString("N2")</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0" style="border-top: 4px solid #0d6efd;">
+                <div class="card-body">
+                    <h6 class="text-muted">Reservations Revenue</h6>
+                    <h5 class="fw-bold">$@summary.ReservationsRevenue.ToString("N2")</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0" style="border-top: 4px solid #fd7e14;">
+                <div class="card-body">
+                    <h6 class="text-muted">Tombstone Sales</h6>
+                    <h5 class="fw-bold">$@summary.TombstoneRevenue.ToString("N2")</h5>
+                    <small class="text-muted d-block">Other Revenue: $@summary.OtherRevenue.ToString("N2")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs" id="revTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="charts-tab" data-bs-toggle="tab" data-bs-target="#charts"
+                    type="button" role="tab">
+                Charts View
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tables-tab" data-bs-toggle="tab" data-bs-target="#tables"
+                    type="button" role="tab">
+                Tabular View
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-3" id="revTabsContent">
+        <!-- Charts Tab -->
+        <div class="tab-pane fade show active" id="charts" role="tabpanel">
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="card shadow-sm p-3">
+                        <h5 class="text-center mb-3">Revenue by Category</h5>
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card shadow-sm p-3">
+                        <h5 class="text-center mb-3">Daily Total Revenue</h5>
+                        <canvas id="dailyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tables Tab -->
+        <div class="tab-pane fade" id="tables" role="tabpanel">
+            <!-- Daily totals -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"
+                     style="background-color: var(--primary-green); color: var(--primary-white);">
+                    <h6 class="mb-0">Daily Revenue Totals</h6>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th class="text-end">Total Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.DailyTotals.Any())
+                            {
+                                foreach (var d in Model.DailyTotals)
+                                {
+                                    <tr>
+                                        <td>@d.Date.ToString("yyyy-MM-dd")</td>
+                                        <td class="text-end">$@d.TotalAmount.ToString("N2")</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted">No data for selected period.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Breakdown tables -->
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header"
+                             style="background-color: var(--primary-green); color: var(--primary-white);">
+                            <h6 class="mb-0">Grave Sales (Allocations)</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th class="text-end">Amount</th>
+                                        <th>Method</th>
+                                        <th>Receipt</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var p in Model.AllocationPayments)
+                                    {
+                                        <tr>
+                                            <td>@p.Date.ToString("yyyy-MM-dd")</td>
+                                            <td class="text-end">$@p.Amount.ToString("N2")</td>
+                                            <td>@p.PaymentMethod</td>
+                                            <td>@p.ReceiptNumber</td>
+                                        </tr>
+                                    }
+                                    @if (!Model.AllocationPayments.Any())
+                                    {
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted">No allocation payments.</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header"
+                             style="background-color: var(--primary-green); color: var(--primary-white);">
+                            <h6 class="mb-0">Reservations Revenue</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th class="text-end">Amount</th>
+                                        <th>Method</th>
+                                        <th>Receipt</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var p in Model.ReservationPayments)
+                                    {
+                                        <tr>
+                                            <td>@p.Date.ToString("yyyy-MM-dd")</td>
+                                            <td class="text-end">$@p.Amount.ToString("N2")</td>
+                                            <td>@p.PaymentMethod</td>
+                                            <td>@p.ReceiptNumber</td>
+                                        </tr>
+                                    }
+                                    @if (!Model.ReservationPayments.Any())
+                                    {
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted">No reservation payments.</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header"
+                             style="background-color: var(--primary-green); color: var(--primary-white);">
+                            <h6 class="mb-0">Tombstone Sales Revenue</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th class="text-end">Amount</th>
+                                        <th>Buyer</th>
+                                        <th>Contact</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var t in Model.TombstonePayments)
+                                    {
+                                        <tr>
+                                            <td>@t.SaleDate.ToString("yyyy-MM-dd")</td>
+                                            <td class="text-end">$@t.AmountPaid.ToString("N2")</td>
+                                            <td>@t.BuyerName</td>
+                                            <td>@t.BuyerContact</td>
+                                            <td>@t.PaymentStatus</td>
+                                        </tr>
+                                    }
+                                    @if (!Model.TombstonePayments.Any())
+                                    {
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">No tombstone payments.</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header"
+                             style="background-color: var(--primary-green); color: var(--primary-white);">
+                            <h6 class="mb-0">Other Revenue</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th class="text-end">Amount</th>
+                                        <th>Method</th>
+                                        <th>Receipt</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var o in Model.OtherPayments)
+                                    {
+                                        <tr>
+                                            <td>@o.Date.ToString("yyyy-MM-dd")</td>
+                                            <td class="text-end">$@o.Amount.ToString("N2")</td>
+                                            <td>@o.PaymentMethod</td>
+                                            <td>@o.ReceiptNumber</td>
+                                        </tr>
+                                    }
+                                    @if (!Model.OtherPayments.Any())
+                                    {
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted">No other revenue.</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Category chart
+    const catCtx = document.getElementById('categoryChart');
+    new Chart(catCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Grave Sales', 'Reservations', 'Tombstones', 'Other'],
+            datasets: [{
+                data: [
+    @summary.GraveSalesRevenue,
+    @summary.ReservationsRevenue,
+    @summary.TombstoneRevenue,
+    @summary.OtherRevenue
+                ]
+            }]
+        }
+    });
+
+    // Daily chart
+    const dailyCtx = document.getElementById('dailyChart');
+    const dailyLabels = @Html.Raw(JsonSerializer.Serialize(dailyLabels));
+    const dailyValues = @Html.Raw(JsonSerializer.Serialize(dailyValues));
+
+    new Chart(dailyCtx, {
+        type: 'line',
+        data: {
+            labels: dailyLabels,
+            datasets: [{
+                label: 'Total Revenue',
+                data: dailyValues,
+                tension: 0.3
+            }]
+        }
+    });
+</script>
