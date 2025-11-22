@@ -1,0 +1,272 @@
+﻿@page
+@model ZororoMemorialPark.Pages.Reports.OutstandingBalancesModel
+
+@{
+    ViewData["Title"] = "Outstanding Balances";
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-3">
+        <div class="col-lg-12 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center"
+                     style="background-color: var(--primary-green); color: var(--primary-white);">
+                    <h5 class="mb-0">Outstanding Balances</h5>
+
+                    <div>
+                        <!-- Export PDF -->
+                        <form method="get" class="d-inline">
+                            <input type="hidden" name="handler" value="Pdf" />
+                            <input type="hidden" name="from" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
+                            <input type="hidden" name="to" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
+                            <input type="hidden" name="category" value="@Model.SelectedCategory" />
+                            <button type="submit" class="btn btn-sm btn-light">
+                                <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- Filters -->
+                    <form method="get" class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">From Date</label>
+                            <input type="date" name="from" class="form-control"
+                                   value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">To Date</label>
+                            <input type="date" name="to" class="form-control"
+                                   value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Category</label>
+                            <select name="category" class="form-select">
+                                <option value="All" selected="@(Model.SelectedCategory == "All")">All Invoices</option>
+                                <option value="GraveSales" selected="@(Model.SelectedCategory == "GraveSales")">Grave Sales</option>
+                                <option value="Reservations" selected="@(Model.SelectedCategory == "Reservations")">Grave Reservations</option>
+                                <option value="Tombstones" selected="@(Model.SelectedCategory == "Tombstones")">Tombstone Sales</option>
+                                <option value="Other" selected="@(Model.SelectedCategory == "Other")">Other Revenue</option>
+                            </select>
+
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-success w-100">Run Report</button>
+                        </div>
+                    </form>
+
+                    <!-- Summary cards -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="card shadow-sm border-0" style="background:#e3f2fd;">
+                                <div class="card-body">
+                                    <div class="small text-muted">Total Invoiced (shown invoices)</div>
+                                    <div class="fw-bold fs-5">$@Model.TotalInvoiced.ToString("N2")</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card shadow-sm border-0" style="background:#e8f5e9;">
+                                <div class="card-body">
+                                    <div class="small text-muted">Total Paid (shown invoices)</div>
+                                    <div class="fw-bold fs-5">$@Model.TotalPaid.ToString("N2")</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card shadow-sm border-0" style="background:#ffebee;">
+                                <div class="card-body">
+                                    <div class="small text-muted">Total Outstanding</div>
+                                    <div class="fw-bold fs-5 text-danger">$@Model.TotalOutstanding.ToString("N2")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabs -->
+                    <ul class="nav nav-tabs" id="outTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="out-table-tab" data-bs-toggle="tab"
+                                    data-bs-target="#out-table" type="button" role="tab">
+                                Detailed Table
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="out-chart-tab" data-bs-toggle="tab"
+                                    data-bs-target="#out-chart" type="button" role="tab">
+                                Charts
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content mt-3" id="outTabsContent">
+                        <!-- Table tab -->
+                        <div class="tab-pane fade show active" id="out-table" role="tabpanel">
+                            <div class="card shadow-sm">
+                                <div class="card-header" style="background-color: var(--primary-grey);">
+                                    <strong>Outstanding Invoices (@Model.SelectedCategory)</strong>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover align-middle" id="outstandingTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Invoice #</th>
+                                                    <th>Category</th>
+                                                    <th>Client</th>
+                                                    <th>Phone</th>
+                                                    <th class="text-end">Total</th>
+                                                    <th class="text-end">Paid</th>
+                                                    <th class="text-end">Outstanding</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @if (Model.Rows.Any())
+                                                {
+                                                    @foreach (var row in Model.Rows)
+                                                    {
+                                                        <tr>
+                                                            <td>@row.Date.ToString("yyyy-MM-dd")</td>
+                                                            <td>@row.InvoiceId</td>
+                                                            <td>
+                                                                @if (row.CategoryKey == "GraveSales")
+                                                                {
+                                                                    <span class="badge bg-success">Grave Sale</span>
+                                                                }
+                                                                else if (row.CategoryKey == "Reservations")
+                                                                {
+                                                                    <span class="badge bg-warning text-dark">Reservation</span>
+                                                                }
+                                                                else if (row.CategoryKey == "Tombstones")
+                                                                {
+                                                                    <span class="badge bg-info text-dark">Tombstone</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="badge bg-secondary">Other</span>
+                                                                }
+                                                            </td>
+                                                            <td>@row.ClientName</td>
+                                                            <td>@row.ClientPhone</td>
+                                                            <td class="text-end">$@row.Total.ToString("N2")</td>
+                                                            <td class="text-end text-success">$@row.Paid.ToString("N2")</td>
+                                                            <td class="text-end text-danger fw-bold">$@row.Outstanding.ToString("N2")</td>
+                                                        </tr>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <tr>
+                                                        <td colspan="8" class="text-center text-muted">
+                                                            No outstanding invoices for the selected filters.
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <small class="text-muted">
+                                        Only invoices with a positive outstanding balance are displayed.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Charts tab -->
+                        <div class="tab-pane fade" id="out-chart" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-lg-8">
+                                    <div class="card shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Top 10 Outstanding Invoices</h6>
+                                            <canvas id="outstandingBarChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-4">
+                                    <div class="card shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Outstanding by Category</h6>
+                                            <canvas id="outstandingPieChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div> <!-- charts tab -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // --------- Data for Top 10 Outstanding Invoices (Bar) ----------
+        const barLabels = [
+            @foreach (var r in Model.Rows.OrderByDescending(x => x.Outstanding).Take(10))
+            {
+                @:$"'INV-@r.InvoiceId',"
+            }
+        ];
+        const barData = [
+            @foreach (var r in Model.Rows.OrderByDescending(x => x.Outstanding).Take(10))
+            {
+                @:$"@r.Outstanding,", 
+            }
+        ];
+
+        const ctxBar = document.getElementById('outstandingBarChart');
+        if (ctxBar && barLabels.length > 0) {
+            new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: barLabels,
+                    datasets: [{
+                        label: 'Outstanding',
+                        data: barData
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // --------- Data for Outstanding by Category (Pie) ----------
+        const pieLabels = ['Grave Sales', 'Reservations', 'Tombstones', 'Other'];
+        const pieData = [
+            @Model.GraveSalesOutstanding,
+            @Model.ReservationsOutstanding,
+            @Model.TombstonesOutstanding,
+            @Model.OtherOutstanding
+        ];
+
+        const ctxPie = document.getElementById('outstandingPieChart');
+        if (ctxPie) {
+            new Chart(ctxPie, {
+                type: 'pie',
+                data: {
+                    labels: pieLabels,
+                    datasets: [{
+                        data: pieData
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+        }
+    </script>
+}

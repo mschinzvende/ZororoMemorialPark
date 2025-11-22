@@ -42,6 +42,9 @@ builder.Services.AddRazorPages(options =>
 builder.Services.AddScoped<BurialRegisterPdfService>();
 
 builder.Services.AddTransient<RevenueReportPdfService>();
+builder.Services.AddTransient<PaymentLedgerPdfService>();
+builder.Services.AddTransient<OutstandingBalancesPdfService>();
+
 
 var app = builder.Build();
 
