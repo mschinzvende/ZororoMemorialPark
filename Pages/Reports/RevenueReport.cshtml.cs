@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -22,257 +22,241 @@ namespace ZororoMemorialPark.Pages.Reports
             _pdfService = pdfService;
         }
 
-        // Filters (from querystring)
-        [BindProperty(SupportsGet = true)]
+        // Filters (read-only, filled from query)
         public DateOnly? FromDate { get; set; }
-
-        [BindProperty(SupportsGet = true)]
         public DateOnly? ToDate { get; set; }
+        public string SelectedCategory { get; set; } = "Total"; // Total | GraveSales | Reservations | Tombstones | Other
 
-        // Summary
-        public RevenueSummaryDto Summary { get; set; } = new();
-
-        // Daily totals (for table + chart)
-        public List<RevenueByDateDto> DailyTotals { get; set; } = new();
-
-        // For tables
-        public List<IncomeLineDto> AllocationPayments { get; set; } = new();
-        public List<IncomeLineDto> ReservationPayments { get; set; } = new();
-        public List<IncomeLineDto> OtherPayments { get; set; } = new();
-        public List<TombstoneRevenueLineDto> TombstonePayments { get; set; } = new();
-
-        public async Task OnGetAsync()
-        {
-            // Default: last 30 days if no filters
-            if (!FromDate.HasValue && !ToDate.HasValue)
-            {
-                var today = DateOnly.FromDateTime(DateTime.Today);
-                ToDate = today;
-                FromDate = today.AddDays(-30);
-            }
-
-            // === Base IncomePayments query ===
-            var incomeQuery = _context.tbl_IncomePayments.AsQueryable();
-
-            if (FromDate.HasValue)
-                incomeQuery = incomeQuery.Where(p => p.sys_date >= FromDate.Value);
-            if (ToDate.HasValue)
-                incomeQuery = incomeQuery.Where(p => p.sys_date <= ToDate.Value);
-
-            // Pre-load allocation & reservation invoice IDs
-            var allocationInvoiceIds = await _context.tbl_GraveAllocationInvoices
-                .Select(x => x.sys_invoiceId)
-                .Distinct()
-                .ToListAsync();
-
-            var reservationInvoiceIds = await _context.tbl_GraveReservationInvoices
-                .Select(x => x.sys_invoiceId)
-                .Distinct()
-                .ToListAsync();
-
-            // Materialise payments for classification
-            var incomePayments = await incomeQuery.AsNoTracking().ToListAsync();
-
-            // Classify IncomePayments
-            AllocationPayments = incomePayments
-                .Where(p => allocationInvoiceIds.Contains(p.sys_invoiceId))
-                .Select(p => new IncomeLineDto
-                {
-                    Date = p.sys_date,
-                    Amount = p.sys_amount,
-                    PaymentMethod = p.sys_paymentMethod,
-                    Notes = p.sys_notes,
-                    InvoiceId = p.sys_invoiceId
-                   // ReceiptNumber = p.sys_receiptNumber
-                })
-                .ToList();
-
-            ReservationPayments = incomePayments
-                .Where(p => !allocationInvoiceIds.Contains(p.sys_invoiceId) &&
-                            reservationInvoiceIds.Contains(p.sys_invoiceId))
-                .Select(p => new IncomeLineDto
-                {
-                    Date = p.sys_date,
-                    Amount = p.sys_amount,
-                    PaymentMethod = p.sys_paymentMethod,
-                    Notes = p.sys_notes,
-                    InvoiceId = p.sys_invoiceId
-                   // ReceiptNumber = p.sys_receiptNumber
-                })
-                .ToList();
-
-            // "Other" = income payments not linked to allocation or reservation
-            var knownInvoiceIds = allocationInvoiceIds
-                .Concat(reservationInvoiceIds)
-                .Distinct()
-                .ToHashSet();
-
-            OtherPayments = incomePayments
-                .Where(p => !knownInvoiceIds.Contains(p.sys_invoiceId))
-                .Select(p => new IncomeLineDto
-                {
-                    Date = p.sys_date,
-                    Amount = p.sys_amount,
-                    PaymentMethod = p.sys_paymentMethod,
-                    Notes = p.sys_notes,
-                    InvoiceId = p.sys_invoiceId
-                   // ReceiptNumber = p.sys_receiptNumber
-                })
-                .ToList();
-
-            // === Tombstone Revenue (tbl_TombstoneSales) ===
-            var tombQuery = _context.tbl_TombstoneSales.AsQueryable();
-
-            if (FromDate.HasValue)
-                tombQuery = tombQuery.Where(t => t.sys_saleDate >= FromDate.Value);
-            if (ToDate.HasValue)
-                tombQuery = tombQuery.Where(t => t.sys_saleDate <= ToDate.Value);
-
-            var tombstones = await tombQuery.AsNoTracking().ToListAsync();
-
-            TombstonePayments = tombstones
-                .Select(t => new TombstoneRevenueLineDto
-                {
-                    SaleDate = t.sys_saleDate,
-                    AmountPaid = t.sys_amountPaid,
-                    BuyerName = t.sys_buyerName,
-                    BuyerContact = t.sys_buyerContact,
-                    PaymentStatus = t.sys_paymentStatus,
-                    InvoiceId = t.sys_invoiceId
-                })
-                .ToList();
-
-            // === Totals ===
-            double graveSalesRevenue = AllocationPayments.Sum(x => x.Amount);
-            double reservationsRevenue = ReservationPayments.Sum(x => x.Amount);
-            double otherRevenue = OtherPayments.Sum(x => x.Amount);
-            double tombstoneRevenue = TombstonePayments.Sum(x => x.AmountPaid);
-
-            Summary = new RevenueSummaryDto
-            {
-                GraveSalesRevenue = graveSalesRevenue,
-                ReservationsRevenue = reservationsRevenue,
-                OtherRevenue = otherRevenue,
-                TombstoneRevenue = tombstoneRevenue
-            };
-
-            Summary.TotalRevenue =
-                Summary.GraveSalesRevenue +
-                Summary.ReservationsRevenue +
-                Summary.OtherRevenue +
-                Summary.TombstoneRevenue;
-
-            // === Daily totals (for charts + table) ===
-
-            var dailyIncomeTotals = incomePayments
-                .GroupBy(p => p.sys_date)
-                .Select(g => new
-                {
-                    Date = g.Key,
-                    Amount = g.Sum(x => x.sys_amount)
-                })
-                .ToList();
-
-            var dailyTombTotals = tombstones
-                .GroupBy(t => t.sys_saleDate)
-                .Select(g => new
-                {
-                    Date = g.Key,
-                    Amount = g.Sum(x => x.sys_amountPaid)
-                })
-                .ToList();
-
-            var allDates = dailyIncomeTotals.Select(d => d.Date)
-                .Union(dailyTombTotals.Select(t => t.Date))
-                .Distinct()
-                .OrderBy(d => d)
-                .ToList();
-
-            DailyTotals = allDates
-                .Select(d =>
-                {
-                    var income = dailyIncomeTotals.FirstOrDefault(x => x.Date == d)?.Amount ?? 0;
-                    var tomb = dailyTombTotals.FirstOrDefault(x => x.Date == d)?.Amount ?? 0;
-
-                    return new RevenueByDateDto
-                    {
-                        Date = d,
-                        TotalAmount = income + tomb
-                    };
-                })
-                .ToList();
-        }
-
-        // === PDF Export ===
-        public async Task<IActionResult> OnGetExportPdfAsync(DateOnly? fromDate, DateOnly? toDate)
-        {
-            FromDate = fromDate;
-            ToDate = toDate;
-            await OnGetAsync(); // reuse logic
-
-            // In a real app, you might read these from config
-            string companyName = "Zororo Memorial Park";
-            string companyAddress = "Harare, Zimbabwe";
-            string companyPhone = "+263 000000000";
-            string companyEmail = "info@example.com";
-            string logoPath = null; // or map a real path on the server
-
-            var pdf = _pdfService.GenerateRevenuePdf(
-                DailyTotals,
-                Summary,
-                AllocationPayments,
-                ReservationPayments,
-                TombstonePayments,
-                OtherPayments,
-                companyName,
-                companyAddress,
-                companyPhone,
-                companyEmail,
-                logoPath,
-                FromDate,
-                ToDate
-            );
-
-            string fileName = $"RevenueReport_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
-            return File(pdf, "application/pdf", fileName);
-        }
-    }
-
-    // === DTOs ===
-
-    public class RevenueSummaryDto
-    {
+        // Summary totals for the selected period
         public double TotalRevenue { get; set; }
         public double GraveSalesRevenue { get; set; }
         public double ReservationsRevenue { get; set; }
         public double TombstoneRevenue { get; set; }
         public double OtherRevenue { get; set; }
+
+        // Detailed rows for the currently selected category
+        public List<RevenueRow> Rows { get; set; } = new();
+
+        public async Task OnGetAsync()
+        {
+            // Parse filters from query
+            ParseFiltersFromQuery();
+
+            await LoadDataAsync();
+        }
+
+        // GET /Reports/RevenueReport?handler=Pdf
+        public async Task<IActionResult> OnGetPdfAsync()
+        {
+            ParseFiltersFromQuery();
+            await LoadDataAsync();
+
+            // Company metadata – adjust or pull from config
+            string companyName = "Zororo Memorial Park";
+            string companyAddress = "Harare, Zimbabwe";
+            string companyPhone = "+263 000 000 000";
+            string companyEmail = "info@zororo.co.zw";
+            string logoPath = null; // set to a file path if you have one
+
+            var pdfBytes = _pdfService.GenerateRevenueReportPdf(
+                rows: Rows,
+                fromDate: FromDate,
+                toDate: ToDate,
+                category: SelectedCategory,
+                totalRevenue: TotalRevenue,
+                graveSalesRevenue: GraveSalesRevenue,
+                reservationsRevenue: ReservationsRevenue,
+                tombstoneRevenue: TombstoneRevenue,
+                otherRevenue: OtherRevenue,
+                companyName: companyName,
+                companyAddress: companyAddress,
+                companyPhone: companyPhone,
+                companyEmail: companyEmail,
+                logoPath: logoPath
+            );
+
+            string filename = $"RevenueReport_{SelectedCategory}_{DateTime.Now:yyyyMMddHHmm}.pdf";
+            return File(pdfBytes, "application/pdf", filename);
+        }
+
+        private void ParseFiltersFromQuery()
+        {
+            // Category
+            var category = Request.Query["category"].ToString();
+            if (!string.IsNullOrWhiteSpace(category))
+                SelectedCategory = category;
+            else
+                SelectedCategory = "Total";
+
+            // From date
+            var fromStr = Request.Query["from"].ToString();
+            if (DateOnly.TryParse(fromStr, out var from))
+                FromDate = from;
+            else
+                FromDate = null;
+
+            // To date
+            var toStr = Request.Query["to"].ToString();
+            if (DateOnly.TryParse(toStr, out var to))
+                ToDate = to;
+            else
+                ToDate = null;
+
+            // Default: current month if no dates provided
+            if (!FromDate.HasValue && !ToDate.HasValue)
+            {
+                var now = DateTime.Today;
+                FromDate = new DateOnly(now.Year, now.Month, 1);
+                ToDate = new DateOnly(now.Year, now.Month, DateTime.DaysInMonth(now.Year, now.Month));
+            }
+        }
+
+        private async Task LoadDataAsync()
+        {
+            // Base income payments
+            var incomeQuery = _context.tbl_IncomePayments.AsQueryable();
+            if (FromDate.HasValue)
+                incomeQuery = incomeQuery.Where(p => p.sys_date >= FromDate.Value);
+            if (ToDate.HasValue)
+                incomeQuery = incomeQuery.Where(p => p.sys_date <= ToDate.Value);
+
+            var incomeList = await incomeQuery.AsNoTracking().ToListAsync();
+
+            // Tombstone payments
+            var tombstoneQuery = _context.tbl_TombstoneSales.AsQueryable();
+            if (FromDate.HasValue)
+                tombstoneQuery = tombstoneQuery.Where(t => t.sys_saleDate >= FromDate.Value);
+            if (ToDate.HasValue)
+                tombstoneQuery = tombstoneQuery.Where(t => t.sys_saleDate <= ToDate.Value);
+
+            var tombstoneList = await tombstoneQuery.AsNoTracking().ToListAsync();
+
+            // Mapping invoice IDs
+            var allocationInvoiceIds = new HashSet<int>(
+                await _context.tbl_GraveAllocationInvoices
+                    .Select(x => x.sys_invoiceId)
+                    .ToListAsync()
+            );
+
+            var reservationInvoiceIds = new HashSet<int>(
+                await _context.tbl_GraveReservationInvoices
+                    .Select(x => x.sys_invoiceId)
+                    .ToListAsync()
+            );
+
+            var tombstoneInvoiceIds = new HashSet<int>(tombstoneList.Select(t => t.sys_invoiceId));
+
+            // Optional invoice numbers for display
+            var invoiceNumbers = await _context.tbl_Invoices
+                .AsNoTracking()
+                .ToDictionaryAsync(i => i.sys_invoiceId, i => i.sys_invoiceId);
+
+            // Split income into categories
+            var graveSalesPayments = incomeList
+                .Where(p => allocationInvoiceIds.Contains(p.sys_invoiceId))
+                .ToList();
+
+            var reservationPayments = incomeList
+                .Where(p => reservationInvoiceIds.Contains(p.sys_invoiceId))
+                .ToList();
+
+            var otherPayments = incomeList
+                .Where(p =>
+                    !allocationInvoiceIds.Contains(p.sys_invoiceId) &&
+                    !reservationInvoiceIds.Contains(p.sys_invoiceId) &&
+                    !tombstoneInvoiceIds.Contains(p.sys_invoiceId)
+                )
+                .ToList();
+
+            // Totals
+            GraveSalesRevenue = graveSalesPayments.Sum(p => p.sys_amount);
+            ReservationsRevenue = reservationPayments.Sum(p => p.sys_amount);
+            TombstoneRevenue = tombstoneList.Sum(t => t.sys_amountPaid);
+            OtherRevenue = otherPayments.Sum(p => p.sys_amount);
+            TotalRevenue = GraveSalesRevenue + ReservationsRevenue + TombstoneRevenue + OtherRevenue;
+
+            // Build detailed rows based on selected category
+            var rows = new List<RevenueRow>();
+
+            if (SelectedCategory == "GraveSales" || SelectedCategory == "Total")
+            {
+                rows.AddRange(graveSalesPayments.Select(p => new RevenueRow
+                {
+                    Date = p.sys_date,
+                    Amount = p.sys_amount,
+                    Type = "Grave Sale",
+                    InvoiceId = p.sys_invoiceId,
+                    //InvoiceNumber = invoiceNumbers.TryGetValue(p.sys_invoiceId, out var nr) ? nr : "",
+                    Notes = $"Receipt #{p.sys_receiptNumber} - {p.sys_notes}"
+                }));
+            }
+
+            if (SelectedCategory == "Reservations" || SelectedCategory == "Total")
+            {
+                rows.AddRange(reservationPayments.Select(p => new RevenueRow
+                {
+                    Date = p.sys_date,
+                    Amount = p.sys_amount,
+                    Type = "Grave Reservation",
+                    InvoiceId = p.sys_invoiceId,
+                   // InvoiceNumber = invoiceNumbers.TryGetValue(p.sys_invoiceId, out var nr) ? nr : "",
+                    Notes = $"Receipt #{p.sys_receiptNumber} - {p.sys_notes}"
+                }));
+            }
+
+            if (SelectedCategory == "Tombstones" || SelectedCategory == "Total")
+            {
+                rows.AddRange(tombstoneList.Select(t => new RevenueRow
+                {
+                    Date = t.sys_saleDate,
+                    Amount = t.sys_amountPaid,
+                    Type = "Tombstone Sale",
+                    InvoiceId = t.sys_invoiceId,
+                   // InvoiceNumber = invoiceNumbers.TryGetValue(t.sys_invoiceId, out var nr) ? nr : "",
+                    Notes = $"Buyer: {t.sys_buyerName} ({t.sys_buyerContact})"
+                }));
+            }
+
+            if (SelectedCategory == "Other" || SelectedCategory == "Total")
+            {
+                rows.AddRange(otherPayments.Select(p => new RevenueRow
+                {
+                    Date = p.sys_date,
+                    Amount = p.sys_amount,
+                    Type = "Other Revenue",
+                    InvoiceId = p.sys_invoiceId,
+                   // InvoiceNumber = invoiceNumbers.TryGetValue(p.sys_invoiceId, out var nr) ? nr : "",
+                    Notes = $"Receipt #{p.sys_receiptNumber} - {p.sys_notes}"
+                }));
+            }
+
+            // If user selected a specific category (not Total), filter rows strictly
+            if (SelectedCategory != "Total")
+            {
+                rows = rows.Where(r => r.Type switch
+                {
+                    "Grave Sale" => SelectedCategory == "GraveSales",
+                    "Grave Reservation" => SelectedCategory == "Reservations",
+                    "Tombstone Sale" => SelectedCategory == "Tombstones",
+                    "Other Revenue" => SelectedCategory == "Other",
+                    _ => false
+                }).ToList();
+            }
+
+            Rows = rows
+                .OrderBy(r => r.Date)
+                .ThenBy(r => r.InvoiceNumber)
+                .ToList();
+        }
     }
 
-    public class RevenueByDateDto
-    {
-        public DateOnly Date { get; set; }
-        public double TotalAmount { get; set; }
-    }
-
-    public class IncomeLineDto
+    public class RevenueRow
     {
         public DateOnly Date { get; set; }
         public double Amount { get; set; }
-        public string PaymentMethod { get; set; }
+        public string Type { get; set; }
+        public int InvoiceId { get; set; }
+        public string InvoiceNumber { get; set; }
         public string Notes { get; set; }
-        public int InvoiceId { get; set; }
-        public int sys_receiptNumber { get; set; }
-        public int ReceiptNumber => sys_receiptNumber;
-    }
-
-    public class TombstoneRevenueLineDto
-    {
-        public DateOnly SaleDate { get; set; }
-        public double AmountPaid { get; set; }
-        public string BuyerName { get; set; }
-        public string BuyerContact { get; set; }
-        public string PaymentStatus { get; set; }
-        public int InvoiceId { get; set; }
     }
 }

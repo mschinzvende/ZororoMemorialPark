@@ -4,317 +4,206 @@ using QuestPDF.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ZororoMemorialPark.Pages.Reports;
+using ZororoMemorialPark.Pages.Reports; // for RevenueRow
 
 namespace ZororoMemorialPark.Services
 {
     public class RevenueReportPdfService
     {
-        public byte[] GenerateRevenuePdf(
-            List<RevenueByDateDto> dailyTotals,
-            RevenueSummaryDto summary,
-            List<IncomeLineDto> allocationLines,
-            List<IncomeLineDto> reservationLines,
-            List<TombstoneRevenueLineDto> tombstoneLines,
-            List<IncomeLineDto> otherLines,
+        public byte[] GenerateRevenueReportPdf(
+            List<RevenueRow> rows,
+            DateOnly? fromDate,
+            DateOnly? toDate,
+            string category,
+            double totalRevenue,
+            double graveSalesRevenue,
+            double reservationsRevenue,
+            double tombstoneRevenue,
+            double otherRevenue,
             string companyName,
             string companyAddress,
             string companyPhone,
             string companyEmail,
-            string logoPath,
-            DateOnly? fromDate,
-            DateOnly? toDate)
+            string logoPath)
         {
             var doc = Document.Create(container =>
             {
                 container.Page(page =>
                 {
-                    // A4 Landscape
                     page.Size(PageSizes.A4.Landscape());
                     page.Margin(30);
-                    page.PageColor(Colors.Grey.Lighten5);
-                    page.DefaultTextStyle(x => x.FontSize(10).FontColor(Colors.Grey.Darken4));
+                    page.PageColor(Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(10));
 
-                    // Header
-                    page.Header().Background(Colors.White).Padding(10).Row(row =>
+                    // HEADER
+                    page.Header().Row(row =>
                     {
-                        row.ConstantItem(90).Column(col =>
+                        row.ConstantItem(80).Column(col =>
                         {
-                            if (!string.IsNullOrEmpty(logoPath))
+                            if (!string.IsNullOrWhiteSpace(logoPath))
                             {
-                                col.Item().Height(60).Image(logoPath, ImageScaling.FitArea);
+                                col.Item().Height(50).Image(logoPath, ImageScaling.FitArea);
                             }
                         });
 
-                        row.RelativeItem().Column(col =>
+                        row.RelativeItem().AlignRight().Column(col =>
                         {
-                            col.Item().Text(companyName)
-                                .FontSize(18).Bold()
-                                .FontColor("#006A46");
-
+                            col.Item().Text(companyName).Bold().FontSize(16);
                             col.Item().Text(companyAddress).FontSize(10);
                             col.Item().Text($"{companyPhone} | {companyEmail}").FontSize(10);
 
-                            col.Item().PaddingTop(5).Text(txt =>
-                            {
-                                txt.Span("Revenue Report").FontSize(14).Bold();
-                            });
+                            col.Item().PaddingTop(8)
+                                .Text($"Revenue Report - {CategoryFriendlyName(category)}")
+                                .Bold().FontSize(13);
 
-                            if (fromDate.HasValue || toDate.HasValue)
-                            {
-                                string range = "Period: ";
-                                if (fromDate.HasValue)
-                                    range += fromDate.Value.ToString("yyyy-MM-dd");
-                                range += " to ";
-                                if (toDate.HasValue)
-                                    range += toDate.Value.ToString("yyyy-MM-dd");
-
-                                col.Item().Text(range).FontSize(10);
-                            }
+                            string rangeText = BuildDateRangeText(fromDate, toDate);
+                            if (!string.IsNullOrEmpty(rangeText))
+                                col.Item().Text(rangeText).FontSize(10);
 
                             col.Item().Text($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}")
                                 .FontSize(9).FontColor(Colors.Grey.Darken1);
                         });
                     });
 
-                    // Content
+                    // CONTENT
                     page.Content().PaddingTop(10).Column(content =>
                     {
-                        // Summary cards
+                        // SUMMARY CARDS ROW
                         content.Item().Row(row =>
                         {
-                            row.RelativeItem().Element(c => SummaryCard(c, "Total Revenue",
-                                summary.TotalRevenue, Colors.Green.Darken3));
-                            row.RelativeItem().Element(c => SummaryCard(c, "Grave Sales",
-                                summary.GraveSalesRevenue, Colors.Blue.Darken3));
-                            row.RelativeItem().Element(c => SummaryCard(c, "Reservations",
-                                summary.ReservationsRevenue, Colors.Purple.Darken3));
-                            row.RelativeItem().Element(c => SummaryCard(c, "Tombstones",
-                                summary.TombstoneRevenue, Colors.Orange.Darken3));
-                            row.RelativeItem().Element(c => SummaryCard(c, "Other",
-                                summary.OtherRevenue, Colors.Grey.Darken2));
+                            row.RelativeItem(1).Element(c => SummaryCard(c, "Total Revenue", totalRevenue, Colors.Green.Darken2));
+                            row.RelativeItem(1).Element(c => SummaryCard(c, "Grave Sales", graveSalesRevenue, Colors.Blue.Darken2));
+                            row.RelativeItem(1).Element(c => SummaryCard(c, "Reservations", reservationsRevenue, Colors.Orange.Darken2));
+                            row.RelativeItem(1).Element(c => SummaryCard(c, "Tombstones", tombstoneRevenue, Colors.Purple.Darken2));
+                            row.RelativeItem(1).Element(c => SummaryCard(c, "Other Revenue", otherRevenue, Colors.Grey.Darken2));
                         });
 
-                        // Daily totals table
-                        content.Item().PaddingTop(10).Element(DailyTotalsTable(dailyTotals));
+                        content.Item().PaddingTop(12).Text("Detailed Transactions")
+                            .Bold().FontSize(11);
 
-                        // Category breakdown tables (side by side if possible)
-                        content.Item().PaddingTop(10).Row(row =>
+                        // TABLE
+                        content.Item().PaddingTop(4).Element(container =>
                         {
-                            row.RelativeItem().Element(c =>
-                                CategoryTable(c, "Grave Sales (Allocations)", allocationLines));
-                            row.RelativeItem().Element(c =>
-                                CategoryTable(c, "Reservations", reservationLines));
-                        });
+                            container.Table(table =>
+                            {
+                                table.ColumnsDefinition(columns =>
+                                {
+                                    columns.ConstantColumn(80);   // Date
+                                    columns.RelativeColumn(1.0f); // Type
+                                    columns.ConstantColumn(70);   // InvoiceId
+                                    columns.ConstantColumn(80);   // Amount
+                                    columns.RelativeColumn(2.5f); // Notes
+                                });
 
-                        content.Item().PaddingTop(10).Row(row =>
-                        {
-                            row.RelativeItem().Element(c =>
-                                TombstoneTable(c, "Tombstone Sales", tombstoneLines));
-                            row.RelativeItem().Element(c =>
-                                CategoryTable(c, "Other Revenue", otherLines));
+                                // HEADER
+                                table.Header(header =>
+                                {
+                                    header.Cell().Element(CellHeaderStyle).Text("Date");
+                                    header.Cell().Element(CellHeaderStyle).Text("Type");
+                                    header.Cell().Element(CellHeaderStyle).Text("Invoice Id");
+                                    header.Cell().Element(CellHeaderStyle).AlignRight().Text("Amount");
+                                    header.Cell().Element(CellHeaderStyle).Text("Notes");
+                                });
+
+                                if (rows != null && rows.Any())
+                                {
+                                    foreach (var r in rows.OrderBy(r => r.Date).ThenBy(r => r.InvoiceId))
+                                    {
+                                        table.Cell().Element(CellBodyStyle).Text(r.Date.ToString("yyyy-MM-dd"));
+                                        table.Cell().Element(CellBodyStyle).Text(r.Type);
+                                        table.Cell().Element(CellBodyStyle).Text(r.InvoiceId.ToString());
+                                        table.Cell().Element(CellBodyStyle).AlignRight().Text($"${r.Amount:N2}");
+                                        table.Cell().Element(CellBodyStyle).Text(r.Notes ?? "");
+                                    }
+                                }
+                                else
+                                {
+                                    table.Cell().ColumnSpan(5)
+                                        .Element(CellBodyStyle)
+                                        .AlignCenter()
+                                        .Text("No data for the selected period and category.")
+                                        .Italic().FontColor(Colors.Grey.Darken1);
+                                }
+                            });
                         });
                     });
 
-                    // Footer
-                    page.Footer().AlignCenter().PaddingTop(10).Text(txt =>
+                    // FOOTER
+                    page.Footer().AlignCenter().Text(text =>
                     {
-                        txt.Span(companyName).SemiBold().FontColor("#006A46");
-                        txt.Span("  •  Page ");
-                        txt.CurrentPageNumber();
-                        txt.Span(" of ");
-                        txt.TotalPages();
+                        text.Span(companyName).SemiBold();
+                        text.Span(" • Revenue Report • Page ");
+                        text.CurrentPageNumber();
+                        text.Span(" of ");
+                        text.TotalPages();
                     });
-                    
-                    
                 });
             });
 
             return doc.GeneratePdf();
         }
 
+        private static string CategoryFriendlyName(string category)
+        {
+            return category switch
+            {
+                "GraveSales" => "Grave Sales",
+                "Reservations" => "Grave Reservations",
+                "Tombstones" => "Tombstone Sales",
+                "Other" => "Other Revenue",
+                _ => "Total Revenue"
+            };
+        }
+
+        private static string BuildDateRangeText(DateOnly? from, DateOnly? to)
+        {
+            if (!from.HasValue && !to.HasValue)
+                return string.Empty;
+
+            string start = from.HasValue ? from.Value.ToString("yyyy-MM-dd") : "...";
+            string end = to.HasValue ? to.Value.ToString("yyyy-MM-dd") : "...";
+
+            return $"Date Range: {start} to {end}";
+        }
+
         private static void SummaryCard(IContainer container, string title, double amount, string color)
         {
-            container
-                .PaddingRight(5)
-                .Border(0.5f)
-                .BorderColor(Colors.Grey.Lighten1)
-                .Background(Colors.White)
-                .Padding(8)
-                .Column(col =>
-                {
-                    col.Item().Text(title)
-                        .FontSize(9)
-                        .FontColor(Colors.Grey.Darken1);
-
-                    col.Item().Text($"${amount:N2}")
-                        .FontSize(14)
-                        .Bold()
-                        .FontColor(color);
-                });
-        }
-
-
-
-
-        private static Action<IContainer> DailyTotalsTable(List<RevenueByDateDto> rows)
-        {
-            return container =>
+            container.PaddingRight(5).Column(col =>
             {
-                container.Background(Colors.White).Padding(8).Column(col =>
-                {
-                    col.Item().Text("Daily Revenue Totals")
-                        .FontSize(11).Bold()
-                        .FontColor("#006A46");
-
-                    col.Item().Table(table =>
+                col.Item().Border(0.5f)
+                    .BorderColor(Colors.Grey.Lighten1)
+                    .Background(Colors.White)
+                    .Padding(8)
+                    .Column(c =>
                     {
-                        table.ColumnsDefinition(columns =>
-                        {
-                            columns.ConstantColumn(80);
-                            columns.RelativeColumn();
-                        });
+                        c.Item().Text(title)
+                            .FontSize(9)
+                            .FontColor(Colors.Grey.Darken1);
 
-                        table.Header(header =>
-                        {
-                            header.Cell().Element(CellHeader).Text("Date");
-                            header.Cell().Element(CellHeader).AlignRight().Text("Total Amount");
-                        });
-
-                        foreach (var r in rows.OrderBy(x => x.Date))
-                        {
-                            table.Cell().Element(CellBody).Text(r.Date.ToString("yyyy-MM-dd"));
-                            table.Cell().Element(CellBody)
-                                .AlignRight()
-                                .Text($"${r.TotalAmount:N2}");
-                        }
-
-                        if (!rows.Any())
-                        {
-                            table.Cell().ColumnSpan(2).Element(CellBody)
-                                .AlignCenter()
-                                .Text("No data for selected period.");
-                        }
+                        c.Item().Text($"${amount:N2}")
+                            .FontSize(14)
+                            .Bold()
+                            .FontColor(color);
                     });
-                });
-            };
+            });
         }
 
-        private static Action<IContainer> CategoryTable(IContainer container, string title, List<IncomeLineDto> rows)
-        {
-            return c =>
-            {
-                c.Background(Colors.White).Padding(8).Column(col =>
-                {
-                    col.Item().Text(title)
-                        .FontSize(11).Bold()
-                        .FontColor("#006A46");
-
-                    col.Item().Table(table =>
-                    {
-                        table.ColumnsDefinition(columns =>
-                        {
-                            columns.ConstantColumn(80);  // Date
-                            columns.RelativeColumn();     // Method
-                            columns.RelativeColumn();     // Notes
-                            columns.ConstantColumn(80);   // Amount
-                        });
-
-                        table.Header(header =>
-                        {
-                            header.Cell().Element(CellHeader).Text("Date");
-                            header.Cell().Element(CellHeader).Text("Method");
-                            header.Cell().Element(CellHeader).Text("Notes");
-                            header.Cell().Element(CellHeader).AlignRight().Text("Amount");
-                        });
-
-                        foreach (var r in rows.OrderByDescending(x => x.Date))
-                        {
-                            table.Cell().Element(CellBody).Text(r.Date.ToString("yyyy-MM-dd"));
-                            table.Cell().Element(CellBody).Text(r.PaymentMethod);
-                            table.Cell().Element(CellBody).Text(r.Notes ?? "");
-                            table.Cell().Element(CellBody).AlignRight().Text($"${r.Amount:N2}");
-                        }
-
-                        if (!rows.Any())
-                        {
-                            table.Cell().ColumnSpan(4).Element(CellBody)
-                                .AlignCenter()
-                                .Text("No records.");
-                        }
-                    });
-                });
-            };
-        }
-
-        private static Action<IContainer> TombstoneTable(IContainer container, string title, List<TombstoneRevenueLineDto> rows)
-        {
-            return c =>
-            {
-                c.Background(Colors.White).Padding(8).Column(col =>
-                {
-                    col.Item().Text(title)
-                        .FontSize(11).Bold()
-                        .FontColor("#006A46");
-
-                    col.Item().Table(table =>
-                    {
-                        table.ColumnsDefinition(columns =>
-                        {
-                            columns.ConstantColumn(80);  // Date
-                            columns.RelativeColumn();     // Buyer
-                            columns.RelativeColumn();     // Contact
-                            columns.ConstantColumn(80);   // Status
-                            columns.ConstantColumn(80);   // Amount
-                        });
-
-                        table.Header(header =>
-                        {
-                            header.Cell().Element(CellHeader).Text("Date");
-                            header.Cell().Element(CellHeader).Text("Buyer");
-                            header.Cell().Element(CellHeader).Text("Contact");
-                            header.Cell().Element(CellHeader).Text("Status");
-                            header.Cell().Element(CellHeader).AlignRight().Text("Amount");
-                        });
-
-                        foreach (var r in rows.OrderByDescending(x => x.SaleDate))
-                        {
-                            table.Cell().Element(CellBody).Text(r.SaleDate.ToString("yyyy-MM-dd"));
-                            table.Cell().Element(CellBody).Text(r.BuyerName);
-                            table.Cell().Element(CellBody).Text(r.BuyerContact);
-                            table.Cell().Element(CellBody).Text(r.PaymentStatus);
-                            table.Cell().Element(CellBody).AlignRight().Text($"${r.AmountPaid:N2}");
-                        }
-
-                        if (!rows.Any())
-                        {
-                            table.Cell().ColumnSpan(5).Element(CellBody)
-                                .AlignCenter()
-                                .Text("No tombstone revenue records.");
-                        }
-                    });
-                });
-            };
-        }
-
-        private static IContainer CellHeader(IContainer container)
+        private static IContainer CellHeaderStyle(IContainer container)
         {
             return container
-                .DefaultTextStyle(x => x.SemiBold().FontSize(9))
-                .PaddingVertical(3)
-                .PaddingHorizontal(4)
                 .Background(Colors.Grey.Lighten3)
-                .BorderBottom(0.5f)
-                .BorderColor(Colors.Grey.Lighten1);
+                .PaddingVertical(4)
+                .PaddingHorizontal(3)
+                .DefaultTextStyle(t => t.SemiBold().FontSize(9));
         }
 
-        private static IContainer CellBody(IContainer container)
+        private static IContainer CellBodyStyle(IContainer container)
         {
             return container
-                .PaddingVertical(2)
-                .PaddingHorizontal(4)
                 .BorderBottom(0.5f)
-                .BorderColor(Colors.Grey.Lighten3);
+                .BorderColor(Colors.Grey.Lighten2)
+                .PaddingVertical(2)
+                .PaddingHorizontal(3);
         }
     }
 }
