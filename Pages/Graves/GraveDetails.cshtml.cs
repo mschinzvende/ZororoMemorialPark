@@ -584,7 +584,7 @@ namespace ZororoMemorialPark.Pages.Graves
                         sys_graveId = graveId,
                         sys_deceasedId = deceased.sys_deceasedId,
                         sys_customerId = customer.sys_customerId,
-                        sys_allocatedOn = DateOnly.FromDateTime(DateTime.Now),
+                        sys_allocatedOn = DateOnly.FromDateTime(burialDateTime),
                         sys_repatriationSource = repatriationSource ?? "n/a",
                         sys_dateTimeOfBurial = burialDateTime,
                         sys_tombstoneStatus = "Not Installed",
