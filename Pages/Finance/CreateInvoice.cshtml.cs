@@ -45,6 +45,8 @@ namespace ZororoMemorialPark.Pages.Finance
             public string Name { get; set; }
             public double Price { get; set; }
             public int Qty { get; set; }
+
+            public string Type { get; set; }
         }
 
         // ---------------------------
@@ -76,59 +78,95 @@ namespace ZororoMemorialPark.Pages.Finance
         // ---------------------------
         public async Task<IActionResult> OnPostAsync()
         {
-            // VALIDATION
-            
 
-            if (Items == null || Items.Count == 0)
-                return BadRequest("No invoice items selected.");
-
-            // CREATE INVOICE NUMBER
-            //string invoiceNumber = "INV-" + DateTime.Now.ToString("yyyyMMddHHmmss");
-
-            var customer = new tbl_Customers
+            try
             {
-                sys_paymentMadeBy = hiddenCustomerName,
-                sys_customerPhone = hiddenCustomerPhone
-            };
-            await _context.tbl_Customers.AddAsync(customer);
-            await _context.SaveChangesAsync();
 
 
-            var invoice = new tbl_Invoices
-            {
-                sys_customerId = customer.sys_customerId,
-               
-                sys_invoiceDate = DateOnly.Parse (DateTime.Now.ToString("dd-MM-yyyy")),
-                sys_invoiceDueDate = DateOnly.Parse(DateTime.Now.AddDays(7).ToString("dd-MM-yyyy"))
-                
-            };
+                // VALIDATION
 
-            await _context.tbl_Invoices.AddAsync(invoice);
-            await _context.SaveChangesAsync();
 
-            // ---------------------------
-            // SAVE ITEMS + UPDATE STOCK
-            // ---------------------------
-            foreach (var item in Items)
-            {
-                // Save invoice item
-                var ii = new tbl_InvoiceItems
+                if (Items == null || Items.Count == 0)
+                    return BadRequest("No invoice items selected.");
+
+                // CREATE INVOICE NUMBER
+                //string invoiceNumber = "INV-" + DateTime.Now.ToString("yyyyMMddHHmmss");
+
+                var customer = new tbl_Customers
                 {
-                    sys_invoiceId = invoice.sys_invoiceId,
-                    sys_itemName = item.Name,
-                    sys_itemCost = item.Price * item.Qty,
-                    
+                    sys_paymentMadeBy = hiddenCustomerName,
+                    sys_customerPhone = hiddenCustomerPhone
                 };
-                await _context.tbl_InvoiceItems.AddAsync(ii);
+                await _context.tbl_Customers.AddAsync(customer);
+                await _context.SaveChangesAsync();
 
-                // STOCK MANAGEMENT
-                await DecreaseStockIfApplicable(item);
+
+                var invoice = new tbl_Invoices
+                {
+                    sys_customerId = customer.sys_customerId,
+
+                    sys_invoiceDate = DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
+                    sys_invoiceDueDate = DateOnly.Parse(DateTime.Now.AddDays(7).ToString("dd-MM-yyyy"))
+
+                };
+
+                await _context.tbl_Invoices.AddAsync(invoice);
+                await _context.SaveChangesAsync();
+
+                // ---------------------------
+                // SAVE ITEMS + UPDATE STOCK
+                // ---------------------------
+                foreach (var item in Items)
+                {
+                    // Save invoice item
+                    var ii = new tbl_InvoiceItems
+                    {
+                        sys_invoiceId = invoice.sys_invoiceId,
+                        sys_itemName = item.Name,
+                        sys_itemCost = item.Price * item.Qty,
+
+                    };
+                    await _context.tbl_InvoiceItems.AddAsync(ii);
+
+
+                    if (item.Type == "product")
+                    {
+                        //create product transaction record.
+
+                        var transaction = new tbl_StockTransactions
+                        {
+                            sys_itemId = (await _context.tbl_ProductsAndServices
+                                .Where(p => p.sys_itemName == item.Name)
+                                .Select(p => p.sys_itemId)
+                                .FirstOrDefaultAsync()),
+                            sys_transactionDate = DateTime.Now,
+                            sys_transactionType = "Sale",
+                            sys_quantity = item.Qty,
+                            sys_unitCost = item.Price,
+                            sys_referenceNumber = $"INV-{invoice.sys_invoiceId}",
+                            
+                            sys_notes = $"Sold via Invoice {invoice.sys_invoiceId}"
+                        };
+
+                        await _context.tbl_StockTransactions.AddAsync(transaction);
+                        await _context.SaveChangesAsync();
+                        // STOCK MANAGEMENT
+                        await DecreaseStockIfApplicable(item);
+
+                    }
+
+                }
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Invoice created successfully!";
+                return RedirectToPage("InvoiceDetail", new { id = invoice.sys_invoiceId });
             }
-
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Invoice created successfully!";
-            return RedirectToPage("InvoiceDetail", new { id = invoice.sys_invoiceId });
+            catch(Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error creating invoice: " + ex.Message;
+                return RedirectToPage();
+            }
         }
 
         // ---------------------------

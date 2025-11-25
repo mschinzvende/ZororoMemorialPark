@@ -43,7 +43,7 @@
                     @foreach (var p in Model.Products)
                     {
                         <option value="@p.sys_itemId" data-price="@p.sys_sellingPrice">
-                            @p.sys_itemName - $@p.sys_sellingPrice
+                            @p.sys_itemName
                         </option>
                     }
                 </select>
@@ -88,6 +88,7 @@
                         <th width="100">Price</th>
                         <th width="100">Qty</th>
                         <th width="100">Discount</th>
+                        <th></th>
                         <th width="120">Total</th>
                         <th width="50"></th>
                     </tr>
@@ -163,11 +164,14 @@
                    const row = `
             <tr id="row_${type}_${id}">
                 <td>${name}</td>
+                
                 <td>$${price}</td>
                 <td><input type="number" class="form-control qty-input" value="1" min="1" data-price="${price}" /></td>
                 <td><input type="number" class="form-control discount-input" value="0" min="0" data-price="${price}" /></td>
+                <td><input type="hidden" class="form-control type-input" value="${type}"</td>
                 <td class="line-total">$${price}</td>
                 <td><button type="button" class="btn btn-danger btn-sm remove-item">&times;</button></td>
+
             </tr>
         `;
 
@@ -262,6 +266,7 @@
                 const price = cols[1].innerText.replace("$", "");
                 const qty = cols[2].querySelector(".qty-input").value;
                 const discount = cols[3].querySelector(".discount-input").value;
+                const itemType = cols[4].querySelector(".type-input").value;
 
 
                 container.insertAdjacentHTML("beforeend", `
@@ -269,6 +274,7 @@
                     <input type="hidden" name="Items[${index}].Price" value="${price}" />
                     <input type="hidden" name="Items[${index}].Qty" value="${qty}" />
                     <input type="hidden" name="Items[${index}].Discount" value="${discount}" />
+                    <input type="hidden" name="Items[${index}].Type" value="${itemType}" />
                 `);
             });
         }

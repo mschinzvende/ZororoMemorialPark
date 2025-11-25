@@ -25,15 +25,15 @@ namespace ZororoMemorialPark.Data.Models
         public double sys_quantity { get; set; }
 
         public double sys_unitCost { get; set; } // For purchases or average costing
-        public double sys_totalCost => sys_unitCost * sys_quantity;
+        
 
         public string sys_referenceNumber { get; set; } // e.g., InvoiceNo, JobNo, or GRNNo
 
-        public string sys_enteredBy { get; set; } // Optional: user ID or name
+       
 
         public string sys_notes { get; set; }
 
         // Optional status
-        public string sys_status { get; set; } = "Posted"; // Draft, Posted, Voided
+        
     }
 }
