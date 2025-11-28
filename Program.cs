@@ -46,6 +46,7 @@ builder.Services.AddTransient<PaymentLedgerPdfService>();
 builder.Services.AddTransient<OutstandingBalancesPdfService>();
 
 builder.Services.AddTransient<StockMovementPdfService>();
+builder.Services.AddTransient<SupplierPaymentsPdfService>();
 
 var app = builder.Build();
 
