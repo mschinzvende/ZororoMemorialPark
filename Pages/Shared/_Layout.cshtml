@@ -253,7 +253,9 @@
                                 </span>
 
                                 <span class="user-name">
-                                    @(User?.Identity?.IsAuthenticated == true ? User.Identity.Name : "User")
+                                    @(User?.Identity?.IsAuthenticated == true
+                                        ? User.FindFirst("FullName")?.Value ?? User.Identity.Name
+                                        : "User")
                                 </span>
 
                                 <i class="bi bi-caret-down-fill user-caret"></i>
@@ -261,8 +263,8 @@
 
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                                 <li>
-                                    <a class="dropdown-item" href="/Profile">
-                                        <i class="bi bi-person-lines-fill"></i> Profile
+                                    <a class="dropdown-item" href="/Settings/UserProfile">
+                                        <i class="bi bi-person-circle"></i> My Profile
                                     </a>
                                 </li>
 
@@ -274,12 +276,10 @@
 
                                 <li><hr class="dropdown-divider" /></li>
 
-                                <li>
-                                    <form asp-area="Identity" asp-page="/Account/Logout" method="post">
-                                        <button type="submit" class="dropdown-item">
-                                            <i class="bi bi-box-arrow-right"></i> Logout
-                                        </button>
-                                    </form>
+                                <li class="nav-item">
+                                    <a class="dropdown-item" href="/Account/Logout">
+                                        <i class="bi bi-box-arrow-right"></i> Logout
+                                    </a>
                                 </li>
                             </ul>
                         </li>
