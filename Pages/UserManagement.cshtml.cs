@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using ZororoMemorialPark.Services;
 
@@ -15,403 +15,333 @@ public class UserManagementModel : PageModel
 {
     private readonly UserManager<IdentityUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
-    private readonly IAppLogger _appLogger;
-    public UserManagementModel(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, IAppLogger appLogger)
+    private readonly IAppLogger _logger;
+
+    public UserManagementModel(
+        UserManager<IdentityUser> userManager,
+        RoleManager<IdentityRole> roleManager,
+        IAppLogger logger)
     {
         _userManager = userManager;
         _roleManager = roleManager;
-        _appLogger = appLogger;
+        _logger = logger;
     }
 
-    [TempData]
-    public string StatusMessage { get; set; }
+    [TempData] public string StatusMessage { get; set; }
 
-    // --- Users list ---
     public List<UserViewModel> Users { get; set; } = new();
-    public List<string> AllRoles { get; set; } = new() { "Admin", "Accountant", "Supervisor", "Agent" };
+    public List<string> AllRoles { get; } = new() { "Admin", "Accountant", "Supervisor", "Agent" };
 
-    // --- Add User ---
+
+    // --------------------- ADD USER ---------------------
     [BindProperty]
-    public AddUserInputModel AddInput { get; set; }
+    public AddUserInput AddInput { get; set; }
     public bool ShowAddModal { get; set; }
 
-    public class AddUserInputModel
+    public class AddUserInput
     {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
-
-        
-       
-        [DataType(DataType.Password)]
-        public string Password { get; set; }
+        [Required] public string FullName { get; set; }
+        [Phone] public string PhoneNumber { get; set; }
+        [Required, EmailAddress] public string Email { get; set; }
+        [Required, MinLength(6)] public string Password { get; set; }
     }
 
-    // --- Edit User ---
-    [BindProperty]
-    public EditUserInputModel EditInput { get; set; }
 
+    // --------------------- EDIT USER ---------------------
     [BindProperty]
+    public EditUserInput EditInput { get; set; }
+
+    [BindProperty, ValidateNever]
     public string EditUserId { get; set; }
+
     public bool ShowEditModal { get; set; }
 
-    public class EditUserInputModel
+    public class EditUserInput
     {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
-
+        [Required] public string FullName { get; set; }
+        [Phone] public string PhoneNumber { get; set; }
+        [Required, EmailAddress] public string Email { get; set; }
     }
 
-    // --- Reset Password ---
+
+    // --------------------- RESET PASSWORD ---------------------
     [BindProperty]
-    public ResetPasswordInputModel ResetInput { get; set; }
+    public ResetPasswordInput ResetInput { get; set; }
+
     public bool ShowResetModal { get; set; }
 
-    public class ResetPasswordInputModel
+    public class ResetPasswordInput
     {
         public string UserId { get; set; }
-
-        
-        
-        [DataType(DataType.Password)]
-        public string NewPassword { get; set; }
+        [Required, MinLength(6)] public string NewPassword { get; set; }
     }
 
-    // --- Delete User ---
+
+    // --------------------- DELETE USER ---------------------
     [BindProperty, ValidateNever]
     public string DeleteUserId { get; set; }
 
-    // --- ViewModel ---
+
+    // --------------------- ROLES ---------------------
+    [BindProperty, ValidateNever]
+    public string RolesUserId { get; set; }
+
+    [BindProperty, ValidateNever]
+    public List<string> ModalSelectedRoles { get; set; } = new();
+
+    public bool ShowRolesModal { get; set; }
+
+
+    // --------------------- VIEW MODEL ---------------------
     public class UserViewModel
     {
         public string Id { get; set; }
+        public string FullName { get; set; }
+        public string PhoneNumber { get; set; }
         public string Email { get; set; }
-        public List<string> Roles { get; set; } = new();
+        public List<string> Roles { get; set; }
         public bool IsLockedOut { get; set; }
     }
 
-    // --- OnGet ---
-    public async Task OnGetAsync()
-    {
-        try
-        {
-            Users.Clear();
-            var allUsers = _userManager.Users;
-            foreach (var user in allUsers)
-            {
-                var roles = await _userManager.GetRolesAsync(user);
-                Users.Add(new UserViewModel
-                {
-                    Id = user.Id,
-                    Email = user.Email,
-                    Roles = new List<string>(roles),
-                    IsLockedOut = await _userManager.IsLockedOutAsync(user)
-                });
-            }
-        }
 
-        catch (Exception ex)
+    // ---------------------- HELPERS ----------------------
+
+    private void SafeLog(string action, string msg)
+    {
+        _ = Task.Run(async () =>
         {
-            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error", $"Error in UserManagement OnGetAsync: {ex.Message}");
-            ModelState.AddModelError(string.Empty, "An error occurred while loading the user management page.");
-        }   
-        
+            try { await _logger.LogActivityAsync(_userManager.GetUserId(User), action, msg); }
+            catch { /* swallow */ }
+        });
     }
 
-    // --- Add User ---
+    private async Task<string> GetFullNameAsync(IdentityUser u)
+    {
+        var claims = await _userManager.GetClaimsAsync(u);
+        return claims.FirstOrDefault(c => c.Type == "FullName")?.Value;
+    }
+
+    private async Task SetFullNameAsync(IdentityUser u, string fullName)
+    {
+        var claims = await _userManager.GetClaimsAsync(u);
+        var existing = claims.FirstOrDefault(c => c.Type == "FullName");
+
+        if (existing != null)
+            await _userManager.RemoveClaimAsync(u, existing);
+
+        await _userManager.AddClaimAsync(u, new Claim("FullName", fullName));
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        Users.Clear();
+        foreach (var u in _userManager.Users)
+        {
+            Users.Add(new UserViewModel
+            {
+                Id = u.Id,
+                Email = u.Email,
+                PhoneNumber = u.PhoneNumber,
+                FullName = await GetFullNameAsync(u),
+                Roles = (await _userManager.GetRolesAsync(u)).ToList(),
+                IsLockedOut = await _userManager.IsLockedOutAsync(u)
+            });
+        }
+    }
+
+
+    // --------------------- GET ---------------------
+    public async Task OnGetAsync() => await LoadUsersAsync();
+
+
+    // --------------------- ADD USER ---------------------
     public async Task<IActionResult> OnPostAddUserAsync()
     {
-        try
+        // Clear stale ModelState entries from other modals
+        ModelState.Clear();
+
+        if (!TryValidateModel(AddInput, nameof(AddInput)))
         {
-            ModelState.Clear();
-            if (!TryValidateModel(AddInput))
-            {
-                ShowAddModal = true;
-                return Page();
-            }
-
-            if (!string.IsNullOrEmpty(AddInput.Password))
-            {
-                if (AddInput.Password.Length < 6)
-                {
-                    ModelState.AddModelError(nameof(AddInput.Password), "Password must be at least 6 characters.");
-                    ShowEditModal = true;
-                    return Page();
-                }
-
-                var user = new IdentityUser { UserName = AddInput.Email, Email = AddInput.Email };
-                var result = await _userManager.CreateAsync(user, AddInput.Password);
-
-                if (!result.Succeeded)
-                {
-                    foreach (var error in result.Errors)
-                        ModelState.AddModelError(string.Empty, error.Description);
-
-                    ShowAddModal = true;
-                    return Page();
-                }
-
-                if (result.Succeeded)
-                {
-                    StatusMessage = "User Created successfully!";
-
-                    //send a welcome email
-                    _ = Task.Run(async () =>
-                    {
-                        var emailService = new EmailService();
-
-                        emailService.SendEmail(
-                            AddInput.Email,
-                            "Welcome to Zororo Memorial Park",
-                            $"<p>Dear User,</p><p>Your account has been created successfully. Your username is {AddInput.Email}.</p> <p>Your Password is {AddInput.Password}</p><p>Thank you!</p>",
-                            null
-                        );
-                    });
-
-                    _appLogger.LogActivityAsync(_userManager.GetUserId(User), "User Created", $"User {AddInput.Email} created successfully.");
-                }
-            }
-
-            return RedirectToPage();
-        }
-
-        catch (Exception ex)
-        {
-            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error", $"Error in UserManagement OnPostAddUserAsync: {ex.Message}");
-            ModelState.AddModelError(string.Empty, "An error occurred while adding the user.");
             ShowAddModal = true;
+            await LoadUsersAsync();
             return Page();
         }
 
-        
+        var user = new IdentityUser
+        {
+            UserName = AddInput.Email,
+            Email = AddInput.Email,
+            PhoneNumber = AddInput.PhoneNumber
+        };
+
+        var create = await _userManager.CreateAsync(user, AddInput.Password);
+
+        if (!create.Succeeded)
+        {
+            foreach (var e in create.Errors)
+                ModelState.AddModelError("", e.Description);
+
+            ShowAddModal = true;
+            await LoadUsersAsync();
+            return Page();
+        }
+
+        await SetFullNameAsync(user, AddInput.FullName);
+
+        SafeLog("User Created", AddInput.Email);
+        StatusMessage = "User created successfully!";
+        return RedirectToPage();
     }
 
-    // --- Edit User ---
+
+
+    // --------------------- EDIT USER ---------------------
     public async Task<IActionResult> OnPostEditUserAsync()
     {
-        try
+        ModelState.Clear();
+
+        if (!TryValidateModel(EditInput, nameof(EditInput)))
         {
-            ModelState.Clear();
-            if (!TryValidateModel(EditInput))
-            {
-                ShowEditModal = true;
-                return Page();
-            }
-
-            var user = await _userManager.FindByIdAsync(EditUserId);
-            if (user == null)
-            {
-                ModelState.AddModelError(string.Empty, "User not found.");
-                ShowEditModal = true;
-                return Page();
-            }
-
-            user.Email = EditInput.Email;
-            user.UserName = EditInput.Email;
-
-            var updateResult = await _userManager.UpdateAsync(user);
-            if (!updateResult.Succeeded)
-            {
-                foreach (var error in updateResult.Errors)
-                    ModelState.AddModelError(string.Empty, error.Description);
-
-                ShowEditModal = true;
-                return Page();
-            }
-
-            if (updateResult.Succeeded)
-            {
-                StatusMessage = "User Updated successfully!";
-
-                _appLogger.LogActivityAsync(_userManager.GetUserId(User), "User Updated", $"User {EditInput.Email} updated successfully.");
-            }
-
-            return RedirectToPage();
-        }
-        catch (Exception ex)
-        {
-            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error", $"Error in UserManagement OnPostEditUserAsync: {ex.Message}");
-            ModelState.AddModelError(string.Empty, "An error occurred while editing the user.");
             ShowEditModal = true;
+            await LoadUsersAsync();
             return Page();
         }
-        
+
+        var user = await _userManager.FindByIdAsync(EditUserId);
+        if (user == null)
+        {
+            ModelState.AddModelError("", "User not found.");
+            ShowEditModal = true;
+            await LoadUsersAsync();
+            return Page();
+        }
+
+        user.Email = EditInput.Email;
+        user.UserName = EditInput.Email;
+        user.PhoneNumber = EditInput.PhoneNumber;
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            foreach (var e in result.Errors)
+                ModelState.AddModelError("", e.Description);
+
+            ShowEditModal = true;
+            await LoadUsersAsync();
+            return Page();
+        }
+
+        await SetFullNameAsync(user, EditInput.FullName);
+
+        SafeLog("User Updated", EditInput.Email);
+        StatusMessage = "User updated successfully!";
+        return RedirectToPage();
     }
 
-    // --- Reset Password ---
+
+
+    // --------------------- RESET PASSWORD ---------------------
     public async Task<IActionResult> OnPostResetPasswordAsync()
     {
-        try
+        ModelState.Clear();
+
+        if (!TryValidateModel(ResetInput, nameof(ResetInput)))
         {
-            ModelState.Clear();
-            if (!TryValidateModel(ResetInput))
-            {
-                ShowResetModal = true;
-                return Page();
-            }
-
-            var user = await _userManager.FindByIdAsync(ResetInput.UserId);
-            if (user == null)
-            {
-                ModelState.AddModelError(string.Empty, "User not found.");
-                ShowResetModal = true;
-                return Page();
-            }
-            if (!string.IsNullOrEmpty(ResetInput.NewPassword))
-            {
-                if (ResetInput.NewPassword.Length < 6)
-                {
-                    ModelState.AddModelError(nameof(ResetInput.NewPassword), "Password must be at least 6 characters.");
-                    ShowResetModal = true;
-                    return Page();
-                }
-                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-                var result = await _userManager.ResetPasswordAsync(user, token, ResetInput.NewPassword);
-
-                if (!result.Succeeded)
-                {
-                    foreach (var error in result.Errors)
-                        ModelState.AddModelError(string.Empty, error.Description);
-
-                    ShowResetModal = true;
-                    return Page();
-                }
-
-                // Fire-and-forget email sending
-                _ = Task.Run(async () =>
-                {
-                   
-                        var emailService = new EmailService();
-                        emailService.SendEmail(
-                            user.Email,
-                            "Password Reset Confirmation",
-                            $"<p>Dear {user.Email},</p><p>Your password has been reset successfully. Your new password is <strong>{ResetInput.NewPassword}</strong>.</p><p>Thank you!</p>",
-                            null // optional attachment
-                        );
-                    
-                });
-
-                StatusMessage = "Password reset successfully!";
-                await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Password Reset", $"Password for user {user.Email} reset successfully.");
-                    return RedirectToPage();
-                }
-            
-                    return RedirectToPage();
-        }
-
-        catch (Exception ex)
-        {
-            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error", $"Error in UserManagement OnPostResetPasswordAsync: {ex.Message}");
-            ModelState.AddModelError(string.Empty, "An error occurred while resetting the password.");
             ShowResetModal = true;
+            await LoadUsersAsync();
             return Page();
         }
-        
+
+        var user = await _userManager.FindByIdAsync(ResetInput.UserId);
+        if (user == null)
+        {
+            ModelState.AddModelError("", "User not found.");
+            ShowResetModal = true;
+            await LoadUsersAsync();
+            return Page();
+        }
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await _userManager.ResetPasswordAsync(user, token, ResetInput.NewPassword);
+
+        if (!result.Succeeded)
+        {
+            foreach (var e in result.Errors)
+                ModelState.AddModelError("", e.Description);
+
+            ShowResetModal = true;
+            await LoadUsersAsync();
+            return Page();
+        }
+
+        SafeLog("Password Reset", user.Email);
+        StatusMessage = "Password reset successfully!";
+        return RedirectToPage();
     }
 
-    // --- Delete User ---
+
+
+    // --------------------- DELETE USER ---------------------
     public async Task<IActionResult> OnPostDeleteUserAsync()
     {
-        try
+        var user = await _userManager.FindByIdAsync(DeleteUserId);
+        if (user == null)
         {
-            if (string.IsNullOrEmpty(DeleteUserId))
-            {
-                ModelState.AddModelError(string.Empty, "User not found.");
-                return Page();
-            }
-
-            var user = await _userManager.FindByIdAsync(DeleteUserId);
-            if (user == null)
-            {
-                ModelState.AddModelError(string.Empty, "User not found.");
-                return Page();
-            }
-
-            await _userManager.DeleteAsync(user);
-
-
-
-            StatusMessage = "User Deleted successfully!";
-
-            _appLogger.LogActivityAsync(_userManager.GetUserId(User), "User Deleted", $"User {user.Email} deleted successfully.");
-
-            return RedirectToPage();
-        }
-
-        catch (Exception ex)
-        {
-            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error", $"Error in UserManagement OnPostDeleteUserAsync: {ex.Message}");
-            ModelState.AddModelError(string.Empty, "An error occurred while deleting the user.");
+            ModelState.AddModelError("", "User not found.");
+            await LoadUsersAsync();
             return Page();
         }
-            
+
+        await _userManager.DeleteAsync(user);
+
+        SafeLog("User Deleted", user.Email);
+        StatusMessage = "User deleted successfully!";
+        return RedirectToPage();
     }
 
-    // --- Lock/Unlock User ---
+
+    // --------------------- UPDATE ROLES ---------------------
+    public async Task<IActionResult> OnPostUpdateRolesAsync()
+    {
+        var user = await _userManager.FindByIdAsync(RolesUserId);
+        if (user == null)
+        {
+            ShowRolesModal = true;
+            ModelState.AddModelError("", "User not found.");
+            await LoadUsersAsync();
+            return Page();
+        }
+
+        var current = await _userManager.GetRolesAsync(user);
+        var selected = ModalSelectedRoles ?? new();
+
+        var toAdd = selected.Except(current);
+        var toRemove = current.Except(selected);
+
+        foreach (var r in toAdd) await _userManager.AddToRoleAsync(user, r);
+        foreach (var r in toRemove) await _userManager.RemoveFromRoleAsync(user, r);
+
+        SafeLog("Roles Updated", user.Email);
+
+        StatusMessage = "Roles updated successfully!";
+        return RedirectToPage();
+    }
+
+
+    // --------------------- LOCK/UNLOCK ---------------------
     public async Task<IActionResult> OnPostToggleLockAsync(string userId)
     {
-        try
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user != null)
         {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null) return NotFound();
-
             if (await _userManager.IsLockedOutAsync(user))
                 await _userManager.SetLockoutEndDateAsync(user, null);
             else
                 await _userManager.SetLockoutEndDateAsync(user, System.DateTimeOffset.MaxValue);
 
-            _appLogger.LogActivityAsync(_userManager.GetUserId(User), "User Lock Status Changed", $"User {user.Email} lock status toggled.");
-            return RedirectToPage();
+            SafeLog("Lock Toggle", user.Email);
         }
 
-        catch (Exception ex)
-        {
-            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error", $"Error in UserManagement OnPostToggleLockAsync: {ex.Message}");
-            ModelState.AddModelError(string.Empty, "An error occurred while toggling user lock status.");
-            return Page();
-        }
-    }
-
-    // --- Add/Remove Roles ---
-    public async Task<IActionResult> OnPostAddRoleAsync(string userId, string role)
-    {
-        try
-        {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null || !await _roleManager.RoleExistsAsync(role)) return NotFound();
-            if (!await _userManager.IsInRoleAsync(user, role)) await _userManager.AddToRoleAsync(user, role);
-
-            _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Role Added", $"Role {role} added to user {user.Email}.");
-            return RedirectToPage();
-        }
-
-        catch (Exception ex)
-        {
-            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error", $"Error in UserManagement OnPostAddRoleAsync: {ex.Message}");
-            ModelState.AddModelError(string.Empty, "An error occurred while adding the role.");
-            return Page();
-        }
-
-    }
-
-    public async Task<IActionResult> OnPostRemoveRoleAsync(string userId, string role)
-    {
-        try
-        {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null || !await _roleManager.RoleExistsAsync(role)) return NotFound();
-            if (await _userManager.IsInRoleAsync(user, role)) await _userManager.RemoveFromRoleAsync(user, role);
-
-            _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Role Removed", $"Role {role} removed from user {user.Email}.");
-            return RedirectToPage();
-        }
-        catch (Exception ex)
-        {
-            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error", $"Error in UserManagement OnPostRemoveRoleAsync: {ex.Message}");
-            ModelState.AddModelError(string.Empty, "An error occurred while removing the role.");
-            return Page();
-        }
-        
+        return RedirectToPage();
     }
 }

@@ -4,144 +4,306 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - ZororoMemorialPark</title>
+
+    <!-- Core Bootstrap -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+
+    <!-- Site CSS -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/ZororoMemorialPark.styles.css" asp-append-version="true" />
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-q7qkX8G7bX5f9QZ+N7e1F1ZzF0FZJt0vZ5K4P+0a58Xh4Vv+4+6b5tJj7W6kFGy8" crossorigin="anonymous">
-    <link rel="stylesheet" href="~/css/site.css" />
+    <style>
+        /* Avatar + profile menu */
+        .user-profile-toggle {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            border-radius: 999px;
+            padding: 0.2rem 0.5rem;
+            transition: background-color .2s ease-in-out;
+        }
+
+            .user-profile-toggle:hover {
+                background-color: rgba(255, 255, 255, 0.15);
+            }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: .5rem;
+        }
+
+            .user-avatar i {
+                font-size: .9rem;
+                color: #000;
+            }
+
+        .user-name {
+            max-width: 140px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            color: #fff;
+        }
+
+        .user-caret {
+            color: #e5e5e5;
+            margin-left: .25rem;
+        }
+
+        .dropdown-menu {
+            border-radius: .5rem;
+            font-size: .9rem;
+        }
+
+        .dropdown-item i {
+            margin-right: .5rem;
+        }
+    </style>
 
 </head>
+
 <body>
 
     <header>
         <nav class="navbar navbar-expand-lg navbar-dark">
             <div class="container-fluid">
-                <a class="navbar-brand" href="/">Zororo Grave Management</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar"
-                        aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+
+                <!-- Brand -->
+                <a class="navbar-brand d-flex align-items-center" href="/">
+                    <i class="bi bi-tree-fill me-2"></i>
+                    <span>Zororo Memorial</span>
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#mainNavbar" aria-controls="mainNavbar"
+                        aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
+                <!-- NAV ITEMS -->
                 <div class="collapse navbar-collapse" id="mainNavbar">
-                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center">
 
+                        <!-- Dashboard -->
                         <li class="nav-item">
-                            <a class="nav-link" href="/Index">Dashboard</a>
+                            <a class="nav-link" href="/Index">
+                                Dashboard
+                            </a>
                         </li>
 
-                        <!-- Graves dropdown -->
+                        <!-- Graves -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="gravesDropdown" role="button"
-                               data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" id="gravesDropdown"
+                               role="button" data-bs-toggle="dropdown">
                                 Graves
                             </a>
-                            <ul class="dropdown-menu" aria-labelledby="gravesDropdown">
-                                <li><a class="dropdown-item" href="/Graves/GraveSections">Sections</a></li>
-                                <li><a class="dropdown-item" href="/Graves/DevelopmentStages">Development Stages</a></li>
-                                <li><a class="dropdown-item" href="/Graves/Graves">Grave Stock</a></li>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="gravesDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="/Graves/Graves">
+                                        <i class="bi bi-archive"></i> Grave Stock
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="/Graves/GraveSections">
+                                        <i class="bi bi-grid"></i> Sections
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item" href="/Graves/DevelopmentStages">
+                                        <i class="bi bi-layers"></i> Development Stages
+                                    </a>
+                                </li>
+
                                 
                             </ul>
                         </li>
 
-                        <!-- Tombstones dropdown -->
+                        <!-- Tombstones -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="tombstonesDropdown" role="button"
-                               data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" id="tombDropdown"
+                               data-bs-toggle="dropdown">
                                 Tombstones
                             </a>
-                            <ul class="dropdown-menu" aria-labelledby="tombstonesDropdown">
-                                <li><a class="dropdown-item" href="/Tombstones/ManageTombstones">Manage Tombstones</a></li>
-                                
-
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="/Tombstones/ManageTombstones">
+                                        <i class="bi bi-bricks"></i> Manage Tombstones
+                                    </a>
+                                </li>
                             </ul>
                         </li>
 
-
-                        <!-- Jobs dropdown -->
+                        <!-- Jobs -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="jobsDropdown" role="button"
-                               data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" id="jobsDropdown"
+                               data-bs-toggle="dropdown">
                                 Jobs
                             </a>
-                            <ul class="dropdown-menu" aria-labelledby="jobsDropdown">
-                                <li><a class="dropdown-item" href="/Jobs/Suppliers">Suppliers</a></li>
-                                <li><a class="dropdown-item" href="/Jobs/JobParameters">Job Evaluations</a></li>
-                                <li><a class="dropdown-item" href="/Jobs/JobEntries">Job Entries</a></li>
-                                
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="/Jobs/Suppliers">
+                                        <i class="bi bi-truck"></i> Suppliers
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="/Jobs/JobParameters">
+                                        <i class="bi bi-ui-checks"></i> Job Evaluations
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="/Jobs/JobEntries">
+                                        <i class="bi bi-list-check"></i> Job Entries
+                                    </a>
+                                </li>
                             </ul>
                         </li>
 
-                        <!-- Finance dropdown -->
+                        <!-- Finance -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="financeDropdown" role="button"
-                               data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" id="financeDropdown"
+                               data-bs-toggle="dropdown">
                                 Finance
                             </a>
-                            <ul class="dropdown-menu" aria-labelledby="jobsDropdown">
-                                <li><a class="dropdown-item" href="/Finance/InvoicesList">Invoices</a></li>
-                                <li><a class="dropdown-item" href="/Finance/PaymentMethods">Payment Methods</a></li>
-                                <li><a class="dropdown-item" href="/Finance/ReceiptBooks">ReceiptBooks</a></li>
-                                
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="/Finance/InvoicesList">
+                                        <i class="bi bi-receipt"></i> Invoices
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="/Finance/PaymentMethods">
+                                        <i class="bi bi-credit-card"></i> Payment Methods
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="/Finance/ReceiptBooks">
+                                        <i class="bi bi-journal"></i> Receipt Books
+                                    </a>
+                                </li>
                             </ul>
                         </li>
 
-
-                        <!-- Inventory dropdown -->
+                        <!-- Inventory -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="inventoryDropdown" role="button"
-                               data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" id="inventoryDropdown"
+                               data-bs-toggle="dropdown">
                                 Inventory
                             </a>
-                            <ul class="dropdown-menu" aria-labelledby="inventoryDropdown">
-                                <li><a class="dropdown-item" href="/Inventory/Products">Products</a></li>
-                                <li><a class="dropdown-item" href="/Inventory/Services">Services</a></li>
-
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="/Inventory/Products">
+                                        <i class="bi bi-box"></i> Products
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="/Inventory/Services">
+                                        <i class="bi bi-tools"></i> Services
+                                    </a>
+                                </li>
                             </ul>
                         </li>
 
+                        
 
                         <li class="nav-item">
-                            <a class="nav-link" href="/Reports/ReportsDash">Reports</a>
+                            <a class="nav-link" href="/Agents/AgentManagement">
+                                Agents
+                            </a>
                         </li>
 
                         <li class="nav-item">
-                            <a class="nav-link" href="/UserManagement">Users</a>
+                            <a class="nav-link" href="/Reports/ReportsDash">
+                                Reports
+                            </a>
                         </li>
 
-                        <li class="nav-item">
-                            <a class="nav-link" href="/Agents/AgentManagement">Agent Management</a>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown"
+                               data-bs-toggle="dropdown">
+                                Settings
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="/UserManagement">
+                                        <i class="bi bi-people"></i> Users
+                                    </a>
+                                </li>
+
+                            </ul>
+                        </li>
+                        <!-- Profile -->
+                        <li class="nav-item dropdown ms-lg-3">
+                            <a class="nav-link dropdown-toggle user-profile-toggle" href="#"
+                               id="userDropdown" data-bs-toggle="dropdown">
+
+                                <span class="user-avatar">
+                                    <i class="bi bi-person-fill"></i>
+                                </span>
+
+                                <span class="user-name">
+                                    @(User?.Identity?.IsAuthenticated == true ? User.Identity.Name : "User")
+                                </span>
+
+                                <i class="bi bi-caret-down-fill user-caret"></i>
+                            </a>
+
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="/Profile">
+                                        <i class="bi bi-person-lines-fill"></i> Profile
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item" href="/Settings">
+                                        <i class="bi bi-gear"></i> Settings
+                                    </a>
+                                </li>
+
+                                <li><hr class="dropdown-divider" /></li>
+
+                                <li>
+                                    <form asp-area="Identity" asp-page="/Account/Logout" method="post">
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="bi bi-box-arrow-right"></i> Logout
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
                         </li>
 
-                        <li class="nav-item">
-                            <form asp-area="Identity" asp-page="/Account/Logout" method="post" class="d-inline">
-                                <button type="submit" class="btn btn-link nav-link">Logout</button>
-                            </form>
-                        </li>
                     </ul>
                 </div>
+
             </div>
         </nav>
-
     </header>
 
-
     <div class="p-3">
-       
-            @RenderBody()
-     
+        @RenderBody()
     </div>
 
-    <footer class="footer mt-5">
-        <div>© 2025 Zororo Grave Management System</div>
+    <footer class="footer">
+        © 2025 Zororo Grave Management System
     </footer>
 
-
+    <!-- Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-7+0y2C+O2yP7Vp7nX6/8F2X1z4A6J7+0jJ7X6V5Q6/1A7pB4X9H1X6F1M9N4R1Q7" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
     <script>
         setTimeout(function () {
             var message = document.getElementById("successMessage");
@@ -150,11 +312,10 @@
                 message.style.opacity = "0";
                 setTimeout(function () { message.style.display = "none"; }, 1000);
             }
-        }, 3000); // 3 seconds before disappearing
+        }, 3000);
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)
-
 
 </body>
 </html>

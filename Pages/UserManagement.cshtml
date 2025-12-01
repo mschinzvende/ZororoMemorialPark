@@ -2,105 +2,97 @@
 @model UserManagementModel
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
+<div class="card shadow-lg border-0 rounded-3">
+    <div class="card-header text-white" style="background-color:#006A46;">
+        <h4 class="mb-0">User Management</h4>
+    </div>
 
-    <div class="card shadow-lg border-0 rounded-3">
-        <div class="card-header text-white" style="background-color:#006A46;">
-            <h4 class="mb-0">User Management</h4>
-        </div>
+    <div class="card-body">
 
-        <div class="card-body">
+        @if (!string.IsNullOrEmpty(Model.StatusMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show mt-2" role="alert">
+                @Model.StatusMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
 
-            @if (!string.IsNullOrEmpty(Model.StatusMessage))
-            {
-                <div class="alert alert-success alert-dismissible fade show mt-2" role="alert">
-                    @Model.StatusMessage
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
+        <!-- Add User -->
+        <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addUserModal">
+            <i class="bi bi-person-plus"></i> Add New User
+        </button>
 
+        <!-- User Table -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Full Name</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Roles</th>
+                        <th>Locked</th>
+                        <th style="width: 330px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model.Users)
+                    {
+                        var rolesCsv = string.Join(", ", user.Roles);
 
-<!-- Add User Button -->
-<button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addUserModal">Add New User</button>
+                        <tr>
+                            <td>@user.FullName</td>
+                            <td>@user.PhoneNumber</td>
+                            <td>@user.Email</td>
+                            <td>@rolesCsv</td>
+                            <td>@(user.IsLockedOut ? "Yes" : "No")</td>
 
-<!-- Users Table -->
-<div class="table-responsive">
-    <table class="table table-bordered table-striped align-middle">
-        <thead>
-            <tr>
-                <th>Email</th>
-                <th>Roles</th>
-                <th>Locked Out</th>
-                
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var user in Model.Users)
-            {
-                <tr>
-                    <td>@user.Email</td>
-                    <td>@string.Join(", ", user.Roles)</td>
-                    <td>@user.IsLockedOut</td>
-                    <td class="d-flex flex-wrap gap-1">
+                            <td class="d-flex flex-wrap gap-1">
 
-                        <!-- Add Role -->
-                        <form method="post" asp-page-handler="AddRole" class="d-flex gap-1">
-                            <input type="hidden" name="userId" value="@user.Id" />
-                            <select name="role" class="form-select form-select-sm">
-                                @foreach (var r in Model.AllRoles)
-                                {
-                                    <option value="@r">@r</option>
-                                }
-                            </select>
-                            <button type="submit" class="btn btn-sm btn-success">Add</button>
-                        </form>
-
-                        <!-- Remove Role -->
-                        <form method="post" asp-page-handler="RemoveRole" class="d-flex gap-1">
-                            <input type="hidden" name="userId" value="@user.Id" />
-                            <select name="role" class="form-select form-select-sm">
-                                @foreach (var r in Model.AllRoles)
-                                {
-                                    <option value="@r">@r</option>
-                                }
-                            </select>
-                            <button type="submit" class="btn btn-sm btn-danger">Remove</button>
-                        </form>
-                        
-                        <!-- Lock/Unlock -->
-                        <form method="post" asp-page-handler="ToggleLock">
-                            <input type="hidden" name="userId" value="@user.Id" />
-                            <button type="submit" class="btn btn-sm btn-warning">
-                                @(user.IsLockedOut ? "Unlock" : "Lock")
-                            </button>
-                        </form>
-
-                        <!-- Reset Password Modal Trigger -->
-                        <button type="button" class="btn btn-sm btn-info"
-                                onclick="openResetModal('@user.Id')">
-                            Reset
-                        </button>
-
-                        <!-- Edit User Modal Trigger -->
-                        <button type="button" class="btn btn-warning btn-sm me-1"
-                                onclick="openEditModal('@user.Id','@user.Email')">
-                            Edit
-                        </button>
-                                <!-- Delete User Modal Trigger -->
-                                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal-@user.Id">
-                                    Delete
+                                <!-- Manage Roles -->
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary"
+                                        onclick="openRolesModal('@user.Id','@(user.FullName ?? user.Email)','@rolesCsv')">
+                                    <i class="bi bi-sliders"></i> Roles
                                 </button>
 
-                                <!-- Delete User Modal -->
-                                <div class="modal fade" id="deleteUserModal-@user.Id" tabindex="-1" aria-labelledby="deleteUserLabel-@user.Id" aria-hidden="true">
+                                <!-- Lock / Unlock -->
+                                <form method="post" asp-page-handler="ToggleLock">
+                                    <input type="hidden" name="userId" value="@user.Id" />
+                                    <button type="submit" class="btn btn-sm btn-warning">
+                                        <i class="bi bi-shield-lock"></i> @(user.IsLockedOut ? "Unlock" : "Lock")
+                                    </button>
+                                </form>
+
+                                <!-- Reset Password -->
+                                <button type="button" class="btn btn-sm btn-info"
+                                        onclick="openResetModal('@user.Id')">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Reset
+                                </button>
+
+                                <!-- Edit -->
+                                <button type="button" class="btn btn-sm btn-warning"
+                                        onclick="openEditModal('@user.Id','@user.Email','@user.FullName','@user.PhoneNumber')">
+                                    <i class="bi bi-pencil-square"></i> Edit
+                                </button>
+
+                                <!-- Delete -->
+                                <button type="button" class="btn btn-sm btn-danger"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteUserModal-@user.Id">
+                                    <i class="bi bi-trash3"></i> Delete
+                                </button>
+
+                                <!-- DELETE MODAL -->
+                                <div class="modal fade" id="deleteUserModal-@user.Id" tabindex="-1">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header bg-danger text-white">
-                                                <h5 class="modal-title" id="deleteUserLabel-@user.Id">Delete User</h5>
+                                                <h5 class="modal-title">Delete User</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                             </div>
                                             <div class="modal-body">
-                                                Are you sure you want to delete <strong>@user.Email</strong>?
+                                                Delete user <strong>@user.Email</strong>?
                                             </div>
                                             <div class="modal-footer">
                                                 <form method="post" asp-page-handler="DeleteUser">
@@ -113,130 +105,198 @@
                                     </div>
                                 </div>
 
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+    </div>
 </div>
 
-        </div>
-    </div>
-
-
-
-
-<!-- Add User Modal -->
-<div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+<!-- ADD USER MODAL -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
-                <h5 class="modal-title">Add New User</h5>
+                <h5 class="modal-title">Add User</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
+
             <div class="modal-body">
                 <form method="post" asp-page-handler="AddUser">
-                    <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
-                    <div class="mb-3">
-                        <label asp-for="AddInput.Email" class="form-label">Email</label>
-                        <input asp-for="AddInput.Email" class="form-control" placeholder="user@example.com" required/>
-                        <span asp-validation-for="AddInput.Email" class="text-danger"></span>
-                    </div>
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-                    <div class="mb-3">
-                        <label asp-for="AddInput.Password" class="form-label">Password</label>
-                        <input asp-for="AddInput.Password" type="password" class="form-control" placeholder="Password" required/>
-                        <span asp-validation-for="AddInput.Password" class="text-danger"></span>
-                    </div>
+                    <label class="form-label">Full Name</label>
+                    <input asp-for="AddInput.FullName" class="form-control mb-3" />
+
+                    <label class="form-label">Phone</label>
+                    <input asp-for="AddInput.PhoneNumber" class="form-control mb-3" />
+
+                    <label class="form-label">Email</label>
+                    <input asp-for="AddInput.Email" class="form-control mb-3" />
+
+                    <label class="form-label">Password</label>
+                    <input asp-for="AddInput.Password" class="form-control mb-3" type="password" />
 
                     <button type="submit" class="btn btn-success w-100">Create User</button>
                 </form>
             </div>
+
         </div>
     </div>
 </div>
 
-<!-- Edit User Modal -->
+<!-- EDIT USER MODAL -->
 <div class="modal fade" id="editUserModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header bg-warning text-dark">
+            <div class="modal-header bg-warning">
                 <h5 class="modal-title">Edit User</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
+
             <div class="modal-body">
                 <form method="post" asp-page-handler="EditUser">
+
                     <input type="hidden" asp-for="EditUserId" id="EditUserId" />
-                    <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
-                    <div class="mb-3">
-                        <label asp-for="EditInput.Email" class="form-label">Email</label>
-                        <input asp-for="EditInput.Email" class="form-control" id="EditEmail"  required/>
-                        <span asp-validation-for="EditInput.Email" class="text-danger"></span>
-                    </div>
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
+                    <label class="form-label">Full Name</label>
+                    <input asp-for="EditInput.FullName" id="EditFullName" class="form-control mb-3" />
 
-                    <button type="submit" class="btn btn-warning w-100">Update User</button>
+                    <label class="form-label">Phone</label>
+                    <input asp-for="EditInput.PhoneNumber" id="EditPhoneNumber" class="form-control mb-3" />
+
+                    <label class="form-label">Email</label>
+                    <input asp-for="EditInput.Email" id="EditEmail" class="form-control mb-3" />
+
+                    <button type="submit" class="btn btn-warning w-100">Save Changes</button>
                 </form>
             </div>
+
         </div>
     </div>
 </div>
 
-<!-- Reset Password Modal -->
-<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+<!-- RESET PASSWORD MODAL -->
+<div class="modal fade" id="resetPasswordModal">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header bg-info text-dark">
+            <div class="modal-header bg-info">
                 <h5 class="modal-title">Reset Password</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
+
             <div class="modal-body">
                 <form method="post" asp-page-handler="ResetPassword">
-                    <input type="hidden" asp-for="ResetInput.UserId" id="ResetUserId" />
-                    <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
-                    <div class="mb-3">
-                        <label asp-for="ResetInput.NewPassword" class="form-label">New Password</label>
-                        <input asp-for="ResetInput.NewPassword" type="password" class="form-control" required/>
-                        <span asp-validation-for="ResetInput.NewPassword" class="text-danger"></span>
-                    </div>
+                    <input type="hidden" asp-for="ResetInput.UserId" id="ResetUserId" />
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <label class="form-label">New Password</label>
+                    <input asp-for="ResetInput.NewPassword" class="form-control mb-3" type="password" />
 
                     <button type="submit" class="btn btn-info w-100">Reset Password</button>
                 </form>
             </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ROLES MODAL -->
+<div class="modal fade" id="rolesModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color:#006A46; color:white;">
+                <h5 class="modal-title">Roles for <span id="RolesUserName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <form method="post" asp-page-handler="UpdateRoles">
+
+                    <input type="hidden" asp-for="RolesUserId" id="RolesUserId" />
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-2">
+                        @foreach (var role in Model.AllRoles)
+                        {
+                            <div class="form-check form-switch">
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       name="ModalSelectedRoles"
+                                       value="@role"
+                                       id="roleSwitch_@role">
+
+                                <label class="form-check-label" for="roleSwitch_@role">@role</label>
+                            </div>
+                        }
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-save"></i> Save Roles
+                    </button>
+
+                </form>
+            </div>
+
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            // Reopen modals on server-side validation errors
-            if ('@Model.ShowAddModal'.toLowerCase() === 'true') {
-                new bootstrap.Modal(document.getElementById('addUserModal')).show();
-            }
-            if ('@Model.ShowEditModal'.toLowerCase() === 'true') {
-                new bootstrap.Modal(document.getElementById('editUserModal')).show();
-            }
-            if ('@Model.ShowResetModal'.toLowerCase() === 'true') {
-                new bootstrap.Modal(document.getElementById('resetPasswordModal')).show();
-            }
-        });
+           document.addEventListener("DOMContentLoaded", function () {
+               if ('@Model.ShowAddModal'.toLowerCase() === 'true')
+                   new bootstrap.Modal(document.getElementById('addUserModal')).show();
 
-        // Open Edit Modal with pre-populated data
-        function openEditModal(userId, email) {
-            document.getElementById("EditUserId").value = userId;
-            document.getElementById("EditEmail").value = email;
+               if ('@Model.ShowEditModal'.toLowerCase() === 'true')
+                   new bootstrap.Modal(document.getElementById('editUserModal')).show();
 
-            new bootstrap.Modal(document.getElementById('editUserModal')).show();
-        }
+               if ('@Model.ShowResetModal'.toLowerCase() === 'true')
+                   new bootstrap.Modal(document.getElementById('resetPasswordModal')).show();
 
-        // Open Reset Password Modal
-        function openResetModal(userId) {
-            document.getElementById("ResetUserId").value = userId;
-            new bootstrap.Modal(document.getElementById('resetPasswordModal')).show();
-        }
+               if ('@Model.ShowRolesModal'.toLowerCase() === 'true')
+                   new bootstrap.Modal(document.getElementById('rolesModal')).show();
+           });
+
+           function openEditModal(id, email, fullName, phone) {
+               document.getElementById("EditUserId").value = id;
+               document.getElementById("EditEmail").value = email;
+               document.getElementById("EditFullName").value = fullName;
+               document.getElementById("EditPhoneNumber").value =
+        phone;
+
+               new bootstrap.Modal(document.getElementById('editUserModal')).show();
+           }
+
+           function openResetModal(id) {
+               document.getElementById("ResetUserId").value = id;
+               new bootstrap.Modal(document.getElementById('resetPasswordModal')).show();
+           }
+
+           function openRolesModal(id, name, rolesCsv) {
+               document.getElementById("RolesUserId").value = id;
+               document.getElementById("RolesUserName").innerText = name;
+
+               document.querySelectorAll("#rolesModal input[type='checkbox']").forEach(cb => cb.checked = false);
+
+               if (rolesCsv) {
+                   const roles = rolesCsv.split(",").map(r => r.trim());
+                   roles.forEach(r => {
+                       const box = document.querySelector(`#rolesModal input[value='${r}']`);
+                       if (box) box.checked = true;
+                   });
+               }
+
+               new bootstrap.Modal(document.getElementById('rolesModal')).show();
+           }
     </script>
 }
