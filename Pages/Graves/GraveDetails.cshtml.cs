@@ -558,7 +558,7 @@ namespace ZororoMemorialPark.Pages.Graves
                     // Create Allocation
 
                     string fileName = "Invalid file";
-                    if (burialOrder != null || burialOrder.Length != 0)
+                    if (burialOrder != null && burialOrder.Length != 0)
                     {
                         // Ensure uploads folder exists
                         string uploadDir = Path.Combine(_env.WebRootPath, "uploads");
@@ -893,6 +893,9 @@ namespace ZororoMemorialPark.Pages.Graves
                 {
                     book.sys_isClosed = true;
                 }
+
+                _context.tbl_ReceiptBooks.Update(book);
+                await _context.SaveChangesAsync();
             }
 
 
