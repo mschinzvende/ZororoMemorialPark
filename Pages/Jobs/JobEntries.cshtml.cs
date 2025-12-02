@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using ZororoMemorialPark.Data;
@@ -193,6 +194,28 @@ namespace ZororoMemorialPark.Pages.Jobs
                     return RedirectToPage();
                 }
 
+                //Validate Stage order
+                // Get grave with stage info
+                var grave = await _context.tbl_Graves
+                    .FirstOrDefaultAsync(g => g.sys_graveId == submittedJob.sys_graveId);
+                // Find stage order of current stage
+                var currentStageOrder = await _context.tbl_DevelopmentStages
+                    .Where(s => s.sys_stageId == grave.sys_stageId)
+                    .Select(s => s.sys_stageOrder)
+                    .FirstOrDefaultAsync();
+
+                // Find stage order of the submitted job stage
+                var newStageOrder = await _context.tbl_DevelopmentStages
+                    .Where(s => s.sys_stageId == submittedJob.sys_stageId)
+                    .Select(s => s.sys_stageOrder)
+                    .FirstOrDefaultAsync();
+
+                if (newStageOrder != currentStageOrder + 1 && newStageOrder != currentStageOrder)
+                {
+                    TempData["ErrorMessage"] = "Check grave stage. Cannot jump development stage sequence";
+                    return RedirectToPage();
+                }
+
 
                 _context.tbl_Jobs.Add(submittedJob);
                 await _context.SaveChangesAsync();
@@ -286,6 +309,19 @@ namespace ZororoMemorialPark.Pages.Jobs
                     return RedirectToPage();
                 }
 
+                //Validate Stage order
+                
+                
+                // Get the existing job from DB
+                var existingJob = await _context.tbl_Jobs
+                    .FirstOrDefaultAsync(j => j.sys_jobId == job.sys_jobId);
+
+                // Get the order of the existing job’s stage
+                var existingStageOrder = await _context.tbl_DevelopmentStages
+                    .Where(s => s.sys_stageId == existingJob.sys_stageId)
+                    .Select(s => s.sys_stageOrder)
+                    .FirstOrDefaultAsync();
+
                 // Update job
                 job.sys_graveId = graveId;
                 job.sys_supplierId = supplierId;
@@ -295,15 +331,69 @@ namespace ZororoMemorialPark.Pages.Jobs
                 job.sys_jobStatus = Request.Form["sys_status"];
 
 
+                // Get the order of the new stage being selected
+                var editedStageOrder = await _context.tbl_DevelopmentStages
+                    .Where(s => s.sys_stageId ==job.sys_stageId)
+                    .Select(s => s.sys_stageOrder)
+                    .FirstOrDefaultAsync();
+
+                if (editedStageOrder < existingStageOrder)
+                {
+                    TempData["ErrorMessage"] = "Check grave stage. Cannot jump development stage sequence";
+                    return RedirectToPage();
+                }
+
                 await _context.SaveChangesAsync();//check if job status is "Completed" and if so, update the grave status to "Developed"
                 if (job.sys_jobStatus == "Complete")
                 {
+                    var nextStage = await _context.tbl_DevelopmentStages
+                        .Where(s => s.sys_stageOrder == editedStageOrder + 1)
+                        .FirstOrDefaultAsync();
                     var graveToUpdate = await _context.tbl_Graves.FindAsync(job.sys_graveId);
                     if (graveToUpdate != null)
                     {
-                        graveToUpdate.sys_stageId = job.sys_stageId;
+                        if(nextStage != null)
+                        {
+                            graveToUpdate.sys_stageId = nextStage.sys_stageId;
+                        }
+                        else
+                        {
+                            graveToUpdate.sys_stageId = job.sys_stageId;
+                        }
+                           
                         _context.tbl_Graves.Update(graveToUpdate);
                         await _context.SaveChangesAsync();
+                    }
+
+                    //If status is complete, create a new job entry for that grave and asign next stage
+
+                    
+                    if (nextStage != null)
+                    {
+                        var newJob = new tbl_Jobs
+                        {
+                            sys_graveId = job.sys_graveId,
+                            sys_supplierId = 11, //Default Supplier ID for system tasks
+                            sys_stageId = nextStage.sys_stageId,
+                            sys_startDate = DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
+                            sys_endDate = DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
+                            sys_jobStatus = "Pending"
+                        };
+                        _context.tbl_Jobs.Add(newJob);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    //check if next stage is null meaning the grave has reached last stage and set sale status to unsold
+
+                    if (nextStage == null)
+                    {
+                        var graveToMarkUnsold = await _context.tbl_Graves.FindAsync(job.sys_graveId);
+                        if (graveToMarkUnsold != null)
+                        {
+                            graveToMarkUnsold.sys_graveSaleStatus = "Unsold";
+                            _context.tbl_Graves.Update(graveToMarkUnsold);
+                            await _context.SaveChangesAsync();
+                        }
                     }
                 }
 
@@ -426,7 +516,6 @@ namespace ZororoMemorialPark.Pages.Jobs
 
         public async Task<JsonResult> OnGetEvaluationParametersAsync(int jobId)
         {
-            // Get all parameters
             var parameters = await _context.tbl_jobEvaluationParameters
                 .Select(p => new
                 {
@@ -435,35 +524,44 @@ namespace ZororoMemorialPark.Pages.Jobs
                 })
                 .ToListAsync();
 
-            // Get existing evaluations for this job
             var existing = await _context.tbl_JobEvaluations
                 .Where(e => e.sys_jobId == jobId)
                 .ToListAsync();
 
-            // Merge
+            var links = await _context.tbl_EvaluationParameterProducts
+                .Include(l => l.tbl_ProductsAndServices)
+                .ToListAsync();
+
             var result = parameters.Select(p => new
             {
-                sys_jobEvaluationParameterId = p.sys_jobEvaluationParameterId,
-                sys_parameterName = p.sys_parameterName,
+                p.sys_jobEvaluationParameterId,
+                p.sys_parameterName,
                 sys_jobEvaluation = existing
-                    .FirstOrDefault(e => e.sys_jobEvaluationParameterId == p.sys_jobEvaluationParameterId)?.sys_jobEvaluation
+                    .FirstOrDefault(e => e.sys_jobEvaluationParameterId == p.sys_jobEvaluationParameterId)?.sys_jobEvaluation,
+                linkedProducts = links
+                    .Where(l => l.sys_jobEvaluationParameterId == p.sys_jobEvaluationParameterId)
+                    .Select(lp => new
+                    {
+                        lp.tbl_ProductsAndServices.sys_itemId,
+                        lp.tbl_ProductsAndServices.sys_itemName,
+                        lp.sys_defaultQty
+                    }).ToList()
             });
 
             return new JsonResult(result);
         }
-
         public async Task<IActionResult> OnPostAddEvaluationAsync()
         {
             try
             {
-                var jobIdStr = Request.Form["jobId"];
+                var jobIdStr = Request.Form["JobId"];
                 if (string.IsNullOrEmpty(jobIdStr) || !int.TryParse(jobIdStr, out int jobId))
                 {
                     TempData["ErrorMessage"] = "Invalid Job ID.";
                     return RedirectToPage();
                 }
 
-                // Loop through all form fields that start with "evaluation_"
+                // Step 1: Save evaluations
                 foreach (var key in Request.Form.Keys.Where(k => k.StartsWith("evaluation_")))
                 {
                     var paramIdStr = key.Replace("evaluation_", "");
@@ -472,33 +570,53 @@ namespace ZororoMemorialPark.Pages.Jobs
 
                     var evaluationText = Request.Form[key];
                     if (string.IsNullOrWhiteSpace(evaluationText))
-                        continue; // skip empty entries
+                        continue;
 
-                    // Check if evaluation already exists for this job & parameter
                     var existingEval = await _context.tbl_JobEvaluations
                         .FirstOrDefaultAsync(e => e.sys_jobId == jobId && e.sys_jobEvaluationParameterId == paramId);
 
                     if (existingEval != null)
                     {
-                        // Update
                         existingEval.sys_jobEvaluation = evaluationText;
                         _context.tbl_JobEvaluations.Update(existingEval);
                     }
                     else
                     {
-                        // Insert
-                        var newEval = new tbl_JobEvaluations
+                        _context.tbl_JobEvaluations.Add(new tbl_JobEvaluations
                         {
                             sys_jobId = jobId,
                             sys_jobEvaluationParameterId = paramId,
                             sys_jobEvaluation = evaluationText
-                        };
-                        _context.tbl_JobEvaluations.Add(newEval);
+                        });
                     }
                 }
 
+                // Step 2: Save product usage
+                foreach (var key in Request.Form.Keys.Where(k => k.StartsWith("product_")))
+                {
+                    var parts = key.Split('_');
+                    if (parts.Length != 3) continue;
+
+                    int.TryParse(parts[1], out int paramId);
+                    int.TryParse(parts[2], out int productId);
+
+                    double.TryParse(Request.Form[key], out double qtyUsed);
+                    if (qtyUsed <= 0) continue;
+
+                    var usage = new tbl_JobEvaluationProductUsage
+                    {
+                        sys_jobId = jobId,
+                        sys_jobEvaluationParameterId = paramId,
+                        sys_itemId = productId,
+                        sys_quantityUsed = qtyUsed,
+                        sys_dateUsed = DateTime.Now
+                    };
+
+                    _context.tbl_JobEvaluationProductUsage.Add(usage);
+                }
+
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Evaluations saved successfully.";
+                TempData["SuccessMessage"] = "Evaluations and product usage saved successfully.";
             }
             catch (Exception ex)
             {
@@ -507,8 +625,6 @@ namespace ZororoMemorialPark.Pages.Jobs
 
             return RedirectToPage();
         }
-
-
 
 
         public async Task<IActionResult> OnPostBulkDeleteAsync(string jobIds)

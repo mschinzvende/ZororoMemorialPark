@@ -40,6 +40,10 @@
                     <li class="nav-item">
                         <a class="nav-link" id="jobs-tab" data-bs-toggle="tab" href="#jobs" role="tab">Jobs</a>
                     </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" id="tombstone-tab" data-bs-toggle="tab" href="#tombstone" role="tab">Tombstone</a>
+                    </li>
                     
                 </ul>
 
@@ -111,49 +115,7 @@
                                     </dl>
                                 </div>
 
-                                @if(Model.Reservation ==null){
-                                    <!-- Allocation Payments Section -->
-
-                                    <div class="card p-3 mb-3 shadow-sm">
-
-                                        <h6 class="mb-3 border-bottom pb-2">Payments Made</h6>
-
-                                        @if (Model.AllocationPayments?.Any() == true)
-                                        {
-                                            <div class="table-responsive">
-                                                <table class="table table-striped mb-2">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Date</th>
-                                                            <th>Invoice</th>
-                                                            <th>Amount</th>
-                                                            <th>Method</th>
-                                                            <th>Notes</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @foreach (var p in Model.AllocationPayments)
-                                                        {
-                                                            <tr>
-                                                                <td>@p.sys_date.ToString("yyyy-MM-dd")</td>
-                                                                <td>@p.InvoiceNumber</td>
-                                                                <td>@p.sys_amount.ToString("C")</td>
-                                                                <td>@p.sys_paymentMethod</td>
-                                                                <td>@p.sys_notes</td>
-                                                            </tr>
-                                                        }
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                            <p><strong>Total Allocation Payments:</strong> @Model.AllocationPayments.Sum(x => x.sys_amount).ToString("C")</p>
-                                        }
-                                        else
-                                        {
-                                            <div class="alert alert-info">No payments found.</div>
-                                        }
-
-                                    </div>
-                                }
+                                
                             </div>
 
                             <!-- Deceased Details -->
@@ -192,6 +154,53 @@
                                             <dt class="col-sm-5">Repatriation Source</dt>
                                             <dd class="col-sm-7">@Model.Allocation.sys_repatriationSource</dd>
 
+                                            <dt class="col-sm-5">Burial Order</dt>
+
+                                            @if (!string.IsNullOrEmpty(Model.Allocation.sys_burialOrder))
+                                            {
+
+                                                @if (Model.Allocation.sys_burialOrder.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                                                    {
+                                                        <!-- For PDFs: show a view/download link -->
+                                                    <dd class="col-sm-5">
+                                                        <a href="@Model.Allocation.sys_burialOrder" target="_blank" class="btn btn-outline-primary">
+                                                            <i class="bi bi-file-earmark-pdf"></i> View PDF
+                                                        </a></dd>
+                                                    }
+                                                    else if (
+                                                Model.Allocation.sys_burialOrder.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                                                Model.Allocation.sys_burialOrder.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ||
+                                                Model.Allocation.sys_burialOrder.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+                                                    )
+                                                    {
+                                                        <dd class="col-sm-5">
+                                                        <!-- For Images: show thumbnail preview -->
+                                                        <div class="card shadow-sm mt-2" style="width: 200px;">
+                                                        <img src="@Model.Allocation.sys_burialOrder" alt="buriaOrder"
+                                                                 class="card-img-top rounded" style="object-fit: cover; height: 150px;">
+                                                            <div class="card-body text-center p-2">
+                                                            <a href="@Model.Allocation.sys_burialOrder" target="_blank" class="btn btn-sm btn-outline-secondary">View Full Image</a>
+                                                            </div>
+                                                        </div>
+                                                        </dd>
+                                                    }
+                                                    else
+                                                    {
+                                                        <dd class="col-sm-5">
+                                                        <span class="badge bg-info text-dark">File not present</span>
+                                                        </dd>
+                                                    }
+                                               
+                                            }
+                                            else
+                                            {
+                                                <p class="text-muted">No file uploaded</p>
+                                            }
+
+
+
+
+
                                             <dt class="col-sm-5">Next of Kin</dt>
                                             <dd class="col-sm-7">@Model.Deceased.sys_deceasedNextOfKinName</dd>
 
@@ -223,19 +232,74 @@
                                     }
                                     else
                                     {
-                                        <div class="alert alert-info">No allocation found.</div>
-                                        <button class="btn btn-sm btn-primary"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#allocateModal">
-                                            ➕ Allocate Grave
-                                        </button>
+                                        @if(!Model.isReadyForAllocation){
+                                            <div class="alert alert-warning">Grave not ready for allocation. Current Stage: @Model.Stage?.sys_stageName</div>
+                                        }
+                                        else{
+                                            <div class="alert alert-info">No allocation found.</div>
+                                            <button class="btn btn-sm btn-primary"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#allocateModal">
+                                                ➕ Allocate Grave
+                                            </button>
+
+                                        }
+                                        
                                     }
                                     
                                 </div>
                             </div>
                         </div>
                     
-                        
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                @if (Model.Reservation == null)
+                                {
+                                    <!-- Allocation Payments Section -->
+
+                                    <div class="card p-3 mb-3 shadow-sm">
+
+                                        <h6 class="mb-3 border-bottom pb-2">Payments Made</h6>
+
+                                        @if (Model.AllocationPayments?.Any() == true)
+                                        {
+                                            <div class="table-responsive">
+                                                <table class="table table-striped mb-2">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Date</th>
+                                                            <th>Invoice</th>
+                                                            <th>Amount</th>
+                                                            <th>Method</th>
+                                                            <th>Receipt No.</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var p in Model.AllocationPayments)
+                                                        {
+                                                            <tr>
+                                                                <td>@p.sys_date.ToString("yyyy-MM-dd")</td>
+                                                                <td>@p.InvoiceNumber</td>
+                                                                <td>@p.sys_amount.ToString("C")</td>
+                                                                <td>@p.sys_paymentMethod</td>
+                                                                <td>@p.sys_receiptNo</td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <p><strong>Total Allocation Payments:</strong> @Model.AllocationPayments.Sum(x => x.sys_amount).ToString("C")</p>
+                                        }
+                                        else
+                                        {
+                                            <div class="alert alert-info">No payments found.</div>
+                                        }
+
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
                     </div>
 
                     <!-- Reservation Tab -->
@@ -391,7 +455,7 @@
                             
                             <div class="col-md-12">
                                 <div class="card p-3 mb-3 shadow-sm">
-                                    <h6 class="mb-3 border-bottom pb-2">Jobs Done On This Garve</h6>
+                                    <h6 class="mb-3 border-bottom pb-2">Jobs Done On This Grave</h6>
                                     <div class="col-md-6 mb-3">
                                     <button class="btn btn-sm btn-primary"
                                             data-bs-toggle="modal"
@@ -498,41 +562,125 @@
                         </div>
                         </div>
                      </div>
-                       
 
+                     <!--Tombstone Tab-->
 
+                    <div class="tab-pane fade" id="tombstone" role="tabpanel">
 
+                        @if (Model.Tombstone.sys_tombstoneId ==0 || Model.TombstoneSale==null  || Model.Payments==null)
+                        {
+                            <div class="alert alert-warning mt-3">
+                                No tombstone linked to this grave yet.
+                            </div>
+                        }
+                        else
+                        {
+                            var tombstone = Model.Tombstone;
+                            var totalPaid = (Model.Payments != null && Model.Payments.Any())
+                            ? Model.Payments.Sum(p => p.sys_amountPaid)
+                            : 0;
+                            var totalCost = tombstone?.sys_price ?? 0;
+                            var balance = totalCost - totalPaid;
 
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="card shadow-sm mb-3">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-sm-6">
+                                                    <h5 class="card-title">@tombstone.sys_tombstoneName</h5>
+                                                    <p>@tombstone.sys_description</p>
+                                                    <p><strong>Material:</strong> @tombstone.sys_material</p>
+                                                    <p><strong>Size:</strong> @tombstone.sys_size</p>
+                                                    <p><strong>Cost:</strong> $@totalCost.ToString("N2")</p>
 
+                                                    <hr />
+                                                    <h6>Installation Details</h6>
+                                                    <p><strong>Installed By:</strong> @Model.TombInstallation.sys_installedBy</p>
+                                                    <p><strong>Installation Date:</strong> @Model.TombInstallation.sys_installationDate.ToShortDateString()</p>
 
+                                                    <hr />
+                                                    <h6>Tombstone Permit</h6>
+                                                    <p>@Model.TombInstallation.sys_remarks</p>
+                                                </div>
 
+                                                <div class="col-sm-6">
+                                                    @if (!string.IsNullOrEmpty(tombstone.sys_imagePath))
+                                                    {
+                                                        <img src="@tombstone.sys_imagePath"
+                                                             alt="@tombstone.sys_tombstoneName"
+                                                             width="240"
+                                                             class="rounded">
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">No Image</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
+                                <div class="col-sm-6">
+                                    <div class="card shadow-sm">
+                                        <div class="card-body">
+                                            <h5>Invoice & Payments</h5>
 
+                                            @if (Model.Payments != null && Model.Payments.Any())
+                                            {
+                                                <table class="table table-bordered">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Date</th>
+                                                            <th>Amount Paid</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var pay in Model.Payments)
+                                                        {
+                                                            <tr>
+                                                                <td>@pay.sys_saleDate.ToShortDateString()</td>
+                                                                <td>$@pay.sys_amountPaid.ToString("N2")</td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            }
+                                            else
+                                            {
+                                                <p class="text-muted mt-2">No payments recorded yet.</p>
+                                            }
 
+                                            <div class="mt-3">
+                                                <p><strong>Total Paid:</strong> $@totalPaid.ToString("N2")</p>
+                                                <p>
+                                                    <strong>Balance Remaining:</strong>
+                                                    <span class="@(balance <= 0 ? "text-success" : "text-danger")">
+                                                        $@balance.ToString("N2")
+                                                    </span>
+                                                </p>
+                                            </div>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                    
-
-                    <!-- Payments Tab -->
-                    <div class="tab-pane fade" id="payments" role="tabpanel">
-                       
-
-                        
+                                            @if (balance > 0)
+                                            {
+                                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPaymentModal">
+                                                    Record Payment
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <div class="alert alert-success mt-3">Invoice Fully Paid ✅</div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
                     </div>
+
+
+                       
                 </div>
             </div>
      </div>
@@ -541,12 +689,41 @@
 </div>
 
 <!-- Modals: Allocate, Reservation, Supplier Payment, Allocation Payment -->
+<!-- Tombstone Payment Modal -->
+<div class="modal fade" id="addPaymentModal" tabindex="-1" aria-labelledby="addPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="AddTombstonePayment">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addPaymentModalLabel">Record Payment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="SaleId" value="@Model.TombstoneSale.sys_saleId" />
+                    <div class="mb-3">
+                        <label>Payment Amount</label>
+                        <input type="number" step="0.01" class="form-control" name="AmountPaid" required />
+                    </div>
+                    
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+
 <!-- Allocate Grave Modal -->
 <div class="modal fade" id="allocateModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <!-- wider modal for 3 columns -->
         <div class="modal-content">
-            <form method="post" asp-page-handler="AllocateGrave">
+            <form method="post"  enctype="multipart/form-data" asp-page-handler="AllocateGrave">
                 <div class="modal-header">
                     <h5 class="modal-title">Allocate Grave</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -653,6 +830,14 @@
                                 <option value="">-- Select a slot --</option>
                             </select>
                             <div id="slotMessage" class="text-danger mt-1"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="burialOder" class="form-label">Attach Burial Order</label>
+
+
+                            <input type="file" id="burialOrder" name="burialOrder" class="form-control" accept=".jpg,.jpeg,.png,.pdf" />
+                            
                         </div>
 
                     </div>
@@ -771,6 +956,7 @@
                 <div class="modal-header"><h5>Allocation Payment</h5></div>
                 <div class="modal-body">
                     <input type="hidden" name="allocationId" id="allocationId" />
+                    
 
                     <div class="mb-2">
                         <label>Current Balance</label>
@@ -796,7 +982,35 @@
 
                     <div class="mb-2">
                         <label>Receipt Number</label>
-                        <input type="number" name="receiptNumber" min="0" step="0.01" class="form-control" required />
+
+                        @if (Model.AgentRecordExists)
+                        {
+                            <!-- Agent with record: auto use their receipt book -->
+                            <input type="hidden" id="receiptBookId" name="receiptBookId" value="@Model.AgentReceiptBook.sys_receiptBookId" />
+                            <input type="number" id="receiptNumber" name="receiptNumber" class="form-control" required />
+                            <small class="text-muted">
+                                Book @Model.AgentReceiptBook.sys_startNumber - @Model.AgentReceiptBook.sys_endNumber
+                            </small>
+                            <div id="receiptValidationMsg" class="text-danger small mt-1"></div>
+                        }
+                        else
+                        {
+                            <!-- Agent role only: must pick a book -->
+                            <select id="receiptBookId" name="receiptBookId" class="form-select mb-2" required>
+                                <option value="">-- Select Receipt Book --</option>
+                                @foreach (var b in Model.AvailableBooks)
+                                {
+                                    <option value="@b.sys_receiptBookId"
+                                            data-start="@b.sys_startNumber"
+                                            data-end="@b.sys_endNumber"
+                                            data-current="@b.sys_currentNumber">
+                                        Book @b.sys_startNumber - @b.sys_endNumber (Agent: @b.AgentName)
+                                    </option>
+                                }
+                            </select>
+                            <input type="number" id="receiptNumber" name="receiptNumber" class="form-control" required />
+                            <div id="receiptValidationMsg" class="text-danger small mt-1"></div>
+                        }
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -864,8 +1078,6 @@
         </div>
     </div>
 </div>
-
-
 
 <!-- Edit Grave Job Modal -->
 <div class="modal fade" id="editModal" tabindex="-1">
@@ -1070,7 +1282,6 @@
     </div>
 </div>
 
-
 <!--End Job CRUD and Payments Modals-->
 
 
@@ -1158,34 +1369,54 @@
         });
 
         // --- Evaluation Modal ---
-        window.openEvaluationModal = function (jobId) {
-            $('#evaluationJobId').val(jobId);
+         window.openEvaluationModal = function (jobId) {
+        $('#evaluationJobId').val(jobId);
 
-            $.getJSON('?handler=EvaluationParameters&jobId=' + jobId, function (data) {
-                let container = $('#evaluationParametersContainer');
-                container.empty();
+        $.getJSON('?handler=EvaluationParameters&jobId=' + jobId, function (data) {
+            let container = $('#evaluationParametersContainer');
+            container.empty();
 
-                if (data && data.length > 0) {
-                    data.forEach(param => {
-                        container.append(`
-                            <div class="col-sm-4">
-                                <div class="mb-2">
-                                    <label>${param.sys_parameterName}</label>
-                                    <input type="hidden" name="parameterIds" value="${param.sys_jobEvaluationParameterId}" />
-                                    <input type="text" class="form-control"
-                                        name="evaluation_${param.sys_jobEvaluationParameterId}"
-                                        value="${param.sys_jobEvaluation ?? ''}" />
-                                </div>
-                            </div>
-                        `);
-                    });
-                } else {
-                    container.append(`<p class="text-muted">No evaluation parameters defined.</p>`);
-                }
+            if (data && data.length > 0) {
+                data.forEach(param => {
+                    let productSection = '';
 
-                $('#evaluationModal').modal('show');
-            });
-        };
+                    if (param.linkedProducts && param.linkedProducts.length > 0) {
+                        productSection += `<div class="ms-3 mt-2 border rounded p-2">
+                            <strong>Products Used:</strong>`;
+                        param.linkedProducts.forEach(prod => {
+                            productSection += `
+                                <div class="row mb-1">
+                                    <div class="col-6">
+                                        <label>${prod.sys_itemName} (Default: ${prod.sys_defaultQty})</label>
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="number" step="0.01" class="form-control"
+                                            name="product_${param.sys_jobEvaluationParameterId}_${prod.sys_itemId}"
+                                            placeholder="Qty Used" />
+                                    </div>
+                                </div>`;
+                        });
+                        productSection += `</div>`;
+                    }
+
+                    container.append(`
+                        <div class="col-12 mb-3">
+                            <label><strong>${param.sys_parameterName}</strong></label>
+                            <input type="hidden" name="parameterIds" value="${param.sys_jobEvaluationParameterId}" />
+                            <input type="text" class="form-control mb-2"
+                                name="evaluation_${param.sys_jobEvaluationParameterId}"
+                                value="${param.sys_jobEvaluation ?? ''}" />
+                            ${productSection}
+                        </div>
+                    `);
+                });
+            } else {
+                container.append(`<p class="text-muted">No evaluation parameters defined.</p>`);
+            }
+
+            $('#evaluationModal').modal('show');
+        });
+    };
 
         // --- Burial Slots ---
         const burialDateInput = document.getElementById("burialDate");
@@ -1229,5 +1460,74 @@
     });
 </script>
 
+<script>
+const receiptInput = document.getElementById("receiptNumber");
+const validationMsg = document.getElementById("receiptValidationMsg");
+
+// Case 1: Agent with record (hidden input, single book)
+const hiddenBook = document.getElementById("receiptBookId");
+// Case 2: Agent role only (select with data attributes)
+const bookSelect = document.getElementById("receiptBookId") && document.getElementById("receiptBookId").tagName === "SELECT"
+    ? document.getElementById("receiptBookId")
+    : null;
+
+function validateReceipt() {
+    if (!receiptInput) return;
+
+    const receiptNumber = parseInt(receiptInput.value);
+
+    // Clear message if empty
+    if (!receiptNumber) {
+        validationMsg.textContent = "";
+        return;
+    }
+
+    // Agent with record → book info comes from server model
+    if (hiddenBook && !bookSelect) {
+        const start = parseInt("@Model.AgentReceiptBook.sys_startNumber");
+        const end = parseInt("@Model.AgentReceiptBook.sys_endNumber");
+        const current = parseInt("@Model.AgentReceiptBook.sys_currentNumber");
+
+        if (receiptNumber < start || receiptNumber > end) {
+            validationMsg.textContent = "❌ Receipt number not in valid range.";
+        } else if (receiptNumber !== current + 1) {
+            validationMsg.textContent = `❌ Invalid sequence. Next expected is ${current + 1}.`;
+        } else {
+            validationMsg.textContent = "✅ Receipt number is valid.";
+            validationMsg.className = "text-success small mt-1";
+        }
+    }
+
+    // Agent role only → book selected from dropdown
+    if (bookSelect) {
+        const selectedOption = bookSelect.options[bookSelect.selectedIndex];
+        if (!selectedOption || !selectedOption.dataset.start) {
+            validationMsg.textContent = "";
+            return;
+        }
+
+        const start = parseInt(selectedOption.dataset.start);
+        const end = parseInt(selectedOption.dataset.end);
+        const current = parseInt(selectedOption.dataset.current);
+
+        if (receiptNumber < start || receiptNumber > end) {
+            validationMsg.textContent = "❌ Receipt number not in valid range.";
+        } else if (receiptNumber !== current + 1) {
+            validationMsg.textContent = `❌ Invalid sequence. Next expected is ${current + 1}.`;
+        } else {
+            validationMsg.textContent = "✅ Receipt number is valid.";
+            validationMsg.className = "text-success small mt-1";
+        }
+    }
+}
+
+// Bind events
+if (receiptInput) {
+    receiptInput.addEventListener("input", validateReceipt);
+}
+if (bookSelect) {
+    bookSelect.addEventListener("change", validateReceipt);
+}
 
 
+</script>

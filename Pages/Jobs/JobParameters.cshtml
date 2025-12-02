@@ -51,7 +51,7 @@
                                     <input type="checkbox" id="selectAll">
                                 </th>
                                 <th>Parameter Name</th>
-                                <th style="width:150px;">Actions</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="parametersTable">
@@ -77,6 +77,14 @@
                                                 data-name="@param.sys_parameterName">
                                             Delete
                                         </button>
+
+                                    
+                                        <a asp-page="/Jobs/ProductsParameters"
+                                           asp-route-id="@param.sys_jobEvaluationParameterId"
+                                           class="btn btn-sm btn-primary">
+                                            Link Products
+                                        </a>
+                                    
                                     </td>
                                 </tr>
                             }

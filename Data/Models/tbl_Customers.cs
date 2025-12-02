@@ -7,5 +7,7 @@ namespace ZororoMemorialPark.Data.Models
         [Key]
         public int sys_customerId { get; set; }
         public string sys_paymentMadeBy { get; set; }
+
+        public string sys_customerPhone { get; set; } = "n/a";
     }
 }

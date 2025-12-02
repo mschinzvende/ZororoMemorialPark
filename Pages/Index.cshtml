@@ -1,10 +1,152 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Cemetery Dashboard";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container mt-4">
+
+    <!-- Summary Cards -->
+    <div class="row g-3">
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3">
+                <h6>Total Graves</h6>
+                <h3>@Model.TotalGraves</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3">
+                <h6>Available Graves</h6>
+                <h3>@Model.AvailableGraves</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3">
+                <h6>Reserved Graves</h6>
+                <h3>@Model.ReservedGraves</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3">
+                <h6>Allocated / Sold</h6>
+                <h3>@Model.AllocatedGraves</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Cards -->
+    <div class="row g-3 mt-2">
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3">
+                <h6>Total Revenue</h6>
+                <h3>$@Model.TotalRevenue</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3">
+                <h6>Revenue This Month</h6>
+                <h3>$@Model.RevenueMonth</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3">
+                <h6>Outstanding Balances</h6>
+                <h3>$@Model.Outstanding</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3">
+                <h6>Payments This Month</h6>
+                <h3>$@Model.PaymentsMonth</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card p-3 shadow-sm">
+                <h6>Graves per Section</h6>
+                <canvas id="gravesSectionChart"></canvas>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card p-3 shadow-sm">
+                <h6>Graves per Development Stage</h6>
+                <canvas id="gravesStageChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4 mb-5">
+        <div class="col-md-6">
+            <div class="card p-3 shadow-sm">
+                <h6>Monthly Revenue (12 months)</h6>
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card p-3 shadow-sm">
+                <h6>Payment Methods Breakdown</h6>
+                <canvas id="paymentMethodChart"></canvas>
+            </div>
+        </div>
+    </div>
+
 </div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        new Chart(document.getElementById('gravesSectionChart'), {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(Model.SectionsJson),
+                datasets: [{
+                    label: 'Graves',
+                    data: @Html.Raw(Model.GravesPerSectionJson)
+                }]
+            }
+        });
+
+        new Chart(document.getElementById('gravesStageChart'), {
+            type: 'pie',
+            data: {
+                labels: @Html.Raw(Model.StagesJson),
+                datasets: [{
+                    data: @Html.Raw(Model.GravesPerStageJson)
+                }]
+            }
+        });
+
+        new Chart(document.getElementById('revenueChart'), {
+            type: 'line',
+            data: {
+                labels: @Html.Raw(Model.RevenueMonthsJson),
+                datasets: [{
+                    label: 'Revenue',
+                    data: @Html.Raw(Model.RevenueValuesJson)
+                }]
+            }
+        });
+
+        new Chart(document.getElementById('paymentMethodChart'), {
+            type: 'doughnut',
+            data: {
+                labels: @Html.Raw(Model.PaymentMethodNamesJson),
+                datasets: [{
+                    data: @Html.Raw(Model.PaymentMethodTotalsJson)
+                }]
+            }
+        });
+    </script>
+}

@@ -1,0 +1,248 @@
+﻿@page "{handler?}"
+@model ZororoMemorialPark.Pages.Reports.RevenueReportModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Revenue Report";
+
+    // Prepare JS-safe arrays
+    var lineLabelsJson = JsonSerializer.Serialize(Model.Rows.Select(r => r.Date.ToString("yyyy-MM-dd")));
+    var lineDataJson = JsonSerializer.Serialize(Model.Rows.Select(r => r.Amount));
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-3">
+        <div class="col-lg-12 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center"
+                     style="background-color: var(--primary-green); color: var(--primary-white);">
+                    <h5 class="mb-0">Revenue Report</h5>
+                    <div>
+                        <form method="get" asp-page-handler="Pdf" class="d-inline">
+                            <input type="hidden" name="from" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
+                            <input type="hidden" name="to" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
+                            <input type="hidden" name="category" value="@Model.SelectedCategory" />
+                            <button type="submit" class="btn btn-sm btn-light">
+                                <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- Filters -->
+                    <form method="get" class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">From Date</label>
+                            <input type="date" name="from" class="form-control"
+                                   value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">To Date</label>
+                            <input type="date" name="to" class="form-control"
+                                   value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Category</label>
+                             <select name="category" class="form-select">
+                                <option value="Total" selected="@(Model.SelectedCategory == "Total")">Total Revenue</option>
+                                <option value="GraveSales" selected="@(Model.SelectedCategory == "GraveSales")">Grave Sales</option>
+                                <option value="Reservations" selected="@(Model.SelectedCategory == "Reservations")">Grave Reservations</option>
+                                <option value="Tombstones" selected="@(Model.SelectedCategory == "Tombstones")">Tombstone Sales</option>
+                                <option value="Other" selected="@(Model.SelectedCategory == "Other")">Other Revenue</option>
+                            </select>
+
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-success w-100">Run Report</button>
+                        </div>
+                    </form>
+
+                    <!-- Summary cards -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <div class="card shadow-sm border-0" style="background:#e8f5e9;">
+                                <div class="card-body">
+                                    <div class="small text-muted">Total Revenue</div>
+                                    <div class="fw-bold fs-5">$@Model.TotalRevenue.ToString("N2")</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-body">
+                                    <div class="small text-muted">Grave Sales</div>
+                                    <div class="fw-bold">$@Model.GraveSalesRevenue.ToString("N2")</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-body">
+                                    <div class="small text-muted">Reservations</div>
+                                    <div class="fw-bold">$@Model.ReservationsRevenue.ToString("N2")</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-body">
+                                    <div class="small text-muted">Tombstones</div>
+                                    <div class="fw-bold">$@Model.TombstoneRevenue.ToString("N2")</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-body">
+                                    <div class="small text-muted">Other Revenue</div>
+                                    <div class="fw-bold">$@Model.OtherRevenue.ToString("N2")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabs: Charts / Table -->
+                    <ul class="nav nav-tabs" id="revTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="rev-table-tab" data-bs-toggle="tab"
+                                    data-bs-target="#rev-table" type="button" role="tab">
+                                Detailed Table
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="rev-chart-tab" data-bs-toggle="tab"
+                                    data-bs-target="#rev-chart" type="button" role="tab">
+                                Chart View
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content mt-3" id="revTabsContent">
+                        <!-- Table tab -->
+                        <div class="tab-pane fade show active" id="rev-table" role="tabpanel">
+                            <div class="card shadow-sm">
+                                <div class="card-header" style="background-color: var(--primary-grey);">
+                                    <strong>Detailed Transactions (@Model.SelectedCategory)</strong>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover align-middle" id="revenueTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Type</th>
+                                                    <th>Invoice Id</th>
+                                                    <th class="text-end">Amount</th>
+                                                    <th>Notes</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var row in Model.Rows)
+                                                {
+                                                    <tr>
+                                                        <td>@row.Date.ToString("yyyy-MM-dd")</td>
+                                                        <td>@row.Type</td>
+                                                        <td>@row.InvoiceId</td>
+                                                        <td class="text-end">$@row.Amount.ToString("N2")</td>
+                                                        <td>@row.Notes</td>
+                                                    </tr>
+                                                }
+                                                @if (!Model.Rows.Any())
+                                                {
+                                                    <tr>
+                                                        <td colspan="5" class="text-center text-muted">
+                                                            No records for the selected filters.
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chart tab -->
+                        <div class="tab-pane fade" id="rev-chart" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-lg-8">
+                                    <div class="card shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Revenue over Time (@Model.SelectedCategory)</h6>
+                                            <canvas id="revenueLineChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-4">
+                                    <div class="card shadow-sm">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Category Breakdown (Period Totals)</h6>
+                                            <canvas id="revenuePieChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div> <!-- tab-content -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Data from backend (safe JSON)
+        const lineLabels = @Html.Raw(lineLabelsJson);
+        const lineData = @Html.Raw(lineDataJson);
+
+        const ctxLine = document.getElementById('revenueLineChart');
+        if (ctxLine && lineLabels.length > 0) {
+            new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: lineLabels,
+                    datasets: [{
+                        label: 'Amount',
+                        data: lineData,
+                        tension: 0.3,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        const ctxPie = document.getElementById('revenuePieChart');
+        if (ctxPie) {
+            new Chart(ctxPie, {
+                type: 'pie',
+                data: {
+                    labels: ['Grave Sales', 'Reservations', 'Tombstones', 'Other'],
+                    datasets: [{
+                        data: [
+                            @Model.GraveSalesRevenue,
+                            @Model.ReservationsRevenue,
+                            @Model.TombstoneRevenue,
+                            @Model.OtherRevenue
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+        }
+    </script>
+}

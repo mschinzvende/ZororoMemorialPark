@@ -10,5 +10,7 @@ namespace ZororoMemorialPark.Data.Models
         public int sys_graveId { get; set; }
         public int sys_agentId { get; set; }
         public double sys_amount { get; set; }
+
+        public bool sys_isPaid { get; set; }
     }
 }

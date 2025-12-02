@@ -59,6 +59,8 @@ namespace ZororoMemorialPark.Pages.Graves
             try
             {
                 var sectionName = Request.Form["sectionName"].ToString().Trim();
+                var jobReminder = Request.Form["jobReminder"].ToString().Trim();
+                var reminderPeriod = Int32.Parse(Request.Form["reminderPeriod"].ToString().Trim());
                 if (string.IsNullOrEmpty(sectionName))
                 {
                     TempData["ErrorMessage"] = "Section name cannot be empty.";
@@ -75,7 +77,9 @@ namespace ZororoMemorialPark.Pages.Graves
                 }
                 var section = new tbl_Sections
                 {
-                    sys_sectionName = sectionName
+                    sys_sectionName = sectionName,
+                    sys_jobReminder = jobReminder,
+                    sys_reminderPeriod = reminderPeriod
                 };
                 _context.tbl_Sections.Add(section);
                 await _context.SaveChangesAsync();
@@ -109,6 +113,8 @@ namespace ZororoMemorialPark.Pages.Graves
             {
                 var sectionIdStr = Request.Form["sys_sectionId"].ToString();
                 var sectionName = Request.Form["sys_sectionName"].ToString().Trim();
+                var jobReminder = Request.Form["sys_jobReminder"].ToString().Trim();
+                var reminderPeriod = Int32.Parse(Request.Form["sys_reminderPeriod"].ToString().Trim());
                 if (!int.TryParse(sectionIdStr, out int sectionId))
                 {
                     TempData["ErrorMessage"] = "Invalid section ID.";
@@ -135,6 +141,8 @@ namespace ZororoMemorialPark.Pages.Graves
                 }
 
                 section.sys_sectionName = sectionName;
+                section.sys_jobReminder = jobReminder;
+                section.sys_reminderPeriod = reminderPeriod;
 
                 _context.tbl_Sections.Update(section);
                 await _context.SaveChangesAsync();

@@ -11,5 +11,7 @@ namespace ZororoMemorialPark.Data.Models
         public double sys_amount { get; set; }
         public string sys_paymentMethod { get; set; }
         public string sys_notes { get; set; }
+
+        public int sys_receiptNumber { get; set; }
     }
 }

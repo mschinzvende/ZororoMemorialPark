@@ -13,6 +13,11 @@
     }
 
     /* Active tab colors */
+
+    #underConstruction.active.show {
+        border-color: saddlebrown;
+    }
+
     #available.active.show {
         border-color: #28a745;
     }
@@ -61,8 +66,15 @@
 
                 <!-- Tabs -->
                 <ul class="nav nav-tabs mb-3" id="graveTabs" role="tablist">
+
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="available-tab" data-bs-toggle="tab" data-bs-target="#available" type="button" role="tab" style="background-color: #28a745; color:white;">
+                        <button class="nav-link active" id="underConstruction-tab" data-bs-toggle="tab" data-bs-target="#underConstruction" type="button" role="tab" style="background-color: saddlebrown; color:white;">
+                            Under Construction
+                        </button>
+                    </li>
+
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="available-tab" data-bs-toggle="tab" data-bs-target="#available" type="button" role="tab" style="background-color: #28a745; color:white;">
                             Unsold
                         </button>
                     </li>
@@ -79,8 +91,14 @@
                 </ul>
 
                 <div class="tab-content">
+
+                    <!-- Under Construction Graves -->
+                    <div class="tab-pane fade show active" id="underConstruction" role="tabpanel">
+                        @await Html.PartialAsync("_GravesTablePartial", new { Graves = Model.UnderConstructionGraves, Status = "Under Construction", PageRouteParam = "availablePage" })
+                    </div>
+
                     <!-- Available Graves -->
-                    <div class="tab-pane fade show active" id="available" role="tabpanel">
+                    <div class="tab-pane fade" id="available" role="tabpanel">
                         @await Html.PartialAsync("_GravesTablePartial", new { Graves = Model.AvailableGraves, Status = "Unsold", PageRouteParam = "availablePage" })
                     </div>
 
@@ -101,6 +119,80 @@
 
 
 <!-- Modals -->
+
+<!--Sell Tombstone for a grave-->
+<!-- Tombstone Order Modal -->
+<div class="modal fade" id="tombstoneOrderModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Order Tombstone</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form method="post" asp-page-handler="SaveTombstoneOrder">
+                <div class="modal-body">
+                    <input type="hidden" name="sys_graveId" id="selectedGraveId" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Select Tombstone</label>
+                        <select name="sys_tombstoneId" class="form-select" required>
+                            <option value="">-- Select --</option>
+                            @foreach (var t in Model.AvailableTombstones)
+                            {
+                                <option value="@t.sys_tombstoneId">@t.sys_tombstoneName - $@t.sys_price</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Buyer Name</label>
+                        <input type="text" name="sys_buyerName" class="form-control" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Buyer Contact</label>
+                        <input type="text" name="sys_buyerContact" class="form-control" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Amount Paid</label>
+                        <input type="number" step="0.01" name="sys_amountPaid" class="form-control"  required />
+                    </div>
+
+                    <hr />
+                    <h6>Installation Details</h6>
+
+                    <div class="mb-3">
+                        <label>Proposed Installation Date</label>
+                        <input type="date" name="sys_installationDate" class="form-control" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Proposed Installer</label>
+                        <input type="text" name="sys_installedBy" class="form-control" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Tombstone Permit Details</label>
+                        <textarea name="sys_remarks" class="form-control" required ></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Save Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!--End of Sell Tombstone for a grave-->
+
+
+
+
+
 @* Create Single Grave Modal *@
 <div class="modal fade" id="createGraveModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -155,6 +247,7 @@
                         
                         <label class="form-label fw-bold">Sale Status</label>
                         <select name="sys_graveSaleStatus" class="form-select">
+                            <option value="Under Construction">Under Construction</option>
                             <option value="Available">Unsold</option>
                             <option value="Sold">Sold</option>
                             <option value="Reserved">Reserved</option>
@@ -306,6 +399,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold">Status</label>
                         <select name="sys_graveSaleStatus" class="form-select border" style="border-color: var(--primary-green);">
+                            <option value="Under Construction">Under Construction</option>
                             <option value="Unsold">Unsold</option>
                             <option value="Reserved">Reserved</option>
                             <option value="Sold">Sold</option>
@@ -481,4 +575,13 @@
 </script>
 
 
+    
+    <script>
+    const modal = document.getElementById('tombstoneOrderModal');
+    modal.addEventListener('show.bs.modal', event => {
+        const button = event.relatedTarget;
+        document.getElementById('selectedGraveId').value = button.getAttribute('data-graveid');
+    });
+</script>
+    
 

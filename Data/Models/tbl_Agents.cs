@@ -13,6 +13,9 @@ namespace ZororoMemorialPark.Data.Models
         public string sys_agentAddress { get; set; }
         public string UserId { get; set; }
 
+        public int sys_commission { get; set; }
+        public bool sys_isPercentage { get; set; }
+
 
 
 

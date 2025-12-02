@@ -1,0 +1,246 @@
+﻿@page "{id:int}"
+@model ZororoMemorialPark.Pages.Finance.InvoiceDetailModel
+@{
+    ViewData["Title"] = "Invoice Details";
+}
+
+
+<!-- Alerts -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+
+
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center"
+    style="background-color: var(--primary-green); color: var(--primary-white);">
+        <h5 class="mb-0">Invoice @Model.Invoice?.sys_invoiceId</h5>
+        <div>
+            <a asp-page="./InvoicesList" class="btn btn-light btn-sm">Back</a>
+            <a asp-page-handler="Pdf"
+            asp-route-id="@Model.Invoice.sys_invoiceId"
+            class="btn btn-outline-white btn-sm"
+            style="background:white;color:#006A46;">
+                Download PDF
+            </a>
+
+            @{var balance = Model.Total - Model.Paid;}
+
+            @if (Model.InvoiceType != "GraveSale" && Model.InvoiceType != "Reservation" && balance>0)
+            {
+               
+                <button class="btn btn-sm btn-success"
+                        data-bs-toggle="modal"
+                        data-bs-target="#paymentModal"
+                        data-invoice="@Model.Invoice.sys_invoiceId"
+                        data-balance="@balance">
+                    Capture Payment
+                </button>
+            }
+
+        </div>
+    </div>
+
+    <div class="card-body">
+        @if (Model.Invoice == null)
+        {
+            <div class="alert alert-warning">Invoice not found.</div>
+        }
+        else
+        {
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <h6>Invoice</h6>
+                    <p><strong>Number:</strong> @Model.Invoice.sys_invoiceId</p>
+                    <p><strong>Date:</strong> @Model.Invoice.sys_invoiceDate.ToString("yyyy-MM-dd")</p>
+                    <p><strong>Due:</strong> @Model.Invoice.sys_invoiceDueDate.ToString("yyyy-MM-dd")</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <h6>Customer</h6>
+                    <p>@Model.CustomerName</p>
+                </div>
+            </div>
+
+            <h6>Items</h6>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th class="text-end">Cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var it in Model.Items)
+                    {
+                        <tr>
+                            <td>@it.sys_itemName</td>
+                            <td class="text-end">$@it.sys_itemCost.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td class="text-end"><strong>Total</strong></td>
+                        <td class="text-end">$@Model.Total.ToString("N2")</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <h6>Payments</h6>
+            <table class="table table-sm table-bordered">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th class="text-end">Amount</th>
+                        <th>Method</th>
+                        <th>Receipt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.Payments)
+                    {
+                        <tr>
+                            <td>@p.sys_date.ToString("yyyy-MM-dd")</td>
+                            <td class="text-end">$@p.sys_amount.ToString("N2")</td>
+                            <td>@p.sys_paymentMethod</td>
+                            <td>@p.sys_receiptNumber</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td class="text-end"><strong>Paid</strong></td>
+                        <td class="text-end">$@Model.Paid.ToString("N2")</td>
+                        <td colspan="2"></td>
+                    </tr>
+                    <tr>
+                        <td class="text-end"><strong>Balance</strong></td>
+                        <td class="text-end">
+                            <span class="@(Model.Balance <= 0 ? "text-success" : "text-danger")">$@Model.Balance.ToString("N2")</span>
+                        </td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        }
+    </div>
+</div>
+
+
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+
+            <div class="modal-header" style="background:#006A46; color:white;">
+                <h5 class="modal-title">Capture Payment</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form method="post" asp-page-handler="CapturePayment">
+                <div class="modal-body">
+
+                    <!-- Hidden Invoice ID -->
+                    <input type="hidden" id="InvoiceIdField" name="InvoiceId" />
+
+                    <!-- Hidden Invoice Balance (for client validation) -->
+                    <input type="hidden" id="InvoiceBalanceField" name="InvoiceBalance" />
+
+                    <div class="row">
+
+                        <!-- LEFT COLUMN -->
+                        <div class="col-md-6">
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Amount</label>
+                                <input type="number" min="1" step="0.01"
+                                       class="form-control"
+                                       id="AmountField"
+                                       name="Amount"
+                                       required />
+                                <small id="BalanceWarning" class="text-danger" style="display:none;">
+                                    Payment cannot exceed invoice balance.
+                                </small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Payment Method</label>
+                                <select class="form-select" name="PaymentMethodId" required>
+                                    <option value="">-- Select Method --</option>
+
+                                    @foreach (var pm in Model.PaymentMethods)
+                                    {
+                                        <option value="@pm.sys_paymentMethodId">
+                                            @pm.sys_paymentMethodName
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+
+                        </div>
+
+                        <!-- RIGHT COLUMN -->
+                        <div class="col-md-6">
+
+
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Remaining Balance</label>
+                                <input class="form-control" id="BalanceField" readonly />
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn" id="SubmitPaymentBtn"
+                            style="background:#006A46; color:white;">
+                        Save Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    const paymentModal = document.getElementById("paymentModal");
+
+    paymentModal.addEventListener("show.bs.modal", function (event) {
+        const button = event.relatedTarget;
+
+        const invoiceId = button.getAttribute("data-invoice");
+        const balance = button.getAttribute("data-balance");
+
+        document.getElementById("InvoiceIdField").value = invoiceId;
+        document.getElementById("InvoiceBalanceField").value = balance;
+        document.getElementById("BalanceField").value = balance;
+    });
+
+    document.getElementById("AmountField")?.addEventListener("input", function () {
+        const amount = parseFloat(this.value || 0);
+        const balance = parseFloat(document.getElementById("InvoiceBalanceField").value);
+
+        const warning = document.getElementById("BalanceWarning");
+        const submitBtn = document.getElementById("SubmitPaymentBtn");
+
+        if (amount > balance) {
+            warning.style.display = "block";
+            submitBtn.disabled = true;
+        }
+
+        else {
+            warning.style.display = "none";
+            submitBtn.disabled = false;
+        }
+    });
+</script>

@@ -7,5 +7,8 @@ namespace ZororoMemorialPark.Data.Models
         [Key]
         public int sys_sectionId { get; set; }
         public string sys_sectionName { get; set; } 
+
+        public string sys_jobReminder { get; set; }
+        public int sys_reminderPeriod { get; set; }
     }
 }

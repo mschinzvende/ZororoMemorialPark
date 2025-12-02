@@ -1,0 +1,98 @@
+﻿@page
+@model ZororoMemorialPark.Pages.Settings.UserProfileModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<div class="d-flex justify-content-center mt-4">
+    <div class="w-100" style="max-width: 650px;">
+
+        @if (!string.IsNullOrEmpty(Model.StatusMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show" id="successMessage">
+                @Model.StatusMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <div class="card shadow border-0">
+            <div class="card-header text-white" style="background-color:#006A46;">
+                <h4 class="mb-0">My Profile</h4>
+            </div>
+
+            <div class="card-body">
+
+                <!-- PROFILE UPDATE FORM -->
+                <form method="post" class="mt-2">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Full Name</label>
+                        <input asp-for="Input.FullName" class="form-control form-control-lg" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Phone Number</label>
+                        <input asp-for="Input.PhoneNumber" class="form-control form-control-lg" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Email</label>
+                        <input asp-for="Input.Email" class="form-control form-control-lg" />
+                    </div>
+
+                    <div class="d-flex justify-content-start mt-3">
+                        <button type="submit" class="btn btn-success px-4">
+                            Save Profile
+                        </button>
+                    </div>
+                </form>
+
+                <hr class="my-4">
+
+                <!-- CHANGE PASSWORD BUTTON -->
+                <div class="d-flex justify-content-start">
+                    <button class="btn btn-outline-dark px-4"
+                            data-bs-toggle="modal"
+                            data-bs-target="#passwordModal">
+                        Change Password
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="modal fade" id="passwordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header bg-info text-dark">
+                <h5 class="modal-title">Change Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <form method="post" asp-page-handler="ChangePassword">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Current Password</label>
+                        <input asp-for="PasswordInput.CurrentPassword" class="form-control" type="password" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">New Password</label>
+                        <input asp-for="PasswordInput.NewPassword" class="form-control" type="password" />
+                    </div>
+
+                    <button type="submit" class="btn btn-info w-100">
+                        Update Password
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
