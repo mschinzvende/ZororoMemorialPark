@@ -194,7 +194,7 @@ namespace ZororoMemorialPark.Pages.Reports
         public string Category { get; set; }   // Sellable / Consumable
         public double UnitCost { get; set; }
         public double SellingPrice { get; set; }
-        public int StockQuantity { get; set; }
+        public double StockQuantity { get; set; }
         public string UnitOfMeasure { get; set; }
         public string Status { get; set; }     // In Stock / Low Stock / Out of Stock / Service
 
@@ -205,12 +205,12 @@ namespace ZororoMemorialPark.Pages.Reports
     public class StockByCategoryDto
     {
         public string Category { get; set; }
-        public int TotalQuantity { get; set; }
+        public double TotalQuantity { get; set; }
     }
 
     public class TopProductDto
     {
         public string ItemName { get; set; }
-        public int Quantity { get; set; }
+        public double Quantity { get; set; }
     }
 }

@@ -420,6 +420,43 @@ namespace ZororoMemorialPark.Pages.Jobs
                 {
                     _context.tbl_Jobs.Remove(job);
                     await _context.SaveChangesAsync();
+
+                    // Rollback product usage
+                    var usageList = await _context.tbl_JobEvaluationProductUsage
+                        .Where(u => u.sys_jobId == jobid)
+                        .ToListAsync();
+
+                    foreach (var u in usageList)
+                    {
+                        var stockItem = await _context.tbl_ProductsAndServices
+                            .FirstOrDefaultAsync(i => i.sys_itemId == u.sys_itemId);
+
+                        if (stockItem != null)
+                        {
+                            double before = stockItem.sys_stockQuantity;
+                            stockItem.sys_stockQuantity += u.sys_quantityUsed;
+                            double after = stockItem.sys_stockQuantity;
+
+                            _context.tbl_InventoryAuditTrail.Add(new tbl_InventoryAuditTrail
+                            {
+                                sys_itemId = u.sys_itemId,
+                                sys_jobId = jobid,
+                                sys_action = "ROLLBACK_DELETE_JOB",
+                                sys_beforeQty = before,
+                                sys_afterQty = after,
+                                sys_changeQty = u.sys_quantityUsed,
+                                sys_date = DateTime.Now
+                            });
+
+                            _context.tbl_ProductsAndServices.Update(stockItem);
+                        }
+                    }
+
+                    _context.tbl_JobEvaluationProductUsage.RemoveRange(usageList);
+
+
+
+
                     TempData["SuccessMessage"] = "Job deleted successfully.";
 
                     _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Delete", $"Deleted Job ID {job.sys_jobId}");
@@ -516,13 +553,7 @@ namespace ZororoMemorialPark.Pages.Jobs
 
         public async Task<JsonResult> OnGetEvaluationParametersAsync(int jobId)
         {
-            var parameters = await _context.tbl_jobEvaluationParameters
-                .Select(p => new
-                {
-                    p.sys_jobEvaluationParameterId,
-                    p.sys_parameterName
-                })
-                .ToListAsync();
+            var parameters = await _context.tbl_jobEvaluationParameters.ToListAsync();
 
             var existing = await _context.tbl_JobEvaluations
                 .Where(e => e.sys_jobId == jobId)
@@ -532,28 +563,41 @@ namespace ZororoMemorialPark.Pages.Jobs
                 .Include(l => l.tbl_ProductsAndServices)
                 .ToListAsync();
 
+            var usage = await _context.tbl_JobEvaluationProductUsage
+                .Where(u => u.sys_jobId == jobId)
+                .ToListAsync();
+
             var result = parameters.Select(p => new
             {
                 p.sys_jobEvaluationParameterId,
                 p.sys_parameterName,
                 sys_jobEvaluation = existing
-                    .FirstOrDefault(e => e.sys_jobEvaluationParameterId == p.sys_jobEvaluationParameterId)?.sys_jobEvaluation,
+                    .FirstOrDefault(e => e.sys_jobEvaluationParameterId == p.sys_jobEvaluationParameterId)
+                    ?.sys_jobEvaluation,
+
                 linkedProducts = links
                     .Where(l => l.sys_jobEvaluationParameterId == p.sys_jobEvaluationParameterId)
                     .Select(lp => new
                     {
                         lp.tbl_ProductsAndServices.sys_itemId,
                         lp.tbl_ProductsAndServices.sys_itemName,
-                        lp.sys_defaultQty
+                        lp.sys_defaultQty,
+                        lp.tbl_ProductsAndServices.sys_unitOfMeasure,
+                        sys_quantityUsed = usage
+                            .FirstOrDefault(u =>
+                                u.sys_itemId == lp.tbl_ProductsAndServices.sys_itemId &&
+                                u.sys_jobEvaluationParameterId == p.sys_jobEvaluationParameterId)
+                            ?.sys_quantityUsed ?? 0
                     }).ToList()
             });
 
             return new JsonResult(result);
         }
+
         public async Task<IActionResult> OnPostAddEvaluationAsync()
         {
-            try
-            {
+           // try
+           // {
                 var jobIdStr = Request.Form["JobId"];
                 if (string.IsNullOrEmpty(jobIdStr) || !int.TryParse(jobIdStr, out int jobId))
                 {
@@ -561,7 +605,10 @@ namespace ZororoMemorialPark.Pages.Jobs
                     return RedirectToPage();
                 }
 
-                // Step 1: Save evaluations
+                // ===============================
+                // 1) SAVE TEXT EVALUATIONS
+                // ===============================
+
                 foreach (var key in Request.Form.Keys.Where(k => k.StartsWith("evaluation_")))
                 {
                     var paramIdStr = key.Replace("evaluation_", "");
@@ -573,12 +620,14 @@ namespace ZororoMemorialPark.Pages.Jobs
                         continue;
 
                     var existingEval = await _context.tbl_JobEvaluations
-                        .FirstOrDefaultAsync(e => e.sys_jobId == jobId && e.sys_jobEvaluationParameterId == paramId);
+                        .FirstOrDefaultAsync(e =>
+                            e.sys_jobId == jobId &&
+                            e.sys_jobEvaluationParameterId == paramId);
 
                     if (existingEval != null)
                     {
-                        existingEval.sys_jobEvaluation = evaluationText;
-                        _context.tbl_JobEvaluations.Update(existingEval);
+                        // DO NOT update (readonly once saved)
+                        continue;
                     }
                     else
                     {
@@ -591,7 +640,10 @@ namespace ZororoMemorialPark.Pages.Jobs
                     }
                 }
 
-                // Step 2: Save product usage
+                // ===============================
+                // 2) SAVE PRODUCT USAGE (ONCE ONLY)
+                // ===============================
+
                 foreach (var key in Request.Form.Keys.Where(k => k.StartsWith("product_")))
                 {
                     var parts = key.Split('_');
@@ -603,6 +655,20 @@ namespace ZororoMemorialPark.Pages.Jobs
                     double.TryParse(Request.Form[key], out double qtyUsed);
                     if (qtyUsed <= 0) continue;
 
+                    // Check if usage exists
+                    var existingUsage = await _context.tbl_JobEvaluationProductUsage
+                        .FirstOrDefaultAsync(u =>
+                            u.sys_jobId == jobId &&
+                            u.sys_jobEvaluationParameterId == paramId &&
+                            u.sys_itemId == productId);
+
+                    if (existingUsage != null)
+                    {
+                        // Do NOT deduct stock again
+                        continue;
+                    }
+
+                    // FIRST TIME PRODUCT USAGE ? Save & deduct stock
                     var usage = new tbl_JobEvaluationProductUsage
                     {
                         sys_jobId = jobId,
@@ -613,18 +679,50 @@ namespace ZororoMemorialPark.Pages.Jobs
                     };
 
                     _context.tbl_JobEvaluationProductUsage.Add(usage);
+
+                    // ===============================
+                    // 3) DEDUCT STOCK (ONCE ONLY)
+                    // ===============================
+
+                    var stockItem = await _context.tbl_ProductsAndServices
+                        .FirstOrDefaultAsync(i => i.sys_itemId == productId);
+
+                    if (stockItem != null)
+                    {
+                        double before = stockItem.sys_stockQuantity;
+                        stockItem.sys_stockQuantity -= qtyUsed;
+                        double after = stockItem.sys_stockQuantity;
+
+                        _context.tbl_ProductsAndServices.Update(stockItem);
+
+                        // ===============================
+                        // 4) STOCK AUDIT LOG
+                        // ===============================
+
+                        _context.tbl_InventoryAuditTrail.Add(new tbl_InventoryAuditTrail
+                        {
+                            sys_itemId = productId,
+                            sys_jobId = jobId,
+                            sys_action = "USED_IN_EVALUATION",
+                            sys_beforeQty = before,
+                            sys_afterQty = after,
+                            sys_changeQty = -qtyUsed,
+                            sys_date = DateTime.Now
+                        });
+                    }
                 }
 
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Evaluations and product usage saved successfully.";
-            }
-            catch (Exception ex)
-            {
-                TempData["ErrorMessage"] = $"Error saving evaluations: {ex.Message}";
-            }
+                TempData["SuccessMessage"] = "Evaluations & product usage saved successfully.";
+           // }
+           // catch (Exception ex)
+           // {
+            //    TempData["ErrorMessage"] = $"Error saving evaluations: {ex.Message}";
+            //}
 
             return RedirectToPage();
         }
+
 
 
         public async Task<IActionResult> OnPostBulkDeleteAsync(string jobIds)
@@ -638,6 +736,44 @@ namespace ZororoMemorialPark.Pages.Jobs
                 {
                     _context.tbl_Jobs.RemoveRange(jobsToDelete);
                     await _context.SaveChangesAsync();
+
+                    foreach(var job in jobsToDelete)
+                    {
+                        // Rollback product usage
+                        var usageList = await _context.tbl_JobEvaluationProductUsage
+                            .Where(u => u.sys_jobId == job.sys_jobId)
+                            .ToListAsync();
+
+                        foreach (var u in usageList)
+                        {
+                            var stockItem = await _context.tbl_ProductsAndServices
+                                .FirstOrDefaultAsync(i => i.sys_itemId == u.sys_itemId);
+
+                            if (stockItem != null)
+                            {
+                                double before = stockItem.sys_stockQuantity;
+                                stockItem.sys_stockQuantity += u.sys_quantityUsed;
+                                double after = stockItem.sys_stockQuantity;
+
+                                _context.tbl_InventoryAuditTrail.Add(new tbl_InventoryAuditTrail
+                                {
+                                    sys_itemId = u.sys_itemId,
+                                    sys_jobId = job.sys_jobId,
+                                    sys_action = "ROLLBACK_DELETE_JOB",
+                                    sys_beforeQty = before,
+                                    sys_afterQty = after,
+                                    sys_changeQty = u.sys_quantityUsed,
+                                    sys_date = DateTime.Now
+                                });
+
+                                _context.tbl_ProductsAndServices.Update(stockItem);
+                            }
+                        }
+
+                        _context.tbl_JobEvaluationProductUsage.RemoveRange(usageList);
+
+                    }
+
                     TempData["SuccessMessage"] = $"{jobsToDelete.Count} jobs deleted successfully.";
                 }
                 else

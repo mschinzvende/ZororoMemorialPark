@@ -456,13 +456,13 @@
                             <div class="col-md-12">
                                 <div class="card p-3 mb-3 shadow-sm">
                                     <h6 class="mb-3 border-bottom pb-2">Jobs Done On This Grave</h6>
-                                    <div class="col-md-6 mb-3">
+                                   <!-- <div class="col-md-6 mb-3">
                                     <button class="btn btn-sm btn-primary"
                                             data-bs-toggle="modal"
                                             data-bs-target="#createModal">
                                         ➕ Add Job
                                     </button>
-                                    </div>
+                                     </div-->
                                         @if (Model?.JobList?.Any() == true)
                                         {
                                             <div class="table-responsive">
@@ -482,69 +482,118 @@
                                                             <th style="width:200px;">Actions</th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody>
-                                                        @foreach (var job in Model.JobList)
+                                                <tbody>
+                                                    @foreach (var job in Model.JobList)
+                                                    {
+                                                        var isOverdue = job.EndDate.HasValue &&
+                                                        job.EndDate.Value < DateOnly.FromDateTime(DateTime.Today) &&
+                                                        job.JobStatus != "Complete";
+
+                                                        var rowClass = job.JobStatus switch
                                                         {
-                                                            <tr>
-                                                                <td>
-                                                                    <input type="checkbox" class="job-checkbox" value="@job.JobId">
-                                                                </td>
-                                                                <td><a asp-page="/Graves/GraveDetails" asp-route-id="@job.GraveID">@job.GravePlot</a></td>
-                                                                <td>@job.SupplierName</td>
-                                                                <td>@job.StageName</td>
-                                                                <td>@(job.StartDate?.ToString("yyyy-MM-dd") ?? "")</td>
-                                                                <td>@(job.EndDate?.ToString("yyyy-MM-dd") ?? "")</td>
-                                                                <td>@job.JobStatus</td>
-                                                                <td>@job.Balance</td>
-                                                                <td>
-                                                                    <button class="btn btn-sm btn-warning"
-                                                                            data-bs-toggle="modal"
-                                                                            data-bs-target="#editModal"
-                                                                            data-id="@job.JobId"
-                                                                            data-section="@job.SectionID"
-                                                                            data-grave="@job.GraveID"
-                                                                            data-supplier="@job.SupplierID"
-                                                                            data-stage="@job.StageID"
-                                                                            data-start="@job.StartDate?.ToString("yyyy-MM-dd")"
-                                                                            data-end="@job.EndDate?.ToString("yyyy-MM-dd")"
-                                                                            data-status="@job.JobStatus">
-                                                                        Edit
+                                                            "Complete" => "table-success",
+                                                            "In Progress" => "table-info",
+                                                            "Pending" => "table-warning",
+                                                            _ => ""
+                                                        };
+
+                                                        if (isOverdue)
+                                                            rowClass = "table-danger";
+
+                                                        <tr class="@rowClass">
+                                                            <td>
+                                                                <input type="checkbox" class="job-checkbox" value="@job.JobId" />
+                                                            </td>
+                                                            <td>
+
+
+                                                                <a href="#" class=""
+                                                                   data-bs-toggle="modal"
+                                                                   data-bs-target="#editModal"
+                                                                   data-id="@job.JobId"
+                                                                   data-section="@job.SectionID"
+                                                                   data-grave="@job.GraveID"
+                                                                   data-supplier="@job.SupplierID"
+                                                                   data-stage="@job.StageID"
+                                                                   data-start="@job.StartDate?.ToString("yyyy-MM-dd")"
+                                                                   data-end="@job.EndDate?.ToString("yyyy-MM-dd")"
+                                                                   data-status="@job.JobStatus">
+                                                                    @job.GravePlot
+                                                                </a>
+                                                            </td>
+                                                            <td>@job.SupplierName</td>
+                                                            <td>@job.StageName</td>
+                                                            <td>@job.StartDate?.ToString("yyyy-MM-dd")</td>
+                                                            <td>@job.EndDate?.ToString("yyyy-MM-dd")</td>
+                                                            <td>
+                                                                @switch (job.JobStatus)
+                                                                {
+                                                                    case "Complete":
+                                                                        <span class="badge bg-success">Complete</span>
+                                                                        ; break;
+                                                                    case "Pending":
+                                                                        <span class="badge bg-warning text-dark">Pending</span>
+                                                                        ; break;
+                                                                    case "In Progress":
+                                                                        <span class="badge bg-info text-dark">In Progress</span>
+                                                                        ; break;
+                                                                    default:
+                                                                        <span class="badge bg-secondary">@job.JobStatus</span>
+                                                                        ; break;
+                                                                }
+                                                                @if (isOverdue)
+                                                                {
+                                                                    <span class="badge bg-danger ms-1">Overdue</span>
+                                                                }
+                                                            </td>
+                                                            <td>$@job.Balance.ToString("N2")</td>
+                                                            <td>
+                                                                <button class="btn btn-sm btn-warning"
+                                                                        data-bs-toggle="modal"
+                                                                        data-bs-target="#editModal"
+                                                                        data-id="@job.JobId"
+                                                                        data-section="@job.SectionID"
+                                                                        data-grave="@job.GraveID"
+                                                                        data-supplier="@job.SupplierID"
+                                                                        data-stage="@job.StageID"
+                                                                        data-start="@job.StartDate?.ToString("yyyy-MM-dd")"
+                                                                        data-end="@job.EndDate?.ToString("yyyy-MM-dd")"
+                                                                        data-status="@job.JobStatus">
+                                                                    <i class="bi bi-pencil-square"></i>
+                                                                </button>
+
+                                                                @if (job.JobStatus != "Complete")
+                                                                {
+                                                                    <button class="btn btn-sm btn-secondary" disabled>
+                                                                        <i class="bi bi-cash-coin"></i>
+                                                                    </button>
+                                                                    <button class="btn btn-sm btn-secondary" disabled>
+                                                                        <i class="bi bi-clipboard-check"></i>
+                                                                    </button>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <button type="button" class="btn btn-sm btn-info"
+                                                                            onclick="openPaymentModal(@job.JobId, @job.SupplierID)">
+                                                                        <i class="bi bi-cash-coin"></i>
                                                                     </button>
 
-
-                                                                    <button class="btn btn-sm btn-danger"
-                                                                            data-bs-toggle="modal"
-                                                                            data-bs-target="#deleteModal"
-                                                                            data-id="@job.JobId">
-                                                                        Delete
+                                                                    <button type="button" class="btn btn-sm btn-secondary"
+                                                                            onclick="openEvaluationModal(@job.JobId)">
+                                                                        <i class="bi bi-clipboard-check"></i>
                                                                     </button>
-                                                                    @if (job.JobStatus != "Complete")
-                                                                    {
-                                                                        <button class="btn btn-sm btn-secondary" disabled>
-                                                                            Pay
-                                                                        </button>
-                                                                        <button class="btn btn-sm btn-secondary" disabled>
-                                                                            Evaluate
-                                                                        </button>
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        <button type="button" class="btn btn-sm btn-info"
-                                                                                onclick="openPaymentModal(@job.JobId, @job.SupplierID)">
-                                                                            Pay
-                                                                        </button>
+                                                                }
 
-                                                                        <button type="button"
-                                                                                class="btn btn-info btn-sm btn-secondary"
-                                                                                onclick="openEvaluationModal(@job.JobId)">
-                                                                            Evaluate
-                                                                        </button>
-                                                                    }
-
-                                                                </td>
-                                                            </tr>
-                                                        }
-                                                    </tbody>
+                                                                <button class="btn btn-sm btn-danger"
+                                                                        data-bs-toggle="modal"
+                                                                        data-bs-target="#deleteModal"
+                                                                        data-id="@job.JobId">
+                                                                    <i class="bi bi-trash"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
                                                 </table>
                                             </div>
 
@@ -740,13 +789,15 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label>DOB<span class="text-danger">*</span></label>
-                            <input type="date" name="deceasedDOB" class="form-control" required />
+                            <label>DOB <span class="text-danger">*</span></label>
+                            <input type="date" id="dob" name="deceasedDOB" class="form-control" required />
+                            <small id="dobError" class="text-danger d-none"></small>
                         </div>
 
                         <div class="col-md-4">
-                            <label>DOD<span class="text-danger">*</span></label>
-                            <input type="date" name="deceasedDOD" class="form-control" required />
+                            <label>DOD <span class="text-danger">*</span></label>
+                            <input type="date" id="dod" name="deceasedDOD" class="form-control" required />
+                            <small id="dodError" class="text-danger d-none"></small>
                         </div>
 
                         <div class="col-md-4">
@@ -764,8 +815,8 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label>Marital Status</label>
-                            <select name="maritalStatus" class="form-control">
+                            <label>Marital Status<span class="text-danger">*</span></label>
+                            <select name="maritalStatus" class="form-control" required>
                                 <option value="">-- Select --</option>
                                 <option value="Single">Single</option>
                                 <option value="Married">Married</option>
@@ -820,8 +871,9 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label for="burialDate">Burial Date <span class="text-danger">*</span></label>
-                            <input type="date" id="burialDate" class="form-control" required />
+                            <label>Burial Date <span class="text-danger">*</span></label>
+                            <input type="date" id="burialDate" name="burialDate" class="form-control" required />
+                            <small id="burialError" class="text-danger d-none"></small>
                         </div>
 
                         <div class="col-md-4">
@@ -843,7 +895,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" id="allocateSubmitBtn" class="btn btn-primary">Allocate</button>
+                    <button type="submit" id="allocateSubmitBtn" class="btn btn-primary" disabled>Allocate</button>
                 </div>
             </form>
         </div>
@@ -956,63 +1008,94 @@
                 <div class="modal-header"><h5>Allocation Payment</h5></div>
                 <div class="modal-body">
                     <input type="hidden" name="allocationId" id="allocationId" />
-                    
 
-                    <div class="mb-2">
-                        <label>Current Balance</label>
-                        <input type="number" name="currentBalance" step="0.01" class="form-control" value="@Model.AllocationBalance" readonly />
-                    </div>
-                    <div class="mb-2">
-                        <label>Amount Paid</label>
-                        <input type="number" name="amountPaid" min="0" step="0.01" class="form-control" max="@Model.AllocationBalance" required />
-                    </div>
-                    <div class="mb-2">
-                        <label>Payment Method</label>
-                        <select name="paymentMethodId" class="form-select">
-                            @foreach (var pm in Model.PaymentMethods)
-                            {
-                                <option value="@pm.sys_paymentMethodId">@pm.sys_paymentMethodName</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="mb-2">
-                        <label>Notes</label>
-                        <textarea name="notes" class="form-control"></textarea>
-                    </div>
+                    <div class="row">
+                        <!-- Left Column -->
+                        <div class="col-md-6">
 
-                    <div class="mb-2">
-                        <label>Receipt Number</label>
+                            <div class="mb-3">
+                                <label class="form-label">Current Balance</label>
+                                <input type="number" name="currentBalance" step="0.01"
+                                       class="form-control" value="@Model.AllocationBalance" readonly />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Amount Paid</label>
+                                <input type="number" name="amountPaid" min="0" step="0.01"
+                                       class="form-control" max="@Model.AllocationBalance" required />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Payment Method</label>
+                                <select name="paymentMethodId" class="form-select">
+                                    @foreach (var pm in Model.PaymentMethods)
+                                    {
+                                        <option value="@pm.sys_paymentMethodId">@pm.sys_paymentMethodName</option>
+                                    }
+                                </select>
+                            </div>
 
-                        @if (Model.AgentRecordExists)
-                        {
-                            <!-- Agent with record: auto use their receipt book -->
-                            <input type="hidden" id="receiptBookId" name="receiptBookId" value="@Model.AgentReceiptBook.sys_receiptBookId" />
-                            <input type="number" id="receiptNumber" name="receiptNumber" class="form-control" required />
-                            <small class="text-muted">
-                                Book @Model.AgentReceiptBook.sys_startNumber - @Model.AgentReceiptBook.sys_endNumber
-                            </small>
-                            <div id="receiptValidationMsg" class="text-danger small mt-1"></div>
-                        }
-                        else
-                        {
-                            <!-- Agent role only: must pick a book -->
-                            <select id="receiptBookId" name="receiptBookId" class="form-select mb-2" required>
-                                <option value="">-- Select Receipt Book --</option>
-                                @foreach (var b in Model.AvailableBooks)
+                        </div>
+
+                        <!-- Right Column -->
+                        <div class="col-md-6">
+
+                            <div class="mb-3">
+                                <label class="form-label">Notes</label>
+                                <textarea name="notes" class="form-control"></textarea>
+                            </div>
+                            </div>
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">Receipt Number</label>
+
+                                @if (Model.AgentRecordExists)
                                 {
-                                    <option value="@b.sys_receiptBookId"
-                                            data-start="@b.sys_startNumber"
-                                            data-end="@b.sys_endNumber"
-                                            data-current="@b.sys_currentNumber">
-                                        Book @b.sys_startNumber - @b.sys_endNumber (Agent: @b.AgentName)
-                                    </option>
+                                    <!-- Agent with fixed book -->
+                                    <input type="hidden" id="receiptBookId" name="receiptBookId"
+                                           value="@Model.AgentReceiptBook.sys_receiptBookId" />
+
+                                    <input type="number" id="receiptNumber" name="receiptNumber"
+                                           class="form-control" required />
+
+                                    <small class="text-muted d-block mt-1">
+                                        Book @Model.AgentReceiptBook.sys_startNumber -
+                                        @Model.AgentReceiptBook.sys_endNumber
+                                    </small>
+
+                                    <div id="receiptValidationMsg" class="text-danger small mt-1"></div>
                                 }
-                            </select>
-                            <input type="number" id="receiptNumber" name="receiptNumber" class="form-control" required />
-                            <div id="receiptValidationMsg" class="text-danger small mt-1"></div>
-                        }
+                                else
+                                {
+                                    <!-- Agent must choose a book -->
+                                    <select id="receiptBookId" name="receiptBookId"
+                                            class="form-select mb-2" required>
+                                        <option value="">-- Select Receipt Book --</option>
+                                        @foreach (var b in Model.AvailableBooks)
+                                        {
+                                            <option value="@b.sys_receiptBookId"
+                                                    data-start="@b.sys_startNumber"
+                                                    data-end="@b.sys_endNumber"
+                                                    data-current="@b.sys_currentNumber">
+                                                Book @b.sys_startNumber - @b.sys_endNumber
+                                                (Agent: @b.AgentName)
+                                            </option>
+                                        }
+                                    </select>
+
+                                    <input type="number" id="receiptNumber" name="receiptNumber"
+                                           class="form-control" required />
+
+                                    <div id="receiptValidationMsg" class="text-danger small mt-1"></div>
+                                }
+                            </div>
+
+                        </div>
                     </div>
                 </div>
+
                 <div class="modal-footer">
                     <button class="btn btn-success">Save Payment</button>
                 </div>
@@ -1023,61 +1106,6 @@
 
 
 <!--Job CRUD and Payments Modals-->
-<!-- Create Grave Job Modal -->
-
-<div class="modal fade" id="createModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="post" asp-page-handler="Create">
-                <div class="modal-header"><h5>Add Job</h5></div>
-                <div class="modal-body">
-
-                    <!-- Hidden graveId passed from page model -->
-                    <input type="hidden" name="graveId" value="@Model.Grave.sys_graveId" />
-
-                    <div class="mb-2">
-                        <label>Supplier</label>
-                        <select name="sys_supplierId" class="form-select"
-                                asp-items="@(new SelectList(Model.Suppliers, "sys_supplierId", "sys_supplierName"))"></select>
-                    </div>
-
-                    <div class="mb-2">
-                        <label>Development Stage</label>
-                        <select name="sys_stageId" class="form-select"
-                                asp-items="@(new SelectList(Model.Stages, "sys_stageId", "sys_stageName"))"></select>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-sm-6">
-                            <div class="mb-2">
-                                <label>Start Date</label>
-                                <input name="sys_startDate" class="form-control" type="date" />
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="mb-2">
-                                <label>End Date</label>
-                                <input name="sys_endDate" class="form-control" type="date" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-2">
-                        <label>Status</label>
-                        <select name="sys_status" class="form-select">
-                            <option value="Complete">Complete</option>
-                            <option value="In Progress">In Progress</option>
-                        </select>
-                    </div>
-
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary">Save</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 
 <!-- Edit Grave Job Modal -->
 <div class="modal fade" id="editModal" tabindex="-1">
@@ -1085,7 +1113,7 @@
         <div class="modal-content">
             <form method="post" asp-page-handler="Edit">
                 <div class="modal-header">
-                    <h5 class="modal-title">Edit Job</h5>
+                    <h5 class="modal-title">Update Job</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
@@ -1111,13 +1139,18 @@
                     <!-- Stage -->
                     <div class="mb-2">
                         <label for="editStageId">Stage</label>
-                        <select name="sys_stageId" class="form-select" id="editStageId">
+
+                        <!-- Disabled dropdown (read-only visually) -->
+                        <select class="form-select" id="editStageId" disabled>
                             <option value="">-- Select Stage --</option>
                             @foreach (var stage in Model.Stages)
                             {
                                 <option value="@stage.sys_stageId">@stage.sys_stageName</option>
                             }
                         </select>
+
+                        <!-- Hidden field to submit the value -->
+                        <input type="hidden" name="sys_stageId" id="editStageIdHidden" />
                     </div>
 
                     <div class="row">
@@ -1141,7 +1174,7 @@
                         <label>Status</label>
                         <select name="sys_status" class="form-select" id="editStatus">
                             <option value="Complete">Complete</option>
-                            <option value="In Progress">In Progress</option>
+                            <option value="Pending">In Progress</option>
                         </select>
                     </div>
                 </div>
@@ -1162,7 +1195,7 @@
             <form method="post" asp-page-handler="Delete">
                 <div class="modal-header"><h5>Delete Job</h5></div>
                 <div class="modal-body">
-                    <input type="text" id="deleteJobId" name="deleteJobId" />
+                    <input type="hidden" id="deleteJobId" name="deleteJobId" />
                     <p>Are you sure you want to delete this job?</p>
                 </div>
                 <div class="modal-footer">
@@ -1311,6 +1344,8 @@
                 document.getElementById("editStartDate").value = button.getAttribute("data-start");
                 document.getElementById("editEndDate").value = button.getAttribute("data-end");
                 document.getElementById("editStatus").value = button.getAttribute("data-status");
+                
+                document.getElementById("editStageIdHidden").value = button.getAttribute("data-stage");
             });
         }
 
@@ -1378,38 +1413,83 @@
 
             if (data && data.length > 0) {
                 data.forEach(param => {
-                    let productSection = '';
 
-                    if (param.linkedProducts && param.linkedProducts.length > 0) {
-                        productSection += `<div class="ms-3 mt-2 border rounded p-2">
-                            <strong>Products Used:</strong>`;
-                        param.linkedProducts.forEach(prod => {
-                            productSection += `
-                                <div class="row mb-1">
-                                    <div class="col-6">
-                                        <label>${prod.sys_itemName} (Default: ${prod.sys_defaultQty})</label>
-                                    </div>
-                                    <div class="col-6">
-                                        <input type="number" step="0.01" class="form-control"
-                                            name="product_${param.sys_jobEvaluationParameterId}_${prod.sys_itemId}"
-                                            placeholder="Qty Used" />
-                                    </div>
-                                </div>`;
-                        });
-                        productSection += `</div>`;
-                    }
+        let isReadOnly = false;
 
-                    container.append(`
-                        <div class="col-12 mb-3">
-                            <label><strong>${param.sys_parameterName}</strong></label>
-                            <input type="hidden" name="parameterIds" value="${param.sys_jobEvaluationParameterId}" />
-                            <input type="text" class="form-control mb-2"
-                                name="evaluation_${param.sys_jobEvaluationParameterId}"
-                                value="${param.sys_jobEvaluation ?? ''}" />
-                            ${productSection}
+        // Rule: If evaluation already exists → readonly
+        if (param.sys_jobEvaluation && param.sys_jobEvaluation.trim() !== "") {
+            isReadOnly = true;
+        }
+
+        let productSection = "";
+        let evaluationValue = param.sys_jobEvaluation || "";
+        let evaluationField = "";
+
+        // CASE 1 — Parameter has linked products
+        if (param.linkedProducts && param.linkedProducts.length > 0) {
+
+            // Hidden evaluation field (readonly or default)
+            evaluationField = `
+                <input type="hidden"
+                       name="evaluation_${param.sys_jobEvaluationParameterId}"
+                       value="${evaluationValue || 'AUTO_PRODUCT_ENTRY'}" />
+            `;
+
+            // Products block
+            productSection += `
+                <div class="ms-3 mt-2 border rounded p-2">
+                    <strong>Products Used:</strong>
+            `;
+
+            param.linkedProducts.forEach(prod => {
+
+                // Detect read-only at product level
+                let productReadOnly = isReadOnly || prod.sys_quantityUsed > 0;
+                let roAttr = productReadOnly ? "readonly" : "";
+
+                productSection += `
+                    <div class="row mb-1">
+                        <div class="col-6">
+                            <label>${prod.sys_itemName} (Default: ${prod.sys_defaultQty} ${prod.sys_unitOfMeasure})</label>
                         </div>
-                    `);
-                });
+                        <div class="col-6">
+                            <input type="number" step="0.01" class="form-control"
+                                   name="product_${param.sys_jobEvaluationParameterId}_${prod.sys_itemId}"
+                                   value="${prod.sys_quantityUsed}"
+                                   ${roAttr}
+                                   placeholder="Qty Used" />
+                        </div>
+                    </div>
+                `;
+            });
+
+            productSection += `</div>`;
+
+        }
+        // CASE 2 — No products → Normal evaluation text input
+        else {
+
+            let roAttr = isReadOnly ? "readonly" : "";
+
+            evaluationField = `
+                <input type="text" class="form-control mb-2"
+                       name="evaluation_${param.sys_jobEvaluationParameterId}"
+                       value="${evaluationValue}"
+                       ${roAttr} />
+            `;
+        }
+
+        container.append(`
+            <div class="col-12 mb-3">
+                <label><strong>${param.sys_parameterName}</strong></label>
+                <input type="hidden" name="parameterIds"
+                       value="${param.sys_jobEvaluationParameterId}" />
+                ${evaluationField}
+                ${productSection}
+            </div>
+        `);
+
+    });
             } else {
                 container.append(`<p class="text-muted">No evaluation parameters defined.</p>`);
             }
@@ -1528,6 +1608,148 @@ if (receiptInput) {
 if (bookSelect) {
     bookSelect.addEventListener("change", validateReceipt);
 }
+
+
+</script>
+
+<script>
+
+        document.addEventListener("DOMContentLoaded", function () {
+        const dob = document.getElementById("dob");
+        const dod = document.getElementById("dod");
+        const burial = document.getElementById("burialDate");
+
+        const dobError = document.getElementById("dobError");
+        const dodError = document.getElementById("dodError");
+        const burialError = document.getElementById("burialError");
+
+        const submitBtn = document.getElementById("allocateSubmitBtn");
+
+        function toDateOnly(dateString) {
+            const p = dateString.split("-");
+            return new Date(p[0], p[1] - 1, p[2]);
+        }
+
+        function validateForm() {
+            const anyError =
+                dobError.classList.contains("d-block") ||
+                dodError.classList.contains("d-block") ||
+                burialError.classList.contains("d-block");
+
+            const allFilled = dob.value && dod.value && burial.value;
+
+            submitBtn.disabled = anyError || !allFilled;
+        }
+
+        // --- DOB Validation ---
+        dob.addEventListener("change", function () {
+            dobError.classList.add("d-none");
+            if (!dob.value) { validateForm(); return; }
+
+            const dobDate = toDateOnly(dob.value);
+
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+
+            // Future DOB not allowed
+            if (dobDate > today) {
+                dobError.textContent = "Date of Birth cannot be in the future.";
+                dobError.classList.replace("d-none", "d-block");
+                dob.value = ""; validateForm(); return;
+            }
+
+            // Max 120 years rule
+            const oldest = new Date();
+            oldest.setFullYear(oldest.getFullYear() - 120);
+            oldest.setHours(0, 0, 0, 0);
+
+            if (dobDate < oldest) {
+                dobError.textContent = "Date of Birth cannot be more than 120 years ago.";
+                dobError.classList.replace("d-none", "d-block");
+                dob.value = ""; validateForm(); return;
+            }
+
+            if (dod.value) dod.dispatchEvent(new Event("change"));
+            if (burial.value) burial.dispatchEvent(new Event("change"));
+
+            validateForm();
+        });
+
+        // --- DOD Validation ---
+        dod.addEventListener("change", function () {
+            dodError.classList.add("d-none");
+            if (!dod.value) { validateForm(); return; }
+
+            const dobDate = dob.value ? toDateOnly(dob.value) : null;
+            const dodDate = toDateOnly(dod.value);
+
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+
+            // Future DOD not allowed
+            if (dodDate > today) {
+                dodError.textContent = "Date of Death cannot be in the future.";
+                dodError.classList.replace("d-none", "d-block");
+                dod.value = ""; validateForm(); return;
+            }
+
+            // DOD before DOB not allowed (same-day allowed)
+            if (dobDate && dodDate < dobDate) {
+                dodError.textContent = "Date of Death cannot be before Date of Birth.";
+                dodError.classList.replace("d-none", "d-block");
+                dod.value = ""; validateForm(); return;
+            }
+
+            // Max age 120
+            if (dobDate) {
+                const age = dodDate.getFullYear() - dobDate.getFullYear();
+                if (age > 120) {
+                    dodError.textContent = "Age cannot exceed 120 years.";
+                    dodError.classList.replace("d-none", "d-block");
+                    dod.value = ""; validateForm(); return;
+                }
+            }
+
+            if (burial.value) burial.dispatchEvent(new Event("change"));
+
+            validateForm();
+        });
+
+        // --- Burial Date Validation ---
+        burial.addEventListener("change", function () {
+            burialError.classList.add("d-none");
+            if (!burial.value) { validateForm(); return; }
+
+            const dodDate = dod.value ? toDateOnly(dod.value) : null;
+            const burialDate = toDateOnly(burial.value);
+
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+
+            /* Burial cannot be in the future
+            if (burialDate > today) {
+                burialError.textContent = "Burial Date cannot be in the future.";
+                burialError.classList.replace("d-none", "d-block");
+                burial.value = ""; validateForm(); return;
+            }*/
+
+            // Burial cannot be before DOD (same-day allowed)
+            if (dodDate && burialDate < dodDate) {
+                burialError.textContent = "Burial cannot be before the Date of Death.";
+                burialError.classList.replace("d-none", "d-block");
+                burial.value = ""; validateForm(); return;
+            }
+
+            // Burial must be within 30 days of DOD (legal/realistic)
+            if (dodDate) {
+                const daysDiff = (burialDate - dodDate) / (1000 * 60 * 60 * 24);
+                if (daysDiff > 30) {
+                    burialError.textContent = "Burial must be within 30 days of death.";
+                    burialError.classList.replace("d-none", "d-block");
+                    burial.value = ""; validateForm(); return;
+                }
+            }
+
+            validateForm();
+        });
+    });
 
 
 </script>

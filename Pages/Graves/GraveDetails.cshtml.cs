@@ -176,6 +176,8 @@ namespace ZororoMemorialPark.Pages.Graves
                             sys_receiptBookId = b.sys_receiptBookId,
                             sys_startNumber = b.sys_startNumber,
                             sys_endNumber = b.sys_endNumber,
+                            sys_currentNumber = b.sys_currentNumber,
+
                             AgentName = b.Agent.sys_agentName
                         })
                         .ToListAsync();
@@ -558,7 +560,7 @@ namespace ZororoMemorialPark.Pages.Graves
                     // Create Allocation
 
                     string fileName = "Invalid file";
-                    if (burialOrder != null || burialOrder.Length != 0)
+                    if (burialOrder != null && burialOrder.Length != 0)
                     {
                         // Ensure uploads folder exists
                         string uploadDir = Path.Combine(_env.WebRootPath, "uploads");
@@ -618,7 +620,7 @@ namespace ZororoMemorialPark.Pages.Graves
                     // Create Allocation
 
                     string fileName = "Invalid file";
-                    if (burialOrder != null || burialOrder.Length != 0)
+                    if (burialOrder != null && burialOrder.Length != 0)
                     {
                         // Ensure uploads folder exists
                         string uploadDir = Path.Combine(_env.WebRootPath, "uploads");
@@ -893,6 +895,8 @@ namespace ZororoMemorialPark.Pages.Graves
                 {
                     book.sys_isClosed = true;
                 }
+
+                await _context.SaveChangesAsync();
             }
 
 
@@ -1151,6 +1155,9 @@ namespace ZororoMemorialPark.Pages.Graves
                     .FirstOrDefaultAsync();
 
                 // Update job
+
+
+
                 job.sys_graveId = graveId;
                 job.sys_supplierId = supplierId;
                 job.sys_stageId = stageId;
@@ -1344,13 +1351,7 @@ namespace ZororoMemorialPark.Pages.Graves
 
         public async Task<JsonResult> OnGetEvaluationParametersAsync(int jobId)
         {
-            var parameters = await _context.tbl_jobEvaluationParameters
-                .Select(p => new
-                {
-                    p.sys_jobEvaluationParameterId,
-                    p.sys_parameterName
-                })
-                .ToListAsync();
+            var parameters = await _context.tbl_jobEvaluationParameters.ToListAsync();
 
             var existing = await _context.tbl_JobEvaluations
                 .Where(e => e.sys_jobId == jobId)
@@ -1360,19 +1361,31 @@ namespace ZororoMemorialPark.Pages.Graves
                 .Include(l => l.tbl_ProductsAndServices)
                 .ToListAsync();
 
+            var usage = await _context.tbl_JobEvaluationProductUsage
+                .Where(u => u.sys_jobId == jobId)
+                .ToListAsync();
+
             var result = parameters.Select(p => new
             {
                 p.sys_jobEvaluationParameterId,
                 p.sys_parameterName,
                 sys_jobEvaluation = existing
-                    .FirstOrDefault(e => e.sys_jobEvaluationParameterId == p.sys_jobEvaluationParameterId)?.sys_jobEvaluation,
+                    .FirstOrDefault(e => e.sys_jobEvaluationParameterId == p.sys_jobEvaluationParameterId)
+                    ?.sys_jobEvaluation,
+
                 linkedProducts = links
                     .Where(l => l.sys_jobEvaluationParameterId == p.sys_jobEvaluationParameterId)
                     .Select(lp => new
                     {
                         lp.tbl_ProductsAndServices.sys_itemId,
                         lp.tbl_ProductsAndServices.sys_itemName,
-                        lp.sys_defaultQty
+                        lp.sys_defaultQty,
+                        lp.tbl_ProductsAndServices.sys_unitOfMeasure,
+                        sys_quantityUsed = usage
+                            .FirstOrDefault(u =>
+                                u.sys_itemId == lp.tbl_ProductsAndServices.sys_itemId &&
+                                u.sys_jobEvaluationParameterId == p.sys_jobEvaluationParameterId)
+                            ?.sys_quantityUsed ?? 0
                     }).ToList()
             });
 
@@ -1380,76 +1393,129 @@ namespace ZororoMemorialPark.Pages.Graves
         }
         public async Task<IActionResult> OnPostAddEvaluationAsync()
         {
-            try
+            // try
+            // {
+            var jobIdStr = Request.Form["JobId"];
+            if (string.IsNullOrEmpty(jobIdStr) || !int.TryParse(jobIdStr, out int jobId))
             {
-                var jobIdStr = Request.Form["JobId"];
-                if (string.IsNullOrEmpty(jobIdStr) || !int.TryParse(jobIdStr, out int jobId))
+                TempData["ErrorMessage"] = "Invalid Job ID.";
+                return RedirectToPage();
+            }
+
+            // ===============================
+            // 1) SAVE TEXT EVALUATIONS
+            // ===============================
+
+            foreach (var key in Request.Form.Keys.Where(k => k.StartsWith("evaluation_")))
+            {
+                var paramIdStr = key.Replace("evaluation_", "");
+                if (!int.TryParse(paramIdStr, out int paramId))
+                    continue;
+
+                var evaluationText = Request.Form[key];
+                if (string.IsNullOrWhiteSpace(evaluationText))
+                    continue;
+
+                var existingEval = await _context.tbl_JobEvaluations
+                    .FirstOrDefaultAsync(e =>
+                        e.sys_jobId == jobId &&
+                        e.sys_jobEvaluationParameterId == paramId);
+
+                if (existingEval != null)
                 {
-                    TempData["ErrorMessage"] = "Invalid Job ID.";
-                    return RedirectToPage();
+                    // DO NOT update (readonly once saved)
+                    continue;
                 }
-
-                // Step 1: Save evaluations
-                foreach (var key in Request.Form.Keys.Where(k => k.StartsWith("evaluation_")))
+                else
                 {
-                    var paramIdStr = key.Replace("evaluation_", "");
-                    if (!int.TryParse(paramIdStr, out int paramId))
-                        continue;
-
-                    var evaluationText = Request.Form[key];
-                    if (string.IsNullOrWhiteSpace(evaluationText))
-                        continue;
-
-                    var existingEval = await _context.tbl_JobEvaluations
-                        .FirstOrDefaultAsync(e => e.sys_jobId == jobId && e.sys_jobEvaluationParameterId == paramId);
-
-                    if (existingEval != null)
-                    {
-                        existingEval.sys_jobEvaluation = evaluationText;
-                        _context.tbl_JobEvaluations.Update(existingEval);
-                    }
-                    else
-                    {
-                        _context.tbl_JobEvaluations.Add(new tbl_JobEvaluations
-                        {
-                            sys_jobId = jobId,
-                            sys_jobEvaluationParameterId = paramId,
-                            sys_jobEvaluation = evaluationText
-                        });
-                    }
-                }
-
-                // Step 2: Save product usage
-                foreach (var key in Request.Form.Keys.Where(k => k.StartsWith("product_")))
-                {
-                    var parts = key.Split('_');
-                    if (parts.Length != 3) continue;
-
-                    int.TryParse(parts[1], out int paramId);
-                    int.TryParse(parts[2], out int productId);
-
-                    double.TryParse(Request.Form[key], out double qtyUsed);
-                    if (qtyUsed <= 0) continue;
-
-                    var usage = new tbl_JobEvaluationProductUsage
+                    _context.tbl_JobEvaluations.Add(new tbl_JobEvaluations
                     {
                         sys_jobId = jobId,
                         sys_jobEvaluationParameterId = paramId,
-                        sys_itemId = productId,
-                        sys_quantityUsed = qtyUsed,
-                        sys_dateUsed = DateTime.Now
-                    };
+                        sys_jobEvaluation = evaluationText
+                    });
+                }
+            }
 
-                    _context.tbl_JobEvaluationProductUsage.Add(usage);
+            // ===============================
+            // 2) SAVE PRODUCT USAGE (ONCE ONLY)
+            // ===============================
+
+            foreach (var key in Request.Form.Keys.Where(k => k.StartsWith("product_")))
+            {
+                var parts = key.Split('_');
+                if (parts.Length != 3) continue;
+
+                int.TryParse(parts[1], out int paramId);
+                int.TryParse(parts[2], out int productId);
+
+                double.TryParse(Request.Form[key], out double qtyUsed);
+                if (qtyUsed <= 0) continue;
+
+                // Check if usage exists
+                var existingUsage = await _context.tbl_JobEvaluationProductUsage
+                    .FirstOrDefaultAsync(u =>
+                        u.sys_jobId == jobId &&
+                        u.sys_jobEvaluationParameterId == paramId &&
+                        u.sys_itemId == productId);
+
+                if (existingUsage != null)
+                {
+                    // Do NOT deduct stock again
+                    continue;
                 }
 
-                await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Evaluations and product usage saved successfully.";
+                // FIRST TIME PRODUCT USAGE ? Save & deduct stock
+                var usage = new tbl_JobEvaluationProductUsage
+                {
+                    sys_jobId = jobId,
+                    sys_jobEvaluationParameterId = paramId,
+                    sys_itemId = productId,
+                    sys_quantityUsed = qtyUsed,
+                    sys_dateUsed = DateTime.Now
+                };
+
+                _context.tbl_JobEvaluationProductUsage.Add(usage);
+
+                // ===============================
+                // 3) DEDUCT STOCK (ONCE ONLY)
+                // ===============================
+
+                var stockItem = await _context.tbl_ProductsAndServices
+                    .FirstOrDefaultAsync(i => i.sys_itemId == productId);
+
+                if (stockItem != null)
+                {
+                    double before = stockItem.sys_stockQuantity;
+                    stockItem.sys_stockQuantity -= qtyUsed;
+                    double after = stockItem.sys_stockQuantity;
+
+                    _context.tbl_ProductsAndServices.Update(stockItem);
+
+                    // ===============================
+                    // 4) STOCK AUDIT LOG
+                    // ===============================
+
+                    _context.tbl_InventoryAuditTrail.Add(new tbl_InventoryAuditTrail
+                    {
+                        sys_itemId = productId,
+                        sys_jobId = jobId,
+                        sys_action = "USED_IN_EVALUATION",
+                        sys_beforeQty = before,
+                        sys_afterQty = after,
+                        sys_changeQty = -qtyUsed,
+                        sys_date = DateTime.Now
+                    });
+                }
             }
-            catch (Exception ex)
-            {
-                TempData["ErrorMessage"] = $"Error saving evaluations: {ex.Message}";
-            }
+
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Evaluations & product usage saved successfully.";
+            // }
+            // catch (Exception ex)
+            // {
+            //    TempData["ErrorMessage"] = $"Error saving evaluations: {ex.Message}";
+            //}
 
             return RedirectToPage();
         }
