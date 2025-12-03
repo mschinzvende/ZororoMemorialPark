@@ -386,7 +386,7 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 if (installation == null)
                 {
-                    // No installation record — no tombstone activity for this grave
+                    // No installation record Â— no tombstone activity for this grave
                     return; // Model is initialized, view will show "no tombstone" message
                 }
 
@@ -1148,7 +1148,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 var existingJob = await _context.tbl_Jobs
                     .FirstOrDefaultAsync(j => j.sys_jobId == job.sys_jobId);
 
-                // Get the order of the existing job’s stage
+                // Get the order of the existing jobÂ’s stage
                 var existingStageOrder = await _context.tbl_DevelopmentStages
                     .Where(s => s.sys_stageId == existingJob.sys_stageId)
                     .Select(s => s.sys_stageOrder)
