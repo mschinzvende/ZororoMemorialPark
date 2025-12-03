@@ -1,0 +1,334 @@
+﻿@page
+@model ZororoMemorialPark.Pages.Reports.GraveActivityReportModel
+@{
+    ViewData["Title"] = "Grave Activity & Stock Report";
+}
+
+<div class="row">
+    <div class="col-lg-12 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center"
+                 style="background-color:#006A46;color:#fff;">
+                <h5 class="mb-0">Grave Activity & Stock Report</h5>
+            </div>
+
+            <div class="card-body">
+
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div class="alert alert-danger">@Model.ErrorMessage</div>
+                }
+
+                <!-- Filters -->
+                <form method="get" class="row g-3 mb-4">
+
+                    <div class="col-md-3">
+                        <label class="form-label">From Date</label>
+                        <input type="date"
+                               name="fromDate"
+                               class="form-control"
+                               value="@Model.FromDate.ToString("yyyy-MM-dd")" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">To Date</label>
+                        <input type="date"
+                               name="toDate"
+                               class="form-control"
+                               value="@Model.ToDate.ToString("yyyy-MM-dd")" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Section</label>
+                        <select asp-for="SectionId"
+                                name="sectionId"
+                                class="form-select"
+                                asp-items="Model.SectionSelectList">
+                            <option value="">All Sections</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3 d-flex align-items-end gap-2">
+
+                        <!-- Apply Filter -->
+                        <button type="submit"
+                                class="btn btn-primary w-50">
+                            Apply
+                        </button>
+
+                        <!-- Export PDF -->
+                        <button type="button"
+                                id="exportPdfBtn"
+                                class="btn btn-outline-secondary w-50">
+                            Export PDF
+                        </button>
+
+
+                    </div>
+
+                </form>
+
+
+                <!-- Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3 col-sm-6 mb-2">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body py-2">
+                                <div class="text-muted small">Sections in Scope</div>
+                                <div class="fw-bold">@Model.SectionSummaries.Count</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 col-sm-6 mb-2">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body py-2">
+                                <div class="text-muted small">Opening Available Graves</div>
+                                <div class="fw-bold">
+                                    @Model.SectionSummaries.Sum(s => s.OpeningAvailableGraves)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 col-sm-6 mb-2">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body py-2">
+                                <div class="text-muted small">Graves Allocated (Period)</div>
+                                <div class="fw-bold text-info">
+                                    @Model.SectionSummaries.Sum(s => s.GravesAllocatedInPeriod)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 col-sm-6 mb-2">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body py-2">
+                                <div class="text-muted small">Burials (Period)</div>
+                                <div class="fw-bold text-danger">
+                                    @Model.Burials.Count
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 col-sm-6 mb-2">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body py-2">
+                                <div class="text-muted small">Current Reservations</div>
+                                <div class="fw-bold text-warning">
+                                    @Model.Reservations.Count
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 col-sm-6 mb-2">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body py-2">
+                                <div class="text-muted small">Total Product Qty Used</div>
+                                <div class="fw-bold text-primary">
+                                    @Model.ProductSummaries.Sum(p => p.UsedQty)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section & Stage Summary -->
+                <h6 class="mb-2" style="color:#006A46;">Grave Activity by Section & Stage</h6>
+                <div class="table-responsive mb-4">
+                    <table class="table table-sm table-bordered align-middle">
+                        <thead style="background-color:#006A46;color:#fff;">
+                            <tr>
+                                <th>Section</th>
+                                <th>Total Graves</th>
+                                <th>Opening Available</th>
+                                <th>Allocated (Period)</th>
+                                <th>Burials (Period)</th>
+                                <th>Reservations (Current)</th>
+                                <th>Stage Breakdown</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var sec in Model.SectionSummaries)
+                            {
+                                <tr>
+                                    <td>@sec.SectionName</td>
+                                    <td>@sec.TotalGraves</td>
+                                    <td>@sec.OpeningAvailableGraves</td>
+                                    <td>@sec.GravesAllocatedInPeriod</td>
+                                    <td>@sec.BurialsInPeriod</td>
+                                    <td>@sec.ReservationsCount</td>
+                                    <td>
+                                        @if (sec.StageBreakdown.Any())
+                                        {
+                                            foreach (var st in sec.StageBreakdown)
+                                            {
+                                                <span class="badge me-1 mb-1"
+                                                      style="background-color:#006A46;">
+                                                    @st.StageName: @st.Count
+                                                </span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">No data</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Product Stock & Usage -->
+                <h6 class="mb-2" style="color:#006A46;">Consumable Products Stock & Usage (Period)</h6>
+                <div class="table-responsive mb-4">
+                    <table class="table table-sm table-striped align-middle">
+                        <thead style="background-color:#006A46;color:#fff;">
+                            <tr>
+                                <th>Product</th>
+                                <th>Opening Qty (Approx)</th>
+                                <th>Used in Period</th>
+                                <th>Closing Qty (Current)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in Model.ProductSummaries)
+                            {
+                                <tr>
+                                    <td>@p.ItemName</td>
+                                    <td>@p.OpeningQty</td>
+                                    <td class="text-danger">@p.UsedQty</td>
+                                    <td class="text-success">@p.ClosingQty</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr style="background-color:#F3F3F3;">
+                                <th>Totals</th>
+                                <th>@Model.ProductSummaries.Sum(x => x.OpeningQty)</th>
+                                <th class="text-danger">@Model.ProductSummaries.Sum(x => x.UsedQty)</th>
+                                <th class="text-success">@Model.ProductSummaries.Sum(x => x.ClosingQty)</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Per-grave Product Usage -->
+                <h6 class="mb-2" style="color:#006A46;">Per-Grave Product Usage (Development)</h6>
+                <div class="table-responsive mb-4">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead style="background-color:#006A46;color:#fff;">
+                            <tr>
+                                <th>Section</th>
+                                <th>Grave</th>
+                                <th>Stage</th>
+                                <th>Product</th>
+                                <th>Qty Used</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.GraveProductUsage)
+                            {
+                                <tr>
+                                    <td>@row.SectionName</td>
+                                    <td>@row.PlotNumber</td>
+                                    <td>@row.StageName</td>
+                                    <td>@row.ProductName</td>
+                                    <td>@row.QuantityUsed</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Burials -->
+                <h6 class="mb-2" style="color:#006A46;">Burials Done in Period</h6>
+                <div class="table-responsive mb-4">
+                    <table class="table table-sm table-striped align-middle">
+                        <thead style="background-color:#006A46;color:#fff;">
+                            <tr>
+                                <th>Date</th>
+                                <th>Deceased</th>
+                                <th>Grave</th>
+                                <th>Section</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var b in Model.Burials)
+                            {
+                                <tr>
+                                    <td>@b.BurialDate.ToString("yyyy-MM-dd")</td>
+                                    <td>@b.DeceasedName</td>
+                                    <td>@b.GravePlot</td>
+                                    <td>@b.SectionName</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Reservations Summary -->
+                <h6 class="mb-2" style="color:#006A46;">Current Grave Reservations</h6>
+                <div class="table-responsive mb-2">
+                    <table class="table table-sm table-striped align-middle">
+                        <thead style="background-color:#006A46;color:#fff;">
+                            <tr>
+                                <th>Section</th>
+                                <th>Grave</th>
+                                <th>Customer</th>
+                                <th>Phone</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Reservations.Any())
+                            {
+                                @foreach (var r in Model.Reservations)
+                                {
+                                    <tr>
+                                        <td>@r.SectionName</td>
+                                        <td>@r.GravePlot</td>
+                                        <td>@r.CustomerName</td>
+                                        <td>@r.CustomerPhone</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-muted small">
+                                        No current reservations for the selected filters.
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="text-muted small mt-3">
+                    Report period:
+                    <strong>@Model.FromDate.ToString("yyyy-MM-dd")</strong>
+                    to
+                    <strong>@Model.ToDate.ToString("yyyy-MM-dd")</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    document.getElementById("exportPdfBtn").addEventListener("click", function () {
+
+            const from = document.querySelector("input[name='fromDate']").value;
+    const to = document.querySelector("input[name='toDate']").value;
+    const section = document.querySelector("select[name='sectionId']").value;
+
+    const url = `/Reports/GraveActivityReport?handler=ExportPdf&fromDate=${from}&toDate=${to}&sectionId=${section}`;
+    window.location.href = url;
+        
+    });
+</script>

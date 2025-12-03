@@ -24,7 +24,7 @@ namespace ZororoMemorialPark.Data.Models
         
         public double sys_sellingPrice { get; set; } // Price to customer (for sellables)
 
-        public int sys_stockQuantity { get; set; }  // Only for products
+        public double sys_stockQuantity { get; set; }  // Only for products
         public string sys_unitOfMeasure { get; set; } // e.g., "Bag", "Piece", "Service"
 
         
