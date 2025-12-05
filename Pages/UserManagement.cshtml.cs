@@ -10,7 +10,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using ZororoMemorialPark.Services;
 
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Manager")]
 public class UserManagementModel : PageModel
 {
     private readonly UserManager<IdentityUser> _userManager;
@@ -30,7 +30,7 @@ public class UserManagementModel : PageModel
     [TempData] public string StatusMessage { get; set; }
 
     public List<UserViewModel> Users { get; set; } = new();
-    public List<string> AllRoles { get; } = new() { "Admin", "Accountant", "Supervisor", "Agent" };
+    public List<string> AllRoles { get; } = new() { "Manager", "FinanceOfficer", "OperationsOfficer", "Agent" };
 
 
     // --------------------- ADD USER ---------------------

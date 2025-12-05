@@ -1,4 +1,14 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Identity
+@inject UserManager<IdentityUser> UserManager
+
+@{
+    bool isManager = User.IsInRole("Manager");
+    bool isOps = User.IsInRole("OperationsOfficer");
+    bool isFinance = User.IsInRole("FinanceOfficer");
+    bool isGranite = User.IsInRole("GraniteOfficer");
+}
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -17,7 +27,6 @@
     <link rel="stylesheet" href="~/ZororoMemorialPark.styles.css" asp-append-version="true" />
 
     <style>
-        /* Avatar + profile menu */
         .user-profile-toggle {
             display: flex;
             align-items: center;
@@ -95,154 +104,179 @@
                 <div class="collapse navbar-collapse" id="mainNavbar">
                     <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center">
 
-                        <!-- Dashboard -->
+                        <!-- Dashboard (visible to all roles) -->
                         <li class="nav-item">
-                            <a class="nav-link" href="/Index">
-                                Dashboard
-                            </a>
+                            <a class="nav-link" href="/Index">Dashboard</a>
                         </li>
 
                         <!-- Graves -->
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="gravesDropdown"
-                               role="button" data-bs-toggle="dropdown">
-                                Graves
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="gravesDropdown">
-                                <li>
-                                    <a class="dropdown-item" href="/Graves/Graves">
-                                        <i class="bi bi-archive"></i> Grave Stock
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="/Graves/GraveSections">
-                                        <i class="bi bi-grid"></i> Sections
-                                    </a>
-                                </li>
+                        @if (isManager || isOps || isGranite || isFinance)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="gravesDropdown"
+                                   role="button" data-bs-toggle="dropdown">
+                                    Graves
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="/Graves/Graves">
+                                            <i class="bi bi-archive"></i> Grave Stock
+                                        </a>
+                                    </li>
 
-                                <li>
-                                    <a class="dropdown-item" href="/Graves/DevelopmentStages">
-                                        <i class="bi bi-layers"></i> Development Stages
-                                    </a>
-                                </li>
+                                    @if (isManager || isOps)
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" href="/Graves/GraveSections">
+                                                <i class="bi bi-grid"></i> Sections
+                                            </a>
+                                        </li>
 
-                                
-                            </ul>
-                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="/Graves/DevelopmentStages">
+                                                <i class="bi bi-layers"></i> Development Stages
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                            </li>
+                        }
 
                         <!-- Tombstones -->
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="tombDropdown"
-                               data-bs-toggle="dropdown">
-                                Tombstones
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li>
-                                    <a class="dropdown-item" href="/Tombstones/ManageTombstones">
-                                        <i class="bi bi-bricks"></i> Manage Tombstones
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
+                        @if (isManager || isGranite || isOps)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="tombDropdown"
+                                   data-bs-toggle="dropdown">
+                                    Tombstones
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="/Tombstones/ManageTombstones">
+                                            <i class="bi bi-bricks"></i> Manage Tombstones
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
 
                         <!-- Jobs -->
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="jobsDropdown"
-                               data-bs-toggle="dropdown">
-                                Jobs
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li>
-                                    <a class="dropdown-item" href="/Jobs/Suppliers">
-                                        <i class="bi bi-truck"></i> Suppliers
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="/Jobs/JobParameters">
-                                        <i class="bi bi-ui-checks"></i> Job Evaluations
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="/Jobs/JobEntries">
-                                        <i class="bi bi-list-check"></i> Job Entries
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
+                        @if (isManager || isOps)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="jobsDropdown"
+                                   data-bs-toggle="dropdown">
+                                    Jobs
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="/Jobs/Suppliers">
+                                            <i class="bi bi-truck"></i> Suppliers
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="/Jobs/JobParameters">
+                                            <i class="bi bi-ui-checks"></i> Job Evaluations
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="/Jobs/JobEntries">
+                                            <i class="bi bi-list-check"></i> Job Entries
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
 
                         <!-- Finance -->
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="financeDropdown"
-                               data-bs-toggle="dropdown">
-                                Finance
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li>
-                                    <a class="dropdown-item" href="/Finance/InvoicesList">
-                                        <i class="bi bi-receipt"></i> Invoices
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="/Finance/PaymentMethods">
-                                        <i class="bi bi-credit-card"></i> Payment Methods
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="/Finance/ReceiptBooks">
-                                        <i class="bi bi-journal"></i> Receipt Books
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
+                        @if (isManager || isFinance)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="financeDropdown"
+                                   data-bs-toggle="dropdown">
+                                    Finance
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="/Finance/InvoicesList">
+                                            <i class="bi bi-receipt"></i> Invoices
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="/Finance/PaymentMethods">
+                                            <i class="bi bi-credit-card"></i> Payment Methods
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="/Finance/ReceiptBooks">
+                                            <i class="bi bi-journal"></i> Receipt Books
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
 
-                        <!-- Inventory -->
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="inventoryDropdown"
-                               data-bs-toggle="dropdown">
-                                Inventory
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li>
-                                    <a class="dropdown-item" href="/Inventory/Products">
-                                        <i class="bi bi-box"></i> Products
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="/Inventory/Services">
-                                        <i class="bi bi-tools"></i> Services
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
+                        <!-- Inventory (Manager only) -->
+                        @if (isManager)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="inventoryDropdown"
+                                   data-bs-toggle="dropdown">
+                                    Inventory
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="/Inventory/Products">
+                                            <i class="bi bi-box"></i> Products
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="/Inventory/Services">
+                                            <i class="bi bi-tools"></i> Services
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
 
-                        
+                        <!-- Agents -->
+                        @if (isManager || isOps)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" href="/Agents/AgentManagement">
+                                    Agents
+                                </a>
+                            </li>
+                        }
 
-                        <li class="nav-item">
-                            <a class="nav-link" href="/Agents/AgentManagement">
-                                Agents
-                            </a>
-                        </li>
+                        <!-- Reports -->
+                        @if (isManager || isFinance)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" href="/Reports/ReportsDash">
+                                    Reports
+                                </a>
+                            </li>
+                        }
 
-                        <li class="nav-item">
-                            <a class="nav-link" href="/Reports/ReportsDash">
-                                Reports
-                            </a>
-                        </li>
+                        <!-- Settings (Manager only) -->
+                        @if (isManager)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown"
+                                   data-bs-toggle="dropdown">
+                                    Settings
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="/UserManagement">
+                                            <i class="bi bi-people"></i> Users
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
 
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown"
-                               data-bs-toggle="dropdown">
-                                Settings
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li>
-                                    <a class="dropdown-item" href="/UserManagement">
-                                        <i class="bi bi-people"></i> Users
-                                    </a>
-                                </li>
-
-                            </ul>
-                        </li>
                         <!-- Profile -->
                         <li class="nav-item dropdown ms-lg-3">
                             <a class="nav-link dropdown-toggle user-profile-toggle" href="#"
@@ -276,7 +310,7 @@
 
                                 <li><hr class="dropdown-divider" /></li>
 
-                                <li class="nav-item">
+                                <li>
                                     <a class="dropdown-item" href="/Account/Logout">
                                         <i class="bi bi-box-arrow-right"></i> Logout
                                     </a>

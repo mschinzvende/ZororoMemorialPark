@@ -72,9 +72,17 @@ app.UseAuthorization();  // enable role checks
 
 app.MapRazorPages();
 
-await CreateRolesAsync(app);
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    await RoleMigrationSeeder.MigrateRolesAsync(services);
+}
+
+
 
 app.Run();
+
+
 
 async Task CreateRolesAsync(IHost app)
 {
