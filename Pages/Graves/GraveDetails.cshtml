@@ -3,7 +3,15 @@
 @{
     ViewData["Title"] = "Grave Details";
 }
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<IdentityUser> UserManager
 
+@{
+    bool isManager = User.IsInRole("Manager");
+    bool isOps = User.IsInRole("OperationsOfficer");
+    bool isFinance = User.IsInRole("FinanceOfficer");
+    bool isAgent = User.IsInRole("Agent");
+}
 <div class="row">
     <div class="col-lg-12 mx-auto">
         <div class="card shadow-sm">
@@ -31,20 +39,31 @@
 
                 <!-- Tabs -->
                 <ul class="nav nav-tabs mb-3" id="graveTabs" role="tablist">
-                    <li class="nav-item">
-                        <a class="nav-link active" id="details-tab" data-bs-toggle="tab" href="#details" role="tab">Details</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="reservation-tab" data-bs-toggle="tab" href="#reservation" role="tab">Reservations</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="jobs-tab" data-bs-toggle="tab" href="#jobs" role="tab">Jobs</a>
-                    </li>
+                    @if(isManager || isOps || isFinance || isAgent)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link active" id="details-tab" data-bs-toggle="tab" href="#details" role="tab">Details</a>
+                        </li>
+                    }
+                    @if (isManager || isOps || isFinance)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" id="reservation-tab" data-bs-toggle="tab" href="#reservation" role="tab">Reservations</a>
+                        </li>
+                    }
+                    @if (isManager || isOps)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" id="jobs-tab" data-bs-toggle="tab" href="#jobs" role="tab">Jobs</a>
+                        </li>
+                    }
+                    @if (isManager || isOps || isFinance)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" id="tombstone-tab" data-bs-toggle="tab" href="#tombstone" role="tab">Tombstone</a>
+                        </li>
+                    }
 
-                    <li class="nav-item">
-                        <a class="nav-link" id="tombstone-tab" data-bs-toggle="tab" href="#tombstone" role="tab">Tombstone</a>
-                    </li>
-                    
                 </ul>
 
                 <div class="tab-content">

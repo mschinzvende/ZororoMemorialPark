@@ -5,29 +5,39 @@
     ViewData["Title"] = "Graves";
 }
 
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<IdentityUser> UserManager
+
+@{
+    bool isManager = User.IsInRole("Manager");
+    bool isOps = User.IsInRole("OperationsOfficer");
+    bool isFinance = User.IsInRole("FinanceOfficer");
+    bool isAgent = User.IsInRole("Agent");
+}
+
 <style>
     .tab-pane {
-        border: 2px solid transparent;
-        border-radius: 0 0 .25rem .25rem; /* rounded bottom corners */
-        padding: 1rem;
+    border: 2px solid transparent;
+    border-radius: 0 0 .25rem .25rem; /* rounded bottom corners */
+    padding: 1rem;
     }
 
     /* Active tab colors */
 
     #underConstruction.active.show {
-        border-color: saddlebrown;
+    border-color: saddlebrown;
     }
 
     #available.active.show {
-        border-color: #28a745;
+    border-color: #28a745;
     }
 
     #reserved.active.show {
-        border-color: #ffc107;
+    border-color: #ffc107;
     }
 
     #occupied.active.show {
-        border-color: #343a40;
+    border-color: #343a40;
     }
 </style>
 
@@ -35,15 +45,20 @@
     <div class="col-lg-12 mx-auto">
         <div class="card shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center"
-                 style="background-color: var(--primary-green); color: var(--primary-white);">
+            style="background-color: var(--primary-green); color: var(--primary-white);">
                 <h5 class="mb-0">Graves</h5>
                 <div>
-                    <button class="btn btn-sm btn-light me-2" data-bs-toggle="modal" data-bs-target="#createGraveModal">
-                        <i class="bi bi-plus-circle"></i> Add Grave
-                    </button>
-                    <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#bulkGraveModal">
-                        <i class="bi bi-stack"></i> Bulk Generate
-                    </button>
+                    @if (isManager || isOps )
+                    {
+
+
+                        <button class="btn btn-sm btn-light me-2" data-bs-toggle="modal" data-bs-target="#createGraveModal">
+                            <i class="bi bi-plus-circle"></i> Add Grave
+                        </button>
+                        <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#bulkGraveModal">
+                            <i class="bi bi-stack"></i> Bulk Generate
+                        </button>
+                    }
                 </div>
             </div>
 
@@ -67,27 +82,47 @@
                 <!-- Tabs -->
                 <ul class="nav nav-tabs mb-3" id="graveTabs" role="tablist">
 
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="underConstruction-tab" data-bs-toggle="tab" data-bs-target="#underConstruction" type="button" role="tab" style="background-color: saddlebrown; color:white;">
-                            Under Construction
-                        </button>
-                    </li>
+                    @if (isManager || isOps)
+                    {
 
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="available-tab" data-bs-toggle="tab" data-bs-target="#available" type="button" role="tab" style="background-color: #28a745; color:white;">
-                            Unsold
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="reserved-tab" data-bs-toggle="tab" data-bs-target="#reserved" type="button" role="tab" style="background-color: #ffc107; color:black;">
-                            Reserved
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="occupied-tab" data-bs-toggle="tab" data-bs-target="#occupied" type="button" role="tab" style="background-color: #343a40; color:white;">
-                            Occupied
-                        </button>
-                    </li>
+
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="underConstruction-tab" data-bs-toggle="tab" data-bs-target="#underConstruction" type="button" role="tab" style="background-color: saddlebrown; color:white;">
+                                Under Construction
+                            </button>
+                        </li>
+                    }
+
+                    @if (isManager || isOps || isFinance || isAgent)
+                    {
+
+
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="available-tab" data-bs-toggle="tab" data-bs-target="#available" type="button" role="tab" style="background-color: #28a745; color:white;">
+                                Unsold
+                            </button>
+                        </li>
+                    }
+
+                    @if(isManager || isOps || isFinance){
+
+
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="reserved-tab" data-bs-toggle="tab" data-bs-target="#reserved" type="button" role="tab" style="background-color: #ffc107; color:black;">
+                                Reserved
+                            </button>
+                        </li>
+                    }
+
+                    @if (isManager || isOps)
+                    {
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="occupied-tab" data-bs-toggle="tab" data-bs-target="#occupied" type="button" role="tab" style="background-color: #343a40; color:white;">
+                                Occupied
+                            </button>
+                        </li>
+                    }
+
                 </ul>
 
                 <div class="tab-content">
