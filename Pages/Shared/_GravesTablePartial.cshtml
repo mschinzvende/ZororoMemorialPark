@@ -1,5 +1,6 @@
 ﻿@using ZororoMemorialPark.Pages.Graves
 @using static ZororoMemorialPark.Pages.Graves.GravesModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @model dynamic
 
 @{
@@ -7,50 +8,66 @@
     var occupiedGraves = Model.Graves as List<OccupiedGraveViewModel>;
     var underConstructionGraves = Model.Graves as List<UnderConstructionGraveViewModel>;
     string status = Model.Status as string;
+
+    int pageNumber = (int)Model.PageNumber;
+    int pageSize = (int)Model.PageSize;
+    int totalCount = (int)Model.TotalCount;
+    string searchTerm = Model.SearchTerm as string ?? string.Empty;
+
+    int totalPages = pageSize > 0
+        ? (int)Math.Ceiling((double)totalCount / pageSize)
+        : 1;
+
+    if (totalPages == 0) totalPages = 1;
+
+    int start = totalCount == 0 ? 0 : ((pageNumber - 1) * pageSize) + 1;
+    int end = Math.Min(pageNumber * pageSize, totalCount);
 }
 
 <div class="mb-2 d-flex justify-content-between align-items-center">
-   <div class="row">
-
-        <div class="col-auto me-2">
-        <button class="btn btn-sm btn-danger" id="deleteSelectedBtn" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal" disabled>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <button class="btn btn-sm btn-danger" id="deleteSelectedBtn"
+                data-bs-toggle="modal" data-bs-target="#bulkDeleteModal" disabled>
             <i class="bi bi-trash"></i> Delete Selected
         </button>
+
+        <form method="get" class="d-flex flex-wrap align-items-center gap-2">
+            <input type="hidden" name="pageNumber" value="@pageNumber" />
+
+            <div>
+                <select name="pageSize" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="10" selected="@(pageSize == 10)">10</option>
+                    <option value="20" selected="@(pageSize == 20)">20</option>
+                    <option value="50" selected="@(pageSize == 50)">50</option>
+                    <option value="100" selected="@(pageSize == 100)">100</option>
+                </select>
+            </div>
+
+            <div>
+                <input type="text"
+                       name="searchTerm"
+                       value="@searchTerm"
+                       placeholder="Search by plot or section"
+                       class="form-control form-control-sm" />
+            </div>
+
+            <div>
+                <button type="submit" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </form>
     </div>
-        <div class="col-auto me-2">
-        <div class="form-group">
-            <!--		Show Numbers Of Rows 		-->
-            <select class="form-select" name="state" id="maxRows">
 
-                <option value="10">Show 10</option>
-                <option value="15">15</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-                <option value="70">70</option>
-                <option value="100">100</option>
-                <option value="5000">ALL</option>
-            </select>
-
-        </div>
-        </div>
-        <div class="col-auto me-2">
-        <input type="text" id="search_input_all" onkeyup="FilterkeyWord_all_table()" placeholder="Search Table" class="form-control">
-        </div>
-
-        <div class="col-auto me-2">
-           <h4>@status Graves</h4>
-        </div>
+    <div>
+        <h5 class="mb-0">@status Graves</h5>
     </div>
-
- 
 </div>
 
-
-@if(status == "Under Construction" && underConstructionGraves !=null)
+@if (status == "Under Construction" && underConstructionGraves != null)
 {
     <div class="table-responsive">
-        <table class="table table-striped table-class table-sm" id="myTable">
-
+        <table class="table table-striped table-class table-sm">
             <thead class="thead-light">
                 <tr>
                     <th><input type="checkbox" id="selectAll-@status"></th>
@@ -70,14 +87,19 @@
                 {
                     <tr id="row-@underConstructionGrave.sys_graveId">
                         <td><input type="checkbox" class="row-checkbox" value="@underConstructionGrave.sys_graveId"></td>
-                        <td><a asp-page="/Graves/GraveDetails" asp-route-id="@underConstructionGrave.sys_graveId">@underConstructionGrave.sys_plotNumber</a></td>
+                        <td>
+                            <a asp-page="/Graves/GraveDetails" asp-route-id="@underConstructionGrave.sys_graveId">
+                                @underConstructionGrave.sys_plotNumber
+                            </a>
+                        </td>
                         <td>@underConstructionGrave.SectionName</td>
                         <td>@underConstructionGrave.StageName</td>
                         <td>@underConstructionGrave.sys_endDate.ToString("yyyy-MM-dd")</td>
 
-                        <td style="background-color:@(underConstructionGrave.sys_endDate.ToDateTime(TimeOnly.MinValue) < DateTime.Today ? "#f8d7da" : "#d1e7dd");
-           color:@(underConstructionGrave.sys_endDate.ToDateTime(TimeOnly.MinValue) < DateTime.Today ? "#842029" : "#0f5132");
-           font-weight:bold;">
+                        <td style="
+                            background-color:@(underConstructionGrave.sys_endDate.ToDateTime(TimeOnly.MinValue) < DateTime.Today ? "#f8d7da" : "#d1e7dd");
+                            color:@(underConstructionGrave.sys_endDate.ToDateTime(TimeOnly.MinValue) < DateTime.Today ? "#842029" : "#0f5132");
+                            font-weight:bold;">
                             @(underConstructionGrave.sys_endDate.ToDateTime(TimeOnly.MinValue) < DateTime.Today
                                 ? "Overdue"
                                 : "On Track")
@@ -100,30 +122,30 @@
                                 Edit
                             </button>
 
-                            <a class="btn btn-sm btn-outline-primary" asp-page="/Graves/GraveDetails" asp-route-id="@underConstructionGrave.sys_graveId">View</a>
+                            <a class="btn btn-sm btn-outline-primary"
+                               asp-page="/Graves/GraveDetails"
+                               asp-route-id="@underConstructionGrave.sys_graveId">
+                                View
+                            </a>
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
 
-        <!--		Start Pagination -->
-        <div class="pagination-container">
-            <nav>
-                <ul class="pagination">
-                    <!--	Here the JS Function Will Add the Rows -->
-                </ul>
-            </nav>
-        </div>
-        <div class="rows_count">Showing 11 to 20 of 91 entries</div>
+        @await Html.PartialAsync("_GravesPaginationPartial", new
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                SearchTerm = searchTerm
+            })
     </div>
 }
-
-else if(status =="Occupied" && occupiedGraves !=null)
+else if (status == "Occupied" && occupiedGraves != null)
 {
     <div class="table-responsive">
-        <table class="table table-striped table-class table-sm" id="myTable">
-
+        <table class="table table-striped table-class table-sm">
             <thead class="thead-light">
                 <tr>
                     <th><input type="checkbox" id="selectAll-@status"></th>
@@ -143,65 +165,71 @@ else if(status =="Occupied" && occupiedGraves !=null)
                     <tr id="row-@occupiedGrave.sys_graveId">
                         <td><input type="checkbox" class="row-checkbox" value="@occupiedGrave.sys_graveId"></td>
 
-                        @if(occupiedGrave.topBuildStatus!="N/A" && occupiedGrave.sys_reminderPeriod !=0)
+                        @if (occupiedGrave.topBuildStatus != "N/A" && occupiedGrave.sys_reminderPeriod != 0)
                         {
-                            <td><a asp-page="/Graves/GraveDetails" asp-route-id="@occupiedGrave.sys_graveId">@occupiedGrave.sys_plotNumber</a><br><span class="badge bg-success">@occupiedGrave.topBuildStatus</span></td>
+                            <td>
+                                <a asp-page="/Graves/GraveDetails" asp-route-id="@occupiedGrave.sys_graveId">
+                                    @occupiedGrave.sys_plotNumber
+                                </a>
+                                <br />
+                                <span class="badge bg-success">@occupiedGrave.topBuildStatus</span>
+                            </td>
                         }
                         else
                         {
-                            <td><a asp-page="/Graves/GraveDetails" asp-route-id="@occupiedGrave.sys_graveId">@occupiedGrave.sys_plotNumber</a></td>
+                            <td>
+                                <a asp-page="/Graves/GraveDetails" asp-route-id="@occupiedGrave.sys_graveId">
+                                    @occupiedGrave.sys_plotNumber
+                                </a>
+                            </td>
                         }
 
-
-                        
                         <td>@occupiedGrave.SectionName</td>
                         <td>@occupiedGrave.sys_occupationDate</td>
                         <td>@occupiedGrave.sys_nextOfKinName</td>
                         <td>@occupiedGrave.sys_nextOfKinContact</td>
                         <td><span class="badge bg-secondary">@occupiedGrave.sys_graveTombStatus</span></td>
-
                         <td>@occupiedGrave.sys_latitude, @occupiedGrave.sys_longitude</td>
                         <td>
-                            
                             @if (occupiedGrave.sys_graveTombStatus == "Ready for Tombstone")
-                                {
-                                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#tombstoneOrderModal"
+                            {
+                                <button class="btn btn-success btn-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#tombstoneOrderModal"
                                         data-graveid="@occupiedGrave.sys_graveId">
                                     Order Tombstone
                                 </button>
-                                }
-                           
-                            <a class="btn btn-sm btn-outline-primary" asp-page="/Graves/GraveDetails" asp-route-id="@occupiedGrave.sys_graveId">View</a>
+                            }
+
+                            <a class="btn btn-sm btn-outline-primary"
+                               asp-page="/Graves/GraveDetails"
+                               asp-route-id="@occupiedGrave.sys_graveId">
+                                View
+                            </a>
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
 
-        <!--		Start Pagination -->
-        <div class="pagination-container">
-            <nav>
-                <ul class="pagination">
-                    <!--	Here the JS Function Will Add the Rows -->
-                </ul>
-            </nav>
-        </div>
-        <div class="rows_count">Showing 11 to 20 of 91 entries</div>
+        @await Html.PartialAsync("_GravesPaginationPartial", new
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                SearchTerm = searchTerm
+            })
     </div>
-
 }
-
 else
 {
     <div class="table-responsive">
-        <table class="table table-striped table-class table-sm" id="myTable">
-
+        <table class="table table-striped table-class table-sm">
             <thead class="thead-light">
                 <tr>
                     <th><input type="checkbox" id="selectAll-@status"></th>
                     <th>Plot Number</th>
                     <th>Section</th>
-                    
                     <th>Status</th>
                     <th>Price</th>
                     <th>Location</th>
@@ -209,13 +237,16 @@ else
                 </tr>
             </thead>
             <tbody>
-                @foreach (var grave in graves)
+                @foreach (var grave in graves ?? new List<GraveViewModel>())
                 {
                     <tr id="row-@grave.sys_graveId">
                         <td><input type="checkbox" class="row-checkbox" value="@grave.sys_graveId"></td>
-                        <td><a asp-page="/Graves/GraveDetails" asp-route-id="@grave.sys_graveId">@grave.sys_plotNumber</a></td>
+                        <td>
+                            <a asp-page="/Graves/GraveDetails" asp-route-id="@grave.sys_graveId">
+                                @grave.sys_plotNumber
+                            </a>
+                        </td>
                         <td>@grave.SectionName</td>
-                        
                         <td>@grave.sys_graveSaleStatus</td>
                         <td>@grave.sys_price.ToString("C")</td>
                         <td>@grave.sys_latitude, @grave.sys_longitude</td>
@@ -234,27 +265,23 @@ else
                                 Edit
                             </button>
 
-                            <a class="btn btn-sm btn-outline-primary" asp-page="/Graves/GraveDetails" asp-route-id="@grave.sys_graveId">View</a>
+                            <a class="btn btn-sm btn-outline-primary"
+                               asp-page="/Graves/GraveDetails"
+                               asp-route-id="@grave.sys_graveId">
+                                View
+                            </a>
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
 
-        <!--		Start Pagination -->
-        <div class="pagination-container">
-            <nav>
-                <ul class="pagination">
-                    <!--	Here the JS Function Will Add the Rows -->
-                </ul>
-            </nav>
-        </div>
-        <div class="rows_count">Showing 11 to 20 of 91 entries</div>
+        @await Html.PartialAsync("_GravesPaginationPartial", new
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                SearchTerm = searchTerm
+            })
     </div>
 }
-
-
-
-<script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.2/jquery.min.js'></script>
-<script src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js'></script>
-<script src="~/js/tableScript.js"></script>

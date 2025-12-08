@@ -1,118 +1,88 @@
-﻿getPagination('#myTable');
-$('#maxRows').trigger('change');
+﻿$(document).ready(function () {
 
-function getPagination(table) {
+    function applyPagination(table) {
+        let maxRows = parseInt($('#maxRows').val());
+        let rows = table.find('tbody tr');
+        let totalRows = rows.length;
 
-    $('#maxRows').on('change', function () {
-        $('.pagination').html('');						// reset pagination div
-        var trnum = 0;									// reset tr counter
-        var maxRows = parseInt($(this).val());			// get Max Rows from select option
+        // Reset
+        rows.show();
+        $('.pagination').html('');
 
-        var totalRows = $(table + ' tbody tr').length;		// numbers of rows
-        $(table + ' tr:gt(0)').each(function () {			// each TR in  table and not the header
-            trnum++;									// Start Counter
-            if (trnum > maxRows) {						// if tr number gt maxRows
-
-                $(this).hide();							// fade it out
-            } if (trnum <= maxRows) { $(this).show(); }// else fade in Important in case if it ..
-        });											//  was fade out to fade it in
-        if (totalRows > maxRows) {						// if tr total rows gt max rows option
-            var pagenum = Math.ceil(totalRows / maxRows);	// ceil total(rows/maxrows) to get ..
-            //	numbers of pages
-            for (var i = 1; i <= pagenum;) {			// for each page append pagination li
-                $('.pagination').append('<li data-page="' + i + '">\
-                    <span>'+ i++ + '</span>\
-                  </li>').show();
-            }											// end for i
-
-
-        } 												// end if row count > max rows
-        $('.pagination li:first-child').addClass('active'); // add active class to the first li
-
-        //SHOWING ROWS NUMBER OUT OF TOTAL DEFAULT
-        showig_rows_count(maxRows, 1, totalRows);
-        //SHOWING ROWS NUMBER OUT OF TOTAL DEFAULT
-
-        $('.pagination li').on('click', function (e) {		// on click each page
-            e.preventDefault();
-            var pageNum = $(this).attr('data-page');	// get it's number
-            var trIndex = 0;							// reset tr counter
-            $('.pagination li').removeClass('active');	// remove active class from all li
-            $(this).addClass('active');					// add active class to the clicked
-
-            //SHOWING ROWS NUMBER OUT OF TOTAL
-            showig_rows_count(maxRows, pageNum, totalRows);
-            //SHOWING ROWS NUMBER OUT OF TOTAL
-
-            $(table + ' tr:gt(0)').each(function () {		// each tr in table not the header
-                trIndex++;								// tr index counter
-                // if tr index gt maxRows*pageNum or lt maxRows*pageNum-maxRows fade if out
-                if (trIndex > (maxRows * pageNum) || trIndex <= ((maxRows * pageNum) - maxRows)) {
-                    $(this).hide();
-                } else { $(this).show(); } 				//else fade in
-            }); 										// end of for each tr in table
-        });										// end of on click pagination list
-    });
-}
-
-// SI SETTING
-
-
-//ROWS SHOWING FUNCTION
-function showig_rows_count(maxRows, pageNum, totalRows) {
-    //Default rows showing
-    var end_index = maxRows * pageNum;
-    var start_index = ((maxRows * pageNum) - maxRows) + parseFloat(1);
-    var string = 'Showing ' + start_index + ' to ' + end_index + ' of ' + totalRows;
-    $('.rows_count').html(string);
-}
-
-// CREATING INDEX
-
-
-// All Table search script
-function FilterkeyWord_all_table() {
-
-    // Count td if you want to search on all table instead of specific column
-
-    var count = $('.table').children('tbody').children('tr:first-child').children('td').length;
-
-    // Declare variables
-    var input, filter, table, tr, td, i;
-    input = document.getElementById("search_input_all");
-    var input_value = document.getElementById("search_input_all").value;
-    filter = input.value.toLowerCase();
-    if (input_value != '') {
-        table = document.getElementById("myTable");
-        tr = table.getElementsByTagName("tr");
-
-        // Loop through all table rows, and hide those who don't match the search query
-        for (i = 1; i < tr.length; i++) {
-
-            var flag = 0;
-
-            for (j = 0; j < count; j++) {
-                td = tr[i].getElementsByTagName("td")[j];
-                if (td) {
-
-                    var td_text = td.innerHTML;
-                    if (td.innerHTML.toLowerCase().indexOf(filter) > -1) {
-                        //var td_text = td.innerHTML;
-                        //td.innerHTML = 'shaban';
-                        flag = 1;
-                    } else {
-                        //DO NOTHING
-                    }
-                }
-            }
-            if (flag == 1) {
-                tr[i].style.display = "";
-            } else {
-                tr[i].style.display = "none";
-            }
+        if (maxRows >= totalRows) {
+            $('.rows_count').text(`Showing 1 to ${totalRows} of ${totalRows} entries`);
+            return;
         }
-    } else {
-        //RESET TABLE
-        $('#maxRows').trigger('change');
+
+        rows.hide();
+        rows.slice(0, maxRows).show();
+
+        let pageCount = Math.ceil(totalRows / maxRows);
+
+        let pagination = $('.pagination');
+        pagination.append('<li class="page-item disabled"><a class="page-link">Previous</a></li>');
+
+        for (let i = 1; i <= pageCount; i++) {
+            pagination.append(`<li class="page-item"><a class="page-link">${i}</a></li>`);
+        }
+
+        pagination.append('<li class="page-item"><a class="page-link">Next</a></li>');
+
+        updateRowsCount(1, maxRows, totalRows);
+
+        $('.pagination li').on('click', function () {
+            let pageNum = $(this).text();
+
+            if (pageNum === "Previous") {
+                let current = $('.pagination li.active a').text();
+                if (parseInt(current) > 1) pageNum = parseInt(current) - 1;
+                else return;
+            }
+
+            if (pageNum === "Next") {
+                let current = $('.pagination li.active a').text();
+                if (parseInt(current) < pageCount) pageNum = parseInt(current) + 1;
+                else return;
+            }
+
+            $('.pagination li').removeClass('active');
+            $(this).addClass('active');
+
+            let start = (pageNum - 1) * maxRows;
+            let end = start + maxRows;
+
+            rows.hide().slice(start, end).show();
+
+            updateRowsCount(start + 1, Math.min(end, totalRows), totalRows);
+        });
+
+        $('.pagination li:nth-child(2)').addClass('active'); // first page number
     }
-}
+
+    function updateRowsCount(start, end, total) {
+        $('.rows_count').text(`Showing ${start} to ${end} of ${total} entries`);
+    }
+
+    // SEARCH FUNCTION
+    window.FilterkeyWord_all_table = function () {
+        let input = $('#search_input_all').val().toLowerCase();
+        let table = $('#myTable');
+        let rows = table.find('tbody tr');
+
+        rows.each(function () {
+            let rowText = $(this).text().toLowerCase();
+            $(this).toggle(rowText.indexOf(input) >= 0);
+        });
+    };
+
+    // Initialize when table loads
+    setTimeout(() => {
+        applyPagination($('#myTable'));
+    }, 300);
+
+    // When user changes max rows
+    $(document).on('change', '#maxRows', function () {
+        applyPagination($('#myTable'));
+    });
+
+});

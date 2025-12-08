@@ -10,27 +10,31 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using ZororoMemorialPark.Services;
 
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Manager")]
 public class UserManagementModel : PageModel
 {
     private readonly UserManager<IdentityUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IAppLogger _logger;
+    private readonly SystemSettingsService _settings;
+    private readonly NotificationService _notify;
 
     public UserManagementModel(
         UserManager<IdentityUser> userManager,
         RoleManager<IdentityRole> roleManager,
-        IAppLogger logger)
+        IAppLogger logger, SystemSettingsService settings, NotificationService notify)
     {
         _userManager = userManager;
         _roleManager = roleManager;
         _logger = logger;
+        _settings = settings;
+        _notify = notify;
     }
 
     [TempData] public string StatusMessage { get; set; }
 
     public List<UserViewModel> Users { get; set; } = new();
-    public List<string> AllRoles { get; } = new() { "Admin", "Accountant", "Supervisor", "Agent" };
+    public List<string> AllRoles { get; } = new() { "Manager", "FinanceOfficer", "OperationsOfficer", "Agent" };
 
 
     // --------------------- ADD USER ---------------------
@@ -190,6 +194,53 @@ public class UserManagementModel : PageModel
 
         SafeLog("User Created", AddInput.Email);
         StatusMessage = "User created successfully!";
+
+        //use the notification service to send user the email
+
+        if (!string.IsNullOrWhiteSpace(user.Email))
+        {
+            try
+            {
+                string loginUrl = $"{Request.Scheme}://{Request.Host}/Account/Login";
+
+                string subject = "Your Zororo Memorial Park System Account";
+
+                string body = $@"
+            <p>Dear {AddInput.FullName},</p>
+
+            <p>Your user account for <strong>Zororo Memorial Park Management System</strong> has been successfully created.</p>
+
+            <p><strong>Login Email:</strong> {user.Email}<br/>
+               <strong>Temporary Password:</strong> {AddInput.Password}</p>
+
+            <p>You can log in using the link below:</p>
+
+            <p>
+                <a href=""{loginUrl}"" 
+                   style=""background-color:#006A46;color:white;padding:10px 18px;
+                          text-decoration:none;border-radius:5px;font-weight:bold;"">
+                   Click here to login
+                </a>
+            </p>
+
+            <p>Please log in and change your password immediately for security reasons.</p>
+
+            <br/>
+            <p>Regards,<br/>Zororo Memorial Park Admin</p>
+        ";
+
+                await _notify.SendEmailAsync(user.Email, subject, body);
+            }
+            catch (Exception ex)
+            {
+                // Don't block the process on email failure
+                Console.WriteLine("Email notification error: " + ex.Message);
+            }
+        }
+
+
+
+
         return RedirectToPage();
     }
 
@@ -274,10 +325,52 @@ public class UserManagementModel : PageModel
             return Page();
         }
 
+        // ============= SEND PASSWORD RESET EMAIL =============
+        try
+        {
+            string loginUrl = $"{Request.Scheme}://{Request.Host}/Account/Login";
+
+            string subject = "Your Password Has Been Reset • Zororo Memorial Park";
+
+            string body = $@"
+            <p>Dear {user.UserName},</p>
+
+            <p>Your password for the <strong>Zororo Memorial Park Management System</strong> has been successfully reset.</p>
+
+            <p><strong>Login Email:</strong> {user.Email}<br/>
+               <strong>New Password:</strong> {ResetInput.NewPassword}</p>
+
+            <p>You can now log in using the link below:</p>
+
+            <p>
+                <a href=""{loginUrl}""
+                   style=""background-color:#006A46;color:white;padding:10px 18px;
+                          text-decoration:none;border-radius:5px;font-weight:bold;"">
+                    Click here to login
+                </a>
+            </p>
+
+            <p>If you did not request this password reset, please contact the system administrator immediately.</p>
+
+            <br/>
+            <p>Regards,<br/>Zororo Memorial Park Admin</p>
+        ";
+
+            await _notify.SendEmailAsync(user.Email, subject, body);
+        }
+        catch (Exception ex)
+        {
+            // Do not block user flow
+            Console.WriteLine("Password reset notification email failed: " + ex.Message);
+        }
+        // ======================================================
+
         SafeLog("Password Reset", user.Email);
+
         StatusMessage = "Password reset successfully!";
         return RedirectToPage();
     }
+
 
 
 

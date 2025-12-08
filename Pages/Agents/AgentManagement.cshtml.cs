@@ -15,6 +15,7 @@ public class AgentManagementModel : PageModel
     private readonly ApplicationDbContext _context;
     private readonly UserManager<IdentityUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly NotificationService _notify;
     private readonly IAppLogger _appLogger;
     [TempData]
     public string StatusMessage { get; set; }
@@ -22,13 +23,13 @@ public class AgentManagementModel : PageModel
     [TempData]
     public string ErrorMessage { get; set; }
     public AgentManagementModel(ApplicationDbContext context, UserManager<IdentityUser> userManager, 
-        RoleManager<IdentityRole> roleManager, IAppLogger logger)
+        RoleManager<IdentityRole> roleManager, IAppLogger logger, NotificationService notify)
     {
         _context = context;
         _userManager = userManager;
         _roleManager = roleManager;
         _appLogger = logger;
-
+        _notify = notify;
     }
 
     public IList<tbl_Agents> Agents { get; set; } = new List<tbl_Agents>();
@@ -65,14 +66,13 @@ public class AgentManagementModel : PageModel
             //send a welcome email
             _ = Task.Run(async () =>
             {
-                var emailService = new EmailService();
+                
 
-                emailService.SendEmail(
+                await _notify.SendEmailAsync(
                     Agent.sys_agentEmail,
                     "Welcome to Zororo Memorial Park",
                     $"<p>Dear Agent,</p><p>Your account has been created successfully. " +
-                    $"Your username is {Agent.sys_agentEmail}.</p> <p>Your Password is {randomPassword}</p><p>Thank you!</p>",
-                    null
+                    $"Your username is {Agent.sys_agentEmail}.</p> <p>Your Password is {randomPassword}</p><p>Thank you!</p>"
                 );
             });
 

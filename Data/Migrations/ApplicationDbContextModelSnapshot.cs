@@ -74,6 +74,71 @@ namespace ZororoMemorialPark.Data.Migrations
                     b.ToTable("AspNetRoleClaims", (string)null);
                 });
 
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUser", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("AccessFailedCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("LockoutEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset?>("LockoutEnd")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("NormalizedUserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("PhoneNumberConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("SecurityStamp")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedEmail")
+                        .HasDatabaseName("EmailIndex");
+
+                    b.HasIndex("NormalizedUserName")
+                        .IsUnique()
+                        .HasDatabaseName("UserNameIndex")
+                        .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.ToTable("AspNetUsers", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
                     b.Property<int>("Id")
@@ -159,72 +224,1019 @@ namespace ZororoMemorialPark.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("ZororoMemorialPark.Data.ApplicationUser", b =>
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.SystemSettings", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("AccessFailedCount")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<bool>("EmailConfirmed")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("LockoutEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTimeOffset?>("LockoutEnd")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("NormalizedEmail")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("NormalizedUserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("PasswordHash")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("PhoneNumber")
+                    b.Property<string>("LogoPath")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("PhoneNumberConfirmed")
+                    b.Property<int>("MaxBurialsPerDay")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MinutesBetweenBurials")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhysicalAddress")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SenderEmail")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SenderName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SmtpPassword")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SmtpPort")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SmtpServer")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SmtpUsername")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("UseSSL")
                         .HasColumnType("bit");
-
-                    b.Property<string>("SecurityStamp")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("TwoFactorEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("UserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("phone")
-                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizedEmail")
-                        .HasDatabaseName("EmailIndex");
+                    b.ToTable("SystemSettings");
+                });
 
-                    b.HasIndex("NormalizedUserName")
-                        .IsUnique()
-                        .HasDatabaseName("UserNameIndex")
-                        .HasFilter("[NormalizedUserName] IS NOT NULL");
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Agents", b =>
+                {
+                    b.Property<int>("sys_agentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
 
-                    b.ToTable("AspNetUsers", (string)null);
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_agentId"));
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_agentAddress")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_agentContactPerson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_agentEmail")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_agentName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_agentPhone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("sys_commission")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("sys_isPercentage")
+                        .HasColumnType("bit");
+
+                    b.HasKey("sys_agentId");
+
+                    b.ToTable("tbl_Agents");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Beneficiaries", b =>
+                {
+                    b.Property<int>("sys_benefitId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_benefitId"));
+
+                    b.Property<DateOnly>("sys_benefitDOB")
+                        .HasColumnType("date");
+
+                    b.Property<string>("sys_benefitFullName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_benefitRelationship")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("sys_reservationId")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_benefitId");
+
+                    b.ToTable("tbl_Beneficiaries");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_CommissionPayments", b =>
+                {
+                    b.Property<int>("sys_commissionPaymentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_commissionPaymentId"));
+
+                    b.Property<double>("sys_amountPaid")
+                        .HasColumnType("float");
+
+                    b.Property<int>("sys_commissionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("sys_paymentDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("sys_commissionPaymentId");
+
+                    b.ToTable("tbl_CommissionPayments");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_CommissionsDue", b =>
+                {
+                    b.Property<int>("sys_commissionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_commissionId"));
+
+                    b.Property<int>("sys_agentId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("sys_amount")
+                        .HasColumnType("float");
+
+                    b.Property<int>("sys_graveId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("sys_isPaid")
+                        .HasColumnType("bit");
+
+                    b.HasKey("sys_commissionId");
+
+                    b.ToTable("tbl_CommissionsDue");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Customers", b =>
+                {
+                    b.Property<int>("sys_customerId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_customerId"));
+
+                    b.Property<string>("sys_customerPhone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_paymentMadeBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("sys_customerId");
+
+                    b.ToTable("tbl_Customers");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Deceased", b =>
+                {
+                    b.Property<int>("sys_deceasedId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_deceasedId"));
+
+                    b.Property<DateOnly>("sys_deceasedDOB")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("sys_deceasedDOD")
+                        .HasColumnType("date");
+
+                    b.Property<string>("sys_deceasedFullName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_deceasedGender")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_deceasedMaritalStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_deceasedNameOfSpouse")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_deceasedNationality")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_deceasedNextOfKinAddress")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_deceasedNextOfKinEmail")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_deceasedNextOfKinName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_deceasedNextOfKinPhone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("sys_deceasedId");
+
+                    b.ToTable("tbl_Deceased");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_DevelopmentStages", b =>
+                {
+                    b.Property<int>("sys_stageId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_stageId"));
+
+                    b.Property<string>("sys_stageName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("sys_stageOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_stageId");
+
+                    b.ToTable("tbl_DevelopmentStages");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_EvaluationParameterProducts", b =>
+                {
+                    b.Property<int>("sys_evalParamProductId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_evalParamProductId"));
+
+                    b.Property<double>("sys_defaultQty")
+                        .HasColumnType("float");
+
+                    b.Property<int>("sys_itemId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("sys_jobEvaluationParameterId")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_evalParamProductId");
+
+                    b.HasIndex("sys_itemId");
+
+                    b.HasIndex("sys_jobEvaluationParameterId");
+
+                    b.ToTable("tbl_EvaluationParameterProducts");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Expenses", b =>
+                {
+                    b.Property<int>("sys_expenseId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_expenseId"));
+
+                    b.Property<double>("sys_amountDue")
+                        .HasColumnType("float");
+
+                    b.Property<double>("sys_amountPaid")
+                        .HasColumnType("float");
+
+                    b.Property<double>("sys_balanceDue")
+                        .HasColumnType("float");
+
+                    b.Property<DateOnly>("sys_date")
+                        .HasColumnType("date");
+
+                    b.Property<int>("sys_jobId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("sys_notes")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("sys_paymentMethodId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("sys_supplierId")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_expenseId");
+
+                    b.ToTable("tbl_Expenses");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_GraveAllocationInvoices", b =>
+                {
+                    b.Property<int>("sys_GAInvoicesId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_GAInvoicesId"));
+
+                    b.Property<int>("sys_allocationId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("sys_invoiceId")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_GAInvoicesId");
+
+                    b.ToTable("tbl_GraveAllocationInvoices");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_GraveAllocations", b =>
+                {
+                    b.Property<int>("sys_allocationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_allocationId"));
+
+                    b.Property<DateOnly>("sys_allocatedOn")
+                        .HasColumnType("date");
+
+                    b.Property<string>("sys_burialOrder")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("sys_customerId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("sys_dateTimeOfBurial")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("sys_deceasedId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("sys_graveId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("sys_repatriationSource")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_tombstoneStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("sys_allocationId");
+
+                    b.ToTable("tbl_GraveAllocations");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_GraveReservationInvoices", b =>
+                {
+                    b.Property<int>("sys_GRInvoicesId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_GRInvoicesId"));
+
+                    b.Property<int>("sys_invoiceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("sys_reservationId")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_GRInvoicesId");
+
+                    b.ToTable("tbl_GraveReservationInvoices");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_GraveReservations", b =>
+                {
+                    b.Property<int>("sys_reservationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_reservationId"));
+
+                    b.Property<int>("sys_customerId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("sys_graveId")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_reservationId");
+
+                    b.ToTable("tbl_GraveReservations");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Graves", b =>
+                {
+                    b.Property<int>("sys_graveId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_graveId"));
+
+                    b.Property<string>("sys_graveSaleStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("sys_latitude")
+                        .HasColumnType("float");
+
+                    b.Property<double>("sys_longitude")
+                        .HasColumnType("float");
+
+                    b.Property<string>("sys_plotNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("sys_previousStageId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("sys_price")
+                        .HasColumnType("float");
+
+                    b.Property<int>("sys_sectionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("sys_stageId")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_graveId");
+
+                    b.ToTable("tbl_Graves");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_IncomePayments", b =>
+                {
+                    b.Property<int>("sys_incomeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_incomeId"));
+
+                    b.Property<double>("sys_amount")
+                        .HasColumnType("float");
+
+                    b.Property<DateOnly>("sys_date")
+                        .HasColumnType("date");
+
+                    b.Property<int>("sys_invoiceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("sys_notes")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_paymentMethod")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("sys_receiptNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_incomeId");
+
+                    b.ToTable("tbl_IncomePayments");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_InventoryAuditTrail", b =>
+                {
+                    b.Property<int>("sys_auditId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_auditId"));
+
+                    b.Property<string>("sys_action")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("sys_afterQty")
+                        .HasColumnType("float");
+
+                    b.Property<double>("sys_beforeQty")
+                        .HasColumnType("float");
+
+                    b.Property<double>("sys_changeQty")
+                        .HasColumnType("float");
+
+                    b.Property<DateTime>("sys_date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("sys_itemId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("sys_jobId")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_auditId");
+
+                    b.ToTable("tbl_InventoryAuditTrail");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_InvoiceItems", b =>
+                {
+                    b.Property<int>("sys_itemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_itemId"));
+
+                    b.Property<int>("sys_invoiceId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("sys_itemCost")
+                        .HasColumnType("float");
+
+                    b.Property<string>("sys_itemName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("sys_itemId");
+
+                    b.ToTable("tbl_InvoiceItems");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Invoices", b =>
+                {
+                    b.Property<int>("sys_invoiceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_invoiceId"));
+
+                    b.Property<int>("sys_customerId")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("sys_invoiceDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("sys_invoiceDueDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("sys_invoiceId");
+
+                    b.ToTable("tbl_Invoices");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_JobEvaluationProductUsage", b =>
+                {
+                    b.Property<int>("sys_usageId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_usageId"));
+
+                    b.Property<DateTime>("sys_dateUsed")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("sys_itemId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("sys_jobEvaluationParameterId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("sys_jobId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("sys_quantityUsed")
+                        .HasColumnType("float");
+
+                    b.HasKey("sys_usageId");
+
+                    b.ToTable("tbl_JobEvaluationProductUsage");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_JobEvaluations", b =>
+                {
+                    b.Property<int>("sys_jobEvaluationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_jobEvaluationId"));
+
+                    b.Property<string>("sys_jobEvaluation")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("sys_jobEvaluationParameterId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("sys_jobId")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_jobEvaluationId");
+
+                    b.HasIndex("sys_jobEvaluationParameterId");
+
+                    b.HasIndex("sys_jobId");
+
+                    b.ToTable("tbl_JobEvaluations");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Jobs", b =>
+                {
+                    b.Property<int>("sys_jobId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_jobId"));
+
+                    b.Property<DateOnly>("sys_endDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("sys_graveId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("sys_jobStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("sys_stageId")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("sys_startDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("sys_supplierId")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_jobId");
+
+                    b.HasIndex("sys_graveId");
+
+                    b.HasIndex("sys_stageId");
+
+                    b.HasIndex("sys_supplierId");
+
+                    b.ToTable("tbl_Jobs");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_PaymentMethods", b =>
+                {
+                    b.Property<int>("sys_paymentMethodId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_paymentMethodId"));
+
+                    b.Property<string>("sys_paymentMethodName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("sys_paymentMethodId");
+
+                    b.ToTable("tbl_PaymentMethods");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_ProductsAndServices", b =>
+                {
+                    b.Property<int>("sys_itemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_itemId"));
+
+                    b.Property<string>("sys_category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("sys_isActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("sys_itemName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_itemType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("sys_sellingPrice")
+                        .HasColumnType("float");
+
+                    b.Property<string>("sys_status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("sys_stockQuantity")
+                        .HasColumnType("float");
+
+                    b.Property<double>("sys_unitCost")
+                        .HasColumnType("float");
+
+                    b.Property<string>("sys_unitOfMeasure")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("sys_itemId");
+
+                    b.ToTable("tbl_ProductsAndServices");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_ReceiptBooks", b =>
+                {
+                    b.Property<int>("sys_receiptBookId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_receiptBookId"));
+
+                    b.Property<int>("sys_agentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("sys_bookNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("sys_currentNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int>("sys_endNumber")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("sys_isClosed")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("sys_issueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("sys_startNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_receiptBookId");
+
+                    b.HasIndex("sys_agentId");
+
+                    b.ToTable("tbl_ReceiptBooks");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Sections", b =>
+                {
+                    b.Property<int>("sys_sectionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_sectionId"));
+
+                    b.Property<string>("sys_jobReminder")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("sys_reminderPeriod")
+                        .HasColumnType("int");
+
+                    b.Property<string>("sys_sectionName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("sys_sectionId");
+
+                    b.ToTable("tbl_Sections");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_StockTransactions", b =>
+                {
+                    b.Property<int>("sys_transactionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_transactionId"));
+
+                    b.Property<int>("sys_itemId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("sys_notes")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("sys_quantity")
+                        .HasColumnType("float");
+
+                    b.Property<string>("sys_referenceNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("sys_transactionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("sys_transactionType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("sys_unitCost")
+                        .HasColumnType("float");
+
+                    b.HasKey("sys_transactionId");
+
+                    b.ToTable("tbl_StockTransactions");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Suppliers", b =>
+                {
+                    b.Property<int>("sys_supplierId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_supplierId"));
+
+                    b.Property<string>("sys_supplierAddress")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_supplierEmail")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_supplierName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_supplierPhone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("sys_supplierId");
+
+                    b.ToTable("tbl_Suppliers");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_TombstoneInstallations", b =>
+                {
+                    b.Property<int>("sys_installationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_installationId"));
+
+                    b.Property<int>("sys_graveId")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("sys_installationDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("sys_installedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_remarks")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("sys_saleId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("sys_status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("sys_installationId");
+
+                    b.ToTable("tbl_TombstoneInstallations");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_TombstoneSales", b =>
+                {
+                    b.Property<int>("sys_saleId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_saleId"));
+
+                    b.Property<double>("sys_amountPaid")
+                        .HasColumnType("float");
+
+                    b.Property<string>("sys_buyerContact")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_buyerName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_installationStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("sys_invoiceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("sys_paymentStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateOnly>("sys_saleDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("sys_tombstoneId")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_saleId");
+
+                    b.ToTable("tbl_TombstoneSales");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Tombstones", b =>
+                {
+                    b.Property<int>("sys_tombstoneId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_tombstoneId"));
+
+                    b.Property<string>("sys_description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_imagePath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("sys_isCustomizable")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("sys_material")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("sys_price")
+                        .HasColumnType("float");
+
+                    b.Property<int>("sys_quantityAvailable")
+                        .HasColumnType("int");
+
+                    b.Property<string>("sys_size")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_tombstoneName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("sys_tombstoneId");
+
+                    b.ToTable("tbl_Tombstones");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_jobEvaluationParameters", b =>
+                {
+                    b.Property<int>("sys_jobEvaluationParameterId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_jobEvaluationParameterId"));
+
+                    b.Property<string>("sys_parameterName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("sys_jobEvaluationParameterId");
+
+                    b.ToTable("tbl_jobEvaluationParameters");
                 });
 
             modelBuilder.Entity("ZororoMemorialPark.Data.tbl_AuditLogs", b =>
@@ -265,7 +1277,7 @@ namespace ZororoMemorialPark.Data.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("ZororoMemorialPark.Data.ApplicationUser", null)
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -274,7 +1286,7 @@ namespace ZororoMemorialPark.Data.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("ZororoMemorialPark.Data.ApplicationUser", null)
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -289,7 +1301,7 @@ namespace ZororoMemorialPark.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ZororoMemorialPark.Data.ApplicationUser", null)
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -298,11 +1310,87 @@ namespace ZororoMemorialPark.Data.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("ZororoMemorialPark.Data.ApplicationUser", null)
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_EvaluationParameterProducts", b =>
+                {
+                    b.HasOne("ZororoMemorialPark.Data.Models.tbl_ProductsAndServices", "tbl_ProductsAndServices")
+                        .WithMany()
+                        .HasForeignKey("sys_itemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ZororoMemorialPark.Data.Models.tbl_jobEvaluationParameters", "tbl_jobEvaluationParameters")
+                        .WithMany()
+                        .HasForeignKey("sys_jobEvaluationParameterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("tbl_ProductsAndServices");
+
+                    b.Navigation("tbl_jobEvaluationParameters");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_JobEvaluations", b =>
+                {
+                    b.HasOne("ZororoMemorialPark.Data.Models.tbl_jobEvaluationParameters", "tbl_jobEvaluationParameters")
+                        .WithMany()
+                        .HasForeignKey("sys_jobEvaluationParameterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ZororoMemorialPark.Data.Models.tbl_Jobs", "tbl_Jobs")
+                        .WithMany()
+                        .HasForeignKey("sys_jobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("tbl_Jobs");
+
+                    b.Navigation("tbl_jobEvaluationParameters");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Jobs", b =>
+                {
+                    b.HasOne("ZororoMemorialPark.Data.Models.tbl_Graves", "tbl_Grave")
+                        .WithMany()
+                        .HasForeignKey("sys_graveId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ZororoMemorialPark.Data.Models.tbl_DevelopmentStages", "tbl_DevelopmentStage")
+                        .WithMany()
+                        .HasForeignKey("sys_stageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ZororoMemorialPark.Data.Models.tbl_Suppliers", "tbl_Supplier")
+                        .WithMany()
+                        .HasForeignKey("sys_supplierId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("tbl_DevelopmentStage");
+
+                    b.Navigation("tbl_Grave");
+
+                    b.Navigation("tbl_Supplier");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_ReceiptBooks", b =>
+                {
+                    b.HasOne("ZororoMemorialPark.Data.Models.tbl_Agents", "Agent")
+                        .WithMany()
+                        .HasForeignKey("sys_agentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Agent");
                 });
 #pragma warning restore 612, 618
         }

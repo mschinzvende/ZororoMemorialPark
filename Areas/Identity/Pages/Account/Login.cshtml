@@ -5,6 +5,14 @@
     Layout = null; // No navbar/footer
 }
 
+
+@inject ZororoMemorialPark.Services.SystemSettingsService SettingsService
+
+@{
+    var settings = await SettingsService.GetSettingsAsync();
+    string logo = settings?.LogoPath ?? "/images/default-logo.png";
+    string companyName = settings?.CompanyName ?? "Zororo Memorial";
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -27,9 +35,9 @@
             <div class="col-md-6 d-none d-md-flex align-items-center justify-content-center rounded-start"
                  style="background-color: #006A46; color: white;">
                 <div class="text-center p-4">
-                    <img src="~/images/logo.png" class="img-fluid mb-3" alt="Zororo Logo" style="max-height:120px;">
-                    <h2>Zororo Grave Management</h2>
-                    <p class="mt-3">Securely manage graves, reservations, and users efficiently.</p>
+                    <img src="@logo" class="img-fluid mb-3" alt="Zororo Logo" style="max-height:120px;">
+                    <h2>@companyName</h2>
+                    
                 </div>
             </div>
 
@@ -60,9 +68,7 @@
                     <div asp-validation-summary="All" class="text-danger"></div>
                 }
 
-                <div class="text-center mt-4">
-                    <a href="/Account/ForgotPassword" class="text-decoration-none" style="color:#006A46;">Forgot Password?</a>
-                </div>
+                
             </div>
 
         </div>

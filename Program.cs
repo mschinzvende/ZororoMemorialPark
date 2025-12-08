@@ -4,6 +4,7 @@ using ZororoMemorialPark.Data;
 using Serilog;
 using ZororoMemorialPark.Services;
 using QuestPDF.Infrastructure;
+using ZororoMemorialPark.Data.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,8 +18,8 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog(); // Replace default logger
 
 // Add services to the container.
-//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-var connectionString = Environment.GetEnvironmentVariable("DB_STRING_ZDBZ");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+//var connectionString = Environment.GetEnvironmentVariable("DB_STRING_ZDBZ");
     //?? throw new InvalidOperationException("Connection string 'DB_CONNECTION_STRING' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
@@ -48,6 +49,9 @@ builder.Services.AddTransient<OutstandingBalancesPdfService>();
 builder.Services.AddTransient<StockMovementPdfService>();
 builder.Services.AddTransient<SupplierPaymentsPdfService>();
 
+builder.Services.AddScoped<SystemSettingsService>();
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddHostedService<BurialReminderService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -72,42 +76,39 @@ app.UseAuthorization();  // enable role checks
 
 app.MapRazorPages();
 
-await CreateRolesAsync(app);
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    await RoleMigrationSeeder.MigrateRolesAsync(services);
+
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    if (!db.SystemSettings.Any())
+    {
+        db.SystemSettings.Add(new SystemSettings
+        {
+            CompanyName = "Zororo Memorial",
+            LogoPath = "none",
+            PhysicalAddress = "Harare, Zimbabwe",
+            Phone = "+263 000 000 000",
+            Email = "info@zororo.co.zw",
+            MaxBurialsPerDay = 3,
+            MinutesBetweenBurials = 60,
+            SmtpServer ="none",
+            SmtpPort = 587,
+            SenderName ="none",
+            SenderEmail = "none@mail.com",
+            SmtpUsername = "none",
+            SmtpPassword = "none",
+            UseSSL = true
+        });
+
+        db.SaveChanges();
+    }
+}
+
 
 app.Run();
 
-async Task CreateRolesAsync(IHost app)
-{
-    try
-    {
-        using var scope = app.Services.CreateScope();
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-
-        string[] roleNames = { "Admin", "Accountant", "Supervisor", "Agent" };
-        foreach (var role in roleNames)
-        {
-            if (!await roleManager.RoleExistsAsync(role))
-            {
-                await roleManager.CreateAsync(new IdentityRole(role));
-            }
-        }
-
-        //Create default admin
-        var adminEmail = "info@zimbotech.co.zw";
-        var adminUser = await userManager.FindByEmailAsync(adminEmail);
-        if (adminUser == null)
-        {
-            adminUser = new IdentityUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true };
-            await userManager.CreateAsync(adminUser, "Admin@123");
-            await userManager.AddToRoleAsync(adminUser, "Admin");
-        }
-    }
-    catch (Exception ex)
-    {
-        Log.Error(ex, "Error creating roles and default admin user");
-    }
-
-}
 
 
