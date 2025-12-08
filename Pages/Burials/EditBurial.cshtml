@@ -1,0 +1,173 @@
+﻿@page "{id:int}"
+@model ZororoMemorialPark.Pages.Burials.EditBurialModel
+@{
+    ViewData["Title"] = "Edit Burial Schedule";
+}
+
+<div class="container py-4 mb-4">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="d-flex justify-content-between mb-3">
+        <h3>Edit Burial</h3>
+        <a asp-page="/Burials/BurialSchedule" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Back to Schedules
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header" style="background-color: var(--primary-green); color: var(--primary-white);">
+            <h6 class="mb-0">Burial Information</h6>
+        </div>
+
+        <div class="card-body">
+
+            <form method="post">
+
+                <input type="hidden" asp-for="Input.AllocationId" />
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label>Deceased Name</label>
+                        <input class="form-control" value="@Model.Input.DeceasedName" disabled />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label>Grave</label>
+                        <input class="form-control"
+                               value="@(Model.Input.PlotNumber + " (" + Model.Input.SectionName + ")")"
+                               disabled />
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+
+                    <!-- Burial Date -->
+                    <div class="col-md-4">
+                        <label>Burial Date <span class="text-danger">*</span></label>
+                        <input type="date"
+                               id="burialDate"
+                               name="burialDate"
+                               value="@Model.Input.BurialDate"
+                               class="form-control"
+                               required />
+                        <small id="burialError" class="text-danger d-none"></small>
+                    </div>
+
+                    <!-- Time Slot -->
+                    <div class="col-md-4">
+                        <label>Available Slots</label>
+                        <select id="burialTime"
+                                name="burialDateTime"
+                                class="form-control"
+                                required>
+                            <option value="">-- Select a slot --</option>
+
+                            @if (Model.Input.ExistingDateTime.HasValue)
+                            {
+                                <option selected
+                                        value="@Model.Input.ExistingDateTime.Value.ToString("yyyy-MM-ddTHH:mm")">
+                                    @Model.Input.ExistingDateTime.Value.ToString("HH:mm")
+                                </option>
+                            }
+                        </select>
+                        <div id="slotMessage" class="text-danger mt-1"></div>
+                    </div>
+
+                    <!-- Submit -->
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button id="editSubmitBtn" type="submit"
+                                class="btn btn-success w-100">
+                            Save Changes
+                        </button>
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        const burialDateInput = document.getElementById("burialDate");
+        const burialTimeSelect = document.getElementById("burialTime");
+        const burialError = document.getElementById("burialError");
+        const slotMessage = document.getElementById("slotMessage");
+        const saveBtn = document.getElementById("editSubmitBtn");
+
+        function toDateOnly(val) {
+            const d = new Date(val);
+            return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        }
+
+        const dod = "@Model.Input.DateOfDeath";
+
+        burialDateInput.addEventListener("change", async function () {
+
+            burialError.classList.add("d-none");
+            if (!this.value) return;
+
+            const burialDateObj = toDateOnly(this.value);
+            const dodDateObj = dod ? toDateOnly(dod) : null;
+
+            if (dodDateObj && burialDateObj < dodDateObj) {
+                burialError.textContent = "Burial cannot be before the Date of Death.";
+                burialError.classList.replace("d-none", "d-block");
+                this.value = "";
+                return;
+            }
+
+            const diffDays = (burialDateObj - dodDateObj) / (1000 * 60 * 60 * 24);
+            if (dodDateObj && diffDays > 30) {
+                burialError.textContent = "Burial must be within 30 days of death.";
+                burialError.classList.replace("d-none", "d-block");
+                this.value = "";
+                return;
+            }
+
+            try {
+                const res = await fetch(`?handler=AvailableBurialSlots&burialDate=${this.value}`);
+                const data = await res.json();
+
+                burialTimeSelect.innerHTML = `<option value="">-- Select a slot --</option>`;
+
+                if (data.slots.length === 0) {
+                    slotMessage.textContent = data.message;
+                    saveBtn.disabled = true;
+                } else {
+                    slotMessage.textContent = "";
+                    saveBtn.disabled = false;
+
+                    data.slots.forEach(slot => {
+                        const dt = new Date(slot);
+                        const opt = document.createElement("option");
+                        opt.value = slot;
+                        opt.textContent = dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                        burialTimeSelect.appendChild(opt);
+                    });
+                }
+            }
+            catch (err) {
+                slotMessage.textContent = "Could not load slots.";
+                saveBtn.disabled = true;
+            }
+        });
+    </script>
+}

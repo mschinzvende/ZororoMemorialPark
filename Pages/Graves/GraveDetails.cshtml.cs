@@ -791,6 +791,7 @@ namespace ZororoMemorialPark.Pages.Graves
             _context.tbl_Graves.Update(grave);
             await _context.SaveChangesAsync();
 
+            TempData["SuccessMessage"] = "Reservation Created Successfully";
 
             return RedirectToPage(new { id = graveId });
         }
@@ -811,6 +812,8 @@ namespace ZororoMemorialPark.Pages.Graves
             };
             _context.tbl_Expenses.Add(expense);
             await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Supplier payment recorded successfully.";
             return RedirectToPage(new { id = id });
         }
 
@@ -924,6 +927,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 await _context.SaveChangesAsync();
             }
 
+            TempData["SuccessMessage"] = "Allocation payment recorded successfully.";
             return RedirectToPage(new { id = allocation.sys_graveId });
         }
 

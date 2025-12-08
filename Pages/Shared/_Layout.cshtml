@@ -7,6 +7,14 @@
     bool isFinance = User.IsInRole("FinanceOfficer");
     bool isAgent = User.IsInRole("Agent");
 }
+@inject ZororoMemorialPark.Services.SystemSettingsService SettingsService
+
+@{
+    var settings = await SettingsService.GetSettingsAsync();
+    string logo = settings?.LogoPath ?? "/images/default-logo.png";
+    string companyName = settings?.CompanyName ?? "Zororo Memorial";
+}
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -25,6 +33,9 @@
     <!-- Site CSS -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/ZororoMemorialPark.styles.css" asp-append-version="true" />
+
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+
 
     <style>
         .user-profile-toggle {
@@ -90,9 +101,13 @@
 
                 <!-- Brand -->
                 <a class="navbar-brand d-flex align-items-center" href="/">
-                    <i class="bi bi-tree-fill me-2"></i>
-                    <span>Zororo Memorial</span>
+                    <img src="@logo"
+                         alt="Logo"
+                         style="height:38px; width:auto; margin-right:8px;" />
+
+                    <span>@companyName</span>
                 </a>
+
 
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                 data-bs-target="#mainNavbar" aria-controls="mainNavbar"
@@ -123,6 +138,15 @@
                                         <li>
                                             <a class="dropdown-item" href="/Graves/Graves">
                                                 <i class="bi bi-archive"></i> Grave Stock
+                                            </a>
+                                        </li>
+                                    }
+
+                                    @if (isManager || isOps || isFinance || isAgent)
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" href="/Burials/BurialSchedule">
+                                                <i class="bi bi-calendar-check"></i> Burial Schedule
                                             </a>
                                         </li>
                                     }
@@ -272,6 +296,11 @@
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li>
+                                        <a class="dropdown-item" href="/Settings/SystemSettings">
+                                            <i class="bi bi-gear-wide-connected"></i> System Configurations
+                                        </a>
+                                    </li>
+                                    <li>
                                         <a class="dropdown-item" href="/UserManagement">
                                             <i class="bi bi-people"></i> Users
                                         </a>
@@ -328,19 +357,18 @@
         </nav>
     </header>
 
-    <div class="p-3">
+    <div class="p-3" style="min-height: calc(100vh - 120px);">
         @RenderBody()
     </div>
 
-    <footer class="footer">
-        © 2025 Zororo Grave Management System
+
+
+    <footer class="footer text-center mt-5 mb-3">
+        © @DateTime.Now.Year @companyName — @settings?.Phone | @settings?.Email
     </footer>
 
-    <!-- Scripts -->
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
 
+    
     <script>
         setTimeout(function () {
             var message = document.getElementById("successMessage");
@@ -351,6 +379,13 @@
             }
         }, 3000);
     </script>
+    
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 

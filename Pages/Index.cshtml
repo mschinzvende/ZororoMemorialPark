@@ -4,102 +4,249 @@
     ViewData["Title"] = "Cemetery Dashboard";
 }
 
-<div class="container mt-4">
+<style>
+    .chart-container {
+        position: relative;
+        height: 230px; /* fix chart height */
+        width: 100%;
+    }
+</style>
 
-    <!-- Summary Cards -->
-    <div class="row g-3">
+<div class="container-fluid mt-4 mb-4">
+
+    <!-- Summary Cards Row 1 -->
+    <div class="row g-3 mb-2">
         <div class="col-md-3">
-            <div class="card shadow-sm p-3">
+            <div class="card shadow-sm p-3 text-center">
                 <h6>Total Graves</h6>
-                <h3>@Model.TotalGraves</h3>
+                <h3 class="fw-bold">@Model.TotalGraves</h3>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="card shadow-sm p-3">
+            <div class="card shadow-sm p-3 text-center">
                 <h6>Available Graves</h6>
-                <h3>@Model.AvailableGraves</h3>
+                <h3 class="fw-bold text-success">@Model.AvailableGraves</h3>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="card shadow-sm p-3">
+            <div class="card shadow-sm p-3 text-center">
                 <h6>Reserved Graves</h6>
-                <h3>@Model.ReservedGraves</h3>
+                <h3 class="fw-bold text-warning">@Model.ReservedGraves</h3>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="card shadow-sm p-3">
+            <div class="card shadow-sm p-3 text-center">
                 <h6>Allocated / Sold</h6>
-                <h3>@Model.AllocatedGraves</h3>
+                <h3 class="fw-bold text-primary">@Model.AllocatedGraves</h3>
             </div>
         </div>
     </div>
 
-    <!-- Financial Cards -->
-    <div class="row g-3 mt-2">
+    <!-- Summary Cards Row 2 -->
+    <div class="row g-3 mb-4">
         <div class="col-md-3">
-            <div class="card shadow-sm p-3">
+            <div class="card shadow-sm p-3 text-center">
                 <h6>Total Revenue</h6>
-                <h3>$@Model.TotalRevenue</h3>
+                <h3 class="fw-bold">$@Model.TotalRevenue</h3>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="card shadow-sm p-3">
+            <div class="card shadow-sm p-3 text-center">
                 <h6>Revenue This Month</h6>
-                <h3>$@Model.RevenueMonth</h3>
+                <h3 class="fw-bold">$@Model.RevenueMonth</h3>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="card shadow-sm p-3">
+            <div class="card shadow-sm p-3 text-center">
                 <h6>Outstanding Balances</h6>
-                <h3>$@Model.Outstanding</h3>
+                <h3 class="fw-bold text-danger">$@Model.Outstanding</h3>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="card shadow-sm p-3">
+            <div class="card shadow-sm p-3 text-center">
                 <h6>Payments This Month</h6>
-                <h3>$@Model.PaymentsMonth</h3>
+                <h3 class="fw-bold text-info">$@Model.PaymentsMonth</h3>
             </div>
         </div>
     </div>
 
-    <!-- Charts -->
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card p-3 shadow-sm">
-                <h6>Graves per Section</h6>
-                <canvas id="gravesSectionChart"></canvas>
+    <!-- CHARTS -->
+    <div class="row g-4">
+
+        <!-- Graves per Section -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card shadow-sm p-3">
+                <h6>Graves Per Section</h6>
+                <div class="chart-container">
+                    <canvas id="gravesSectionChart"></canvas>
+                </div>
             </div>
         </div>
 
-        <div class="col-md-6">
-            <div class="card p-3 shadow-sm">
-                <h6>Graves per Development Stage</h6>
-                <canvas id="gravesStageChart"></canvas>
+        <!-- Graves per Development Stage -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card shadow-sm p-3">
+                <h6>Development Stages</h6>
+                <div class="chart-container">
+                    <canvas id="gravesStageChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Revenue -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card shadow-sm p-3">
+                <h6>Monthly Revenue (12 Months)</h6>
+                <div class="chart-container">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Methods -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card shadow-sm p-3">
+                <h6>Payment Method Breakdown</h6>
+                <div class="chart-container">
+                    <canvas id="paymentMethodChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reserved vs Allocated -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card shadow-sm p-3">
+                <h6>Reserved vs Allocated</h6>
+                <div class="chart-container">
+                    <canvas id="reservedVsSoldChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Under Construction (Total) -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card shadow-sm p-3">
+                <h6>Under Construction (Total)</h6>
+                <div class="chart-container">
+                    <canvas id="underConstructionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Development Stage by Section (Matrix) -->
+        <div class="col-lg-6 col-md-12">
+            <div class="card shadow-sm p-3">
+                <h6>Development Stage by Section</h6>
+                <div class="chart-container">
+                    <canvas id="stageBySectionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Under Construction by Section -->
+        <div class="col-lg-6 col-md-12">
+            <div class="card shadow-sm p-3">
+                <h6>Under Construction Graves by Section</h6>
+                <div class="chart-container">
+                    <canvas id="underConstructionSectionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="mb-5"></div>
+
+    <div class="row mt-5 mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm p-4">
+                <h4 class="mb-3">Today's Activity</h4>
+
+                <div class="row">
+
+                    <!-- Today's Burials -->
+                    <div class="col-md-4">
+                        <h6 class="text-primary">Today's Burials</h6>
+                        @if (Model.TodaysBurials.Any())
+                        {
+                            <ul class="list-group">
+                                @foreach (var b in Model.TodaysBurials)
+                                {
+                                    <li class="list-group-item small">
+                                        <strong>@b.PlotNumber</strong> — @b.Section <br />
+                                        <span class="text-muted">@b.DeceasedName</span><br />
+                                        NOK: @b.NextOfKin
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <p class="text-muted small">No burials recorded today.</p>
+                        }
+                    </div>
+
+                    <!-- Today's Payments -->
+                    <div class="col-md-4">
+                        <h6 class="text-success">Today's Payments</h6>
+                        @if (Model.TodaysPayments.Any())
+                        {
+                            <ul class="list-group">
+                                @foreach (var p in Model.TodaysPayments)
+                                {
+                                    <li class="list-group-item small">
+                                        <strong>$@p.Amount</strong> — @p.Method <br />
+                                        <span class="text-muted">@p.Payer</span><br />
+                                        @p.Timestamp.ToShortTimeString()
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <p class="text-muted small">No payments received today.</p>
+                        }
+                    </div>
+
+                    <!-- Upcoming Jobs -->
+                    <div class="col-md-4">
+                        <h6 class="text-warning">Upcoming Job Deadlines</h6>
+                        @if (Model.UpcomingJobs.Any())
+                        {
+                            <ul class="list-group">
+                                @foreach (var j in Model.UpcomingJobs)
+                                {
+                                    <li class="list-group-item small">
+                                        <strong>@j.PlotNumber</strong> — @j.JobType<br />
+                                        Supplier: @j.Supplier<br />
+                                        Due: @j.EndDate
+                                        @if (j.IsOverdue)
+                                        {
+                                            <span class="badge bg-danger">Overdue</span>
+                                        }
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <p class="text-muted small">No upcoming deadlines in the next 7 days.</p>
+                        }
+                    </div>
+
+                </div>
+
             </div>
         </div>
     </div>
 
-    <div class="row mt-4 mb-5">
-        <div class="col-md-6">
-            <div class="card p-3 shadow-sm">
-                <h6>Monthly Revenue (12 months)</h6>
-                <canvas id="revenueChart"></canvas>
-            </div>
-        </div>
 
-        <div class="col-md-6">
-            <div class="card p-3 shadow-sm">
-                <h6>Payment Methods Breakdown</h6>
-                <canvas id="paymentMethodChart"></canvas>
-            </div>
-        </div>
-    </div>
 
 </div>
 
@@ -107,17 +254,25 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
+        // Graves per Section
         new Chart(document.getElementById('gravesSectionChart'), {
             type: 'bar',
             data: {
                 labels: @Html.Raw(Model.SectionsJson),
                 datasets: [{
                     label: 'Graves',
-                    data: @Html.Raw(Model.GravesPerSectionJson)
+                    data: @Html.Raw(Model.GravesPerSectionJson),
+                    backgroundColor: '#2e7d32'
                 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
             }
         });
 
+        // Development Stages
         new Chart(document.getElementById('gravesStageChart'), {
             type: 'pie',
             data: {
@@ -125,20 +280,40 @@
                 datasets: [{
                     data: @Html.Raw(Model.GravesPerStageJson)
                 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
             }
         });
 
+        // Monthly Revenue
         new Chart(document.getElementById('revenueChart'), {
             type: 'line',
             data: {
                 labels: @Html.Raw(Model.RevenueMonthsJson),
                 datasets: [{
                     label: 'Revenue',
-                    data: @Html.Raw(Model.RevenueValuesJson)
+                    data: @Html.Raw(Model.RevenueValuesJson),
+                    borderColor: '#0277bd',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.2
                 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
             }
         });
 
+        // Payment Methods
         new Chart(document.getElementById('paymentMethodChart'), {
             type: 'doughnut',
             data: {
@@ -146,6 +321,121 @@
                 datasets: [{
                     data: @Html.Raw(Model.PaymentMethodTotalsJson)
                 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // Reserved vs Allocated
+        new Chart(document.getElementById('reservedVsSoldChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Reserved', 'Allocated'],
+                datasets: [{
+                    label: 'Graves',
+                    data: [@Model.ReservedGraves, @Model.AllocatedGraves],
+                    backgroundColor: ['#f9a825', '#1565c0']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Under Construction (Total)
+        new Chart(document.getElementById('underConstructionChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Under Construction'],
+                datasets: [{
+                    label: 'Graves',
+                    data: [@Model.UnderConstructionGraves],
+                    backgroundColor: '#8e24aa'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    }
+                }
+            }
+        });
+
+        // Development Stage by Section (Matrix)
+        const stageMatrixLabels = @Html.Raw(Model.SectionsForMatrixJson);
+        const stageNames = @Html.Raw(Model.StagesForMatrixJson);
+        const stageMatrixData = @Html.Raw(Model.StageBySectionDataJson);
+
+        const stageDatasets = [];
+        let colorIndex = 0;
+        const colors = ['#2E7D32', '#0277BD', '#F9A825', '#8E24AA', '#C62828', '#6A1B9A', '#00897B', '#5D4037'];
+
+        for (const stageName in stageMatrixData) {
+            stageDatasets.push({
+                label: stageName,
+                data: stageMatrixData[stageName],
+                backgroundColor: colors[colorIndex % colors.length]
+            });
+            colorIndex++;
+        }
+
+        new Chart(document.getElementById("stageBySectionChart"), {
+            type: 'bar',
+            data: {
+                labels: stageMatrixLabels,
+                datasets: stageDatasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                },
+                scales: {
+                    x: { stacked: false },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    }
+                }
+            }
+        });
+
+        // Under Construction by Section
+        new Chart(document.getElementById("underConstructionSectionChart"), {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(Model.UnderConstructionSectionNamesJson),
+                datasets: [{
+                    label: "Under Construction",
+                    data: @Html.Raw(Model.UnderConstructionSectionCountsJson),
+                    backgroundColor: "#8e24aa"
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    }
+                }
             }
         });
     </script>

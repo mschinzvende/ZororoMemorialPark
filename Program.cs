@@ -4,6 +4,7 @@ using ZororoMemorialPark.Data;
 using Serilog;
 using ZororoMemorialPark.Services;
 using QuestPDF.Infrastructure;
+using ZororoMemorialPark.Data.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,6 +49,9 @@ builder.Services.AddTransient<OutstandingBalancesPdfService>();
 builder.Services.AddTransient<StockMovementPdfService>();
 builder.Services.AddTransient<SupplierPaymentsPdfService>();
 
+builder.Services.AddScoped<SystemSettingsService>();
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddHostedService<BurialReminderService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -76,8 +80,32 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     await RoleMigrationSeeder.MigrateRolesAsync(services);
-}
 
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    if (!db.SystemSettings.Any())
+    {
+        db.SystemSettings.Add(new SystemSettings
+        {
+            CompanyName = "Zororo Memorial",
+            LogoPath = "none",
+            PhysicalAddress = "Harare, Zimbabwe",
+            Phone = "+263 000 000 000",
+            Email = "info@zororo.co.zw",
+            MaxBurialsPerDay = 3,
+            MinutesBetweenBurials = 60,
+            SmtpServer ="none",
+            SmtpPort = 587,
+            SenderName ="none",
+            SenderEmail = "none@mail.com",
+            SmtpUsername = "none",
+            SmtpPassword = "none",
+            UseSSL = true
+        });
+
+        db.SaveChanges();
+    }
+}
 
 
 app.Run();
