@@ -4,6 +4,21 @@
     ViewData["Title"] = "Cemetery Dashboard";
 }
 
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<IdentityUser> UserManager
+
+@{
+    bool isManager = User.IsInRole("Manager");
+    bool isOps = User.IsInRole("OperationsOfficer");
+    bool isFinance = User.IsInRole("FinanceOfficer");
+    bool isAgent = User.IsInRole("Agent");
+
+    if(isAgent)
+    {
+        Response.Redirect("/Graves/Graves");
+    }   
+}
+
 <style>
     .chart-container {
         position: relative;
@@ -162,89 +177,6 @@
     </div>
 
     <div class="mb-5"></div>
-
-    <div class="row mt-5 mb-4">
-        <div class="col-md-12">
-            <div class="card shadow-sm p-4">
-                <h4 class="mb-3">Today's Activity</h4>
-
-                <div class="row">
-
-                    <!-- Today's Burials -->
-                    <div class="col-md-4">
-                        <h6 class="text-primary">Today's Burials</h6>
-                        @if (Model.TodaysBurials.Any())
-                        {
-                            <ul class="list-group">
-                                @foreach (var b in Model.TodaysBurials)
-                                {
-                                    <li class="list-group-item small">
-                                        <strong>@b.PlotNumber</strong> — @b.Section <br />
-                                        <span class="text-muted">@b.DeceasedName</span><br />
-                                        NOK: @b.NextOfKin
-                                    </li>
-                                }
-                            </ul>
-                        }
-                        else
-                        {
-                            <p class="text-muted small">No burials recorded today.</p>
-                        }
-                    </div>
-
-                    <!-- Today's Payments -->
-                    <div class="col-md-4">
-                        <h6 class="text-success">Today's Payments</h6>
-                        @if (Model.TodaysPayments.Any())
-                        {
-                            <ul class="list-group">
-                                @foreach (var p in Model.TodaysPayments)
-                                {
-                                    <li class="list-group-item small">
-                                        <strong>$@p.Amount</strong> — @p.Method <br />
-                                        <span class="text-muted">@p.Payer</span><br />
-                                        @p.Timestamp.ToShortTimeString()
-                                    </li>
-                                }
-                            </ul>
-                        }
-                        else
-                        {
-                            <p class="text-muted small">No payments received today.</p>
-                        }
-                    </div>
-
-                    <!-- Upcoming Jobs -->
-                    <div class="col-md-4">
-                        <h6 class="text-warning">Upcoming Job Deadlines</h6>
-                        @if (Model.UpcomingJobs.Any())
-                        {
-                            <ul class="list-group">
-                                @foreach (var j in Model.UpcomingJobs)
-                                {
-                                    <li class="list-group-item small">
-                                        <strong>@j.PlotNumber</strong> — @j.JobType<br />
-                                        Supplier: @j.Supplier<br />
-                                        Due: @j.EndDate
-                                        @if (j.IsOverdue)
-                                        {
-                                            <span class="badge bg-danger">Overdue</span>
-                                        }
-                                    </li>
-                                }
-                            </ul>
-                        }
-                        else
-                        {
-                            <p class="text-muted small">No upcoming deadlines in the next 7 days.</p>
-                        }
-                    </div>
-
-                </div>
-
-            </div>
-        </div>
-    </div>
 
 
 
