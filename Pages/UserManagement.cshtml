@@ -11,13 +11,21 @@
 
     <div class="card-body">
 
-        @if (!string.IsNullOrEmpty(Model.StatusMessage))
-        {
-            <div class="alert alert-success alert-dismissible fade show mt-2" role="alert">
-                @Model.StatusMessage
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert" id="successMessage">
+                    @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @TempData["ErrorMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
 
         <!-- Add User -->
         <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addUserModal">

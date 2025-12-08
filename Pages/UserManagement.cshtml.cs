@@ -201,7 +201,8 @@ public class UserManagementModel : PageModel
         {
             try
             {
-                string loginUrl = $"{Request.Scheme}://{Request.Host}/Account/Login";
+                string baseUrl = $"{Request.Scheme}://{Request.Host}";
+                string loginUrl = $"{baseUrl}/Account/Login";
 
                 string subject = "Your Zororo Memorial Park System Account";
 
@@ -325,49 +326,54 @@ public class UserManagementModel : PageModel
             return Page();
         }
 
+
         // ============= SEND PASSWORD RESET EMAIL =============
+        
         try
         {
-            string loginUrl = $"{Request.Scheme}://{Request.Host}/Account/Login";
+            string baseUrl = $"{Request.Scheme}://{Request.Host}";
+            string loginUrl = $"{baseUrl}/Account/Login";
 
             string subject = "Your Password Has Been Reset • Zororo Memorial Park";
 
             string body = $@"
-            <p>Dear {user.UserName},</p>
+        <p>Dear {user.UserName},</p>
 
-            <p>Your password for the <strong>Zororo Memorial Park Management System</strong> has been successfully reset.</p>
+        <p>Your password for the <strong>Zororo Memorial Park Management System</strong> has been successfully reset.</p>
 
-            <p><strong>Login Email:</strong> {user.Email}<br/>
-               <strong>New Password:</strong> {ResetInput.NewPassword}</p>
+        <p><strong>Login Email:</strong> {user.Email}<br/>
+        <strong>New Password:</strong> {ResetInput.NewPassword}</p>
 
-            <p>You can now log in using the link below:</p>
+        <p>
+            <a href=""{loginUrl}"" 
+               style=""background-color:#006A46;color:white;padding:10px 18px;
+                      text-decoration:none;border-radius:5px;font-weight:bold;"">
+                Click here to login
+            </a>
+        </p>
 
-            <p>
-                <a href=""{loginUrl}""
-                   style=""background-color:#006A46;color:white;padding:10px 18px;
-                          text-decoration:none;border-radius:5px;font-weight:bold;"">
-                    Click here to login
-                </a>
-            </p>
+        <p>If you did not request this password reset, please contact the system administrator immediately.</p>
 
-            <p>If you did not request this password reset, please contact the system administrator immediately.</p>
+        <p>Regards,<br/>Zororo Memorial Park Admin</p>
+    ";
 
-            <br/>
-            <p>Regards,<br/>Zororo Memorial Park Admin</p>
-        ";
-
+            // Send email normally (NOT inside Task.Run)
             await _notify.SendEmailAsync(user.Email, subject, body);
+
+            TempData["SuccessMessage"] = "Password has been reset and an email notification was sent.";
         }
         catch (Exception ex)
         {
-            // Do not block user flow
-            Console.WriteLine("Password reset notification email failed: " + ex.Message);
+            // Show the REAL error on the page
+            TempData["ErrorMessage"] = "Email sending failed: " + ex.Message;
         }
-        // ======================================================
+
+
+
 
         SafeLog("Password Reset", user.Email);
 
-        StatusMessage = "Password reset successfully!";
+        
         return RedirectToPage();
     }
 
