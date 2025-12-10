@@ -34,7 +34,7 @@ public class UserManagementModel : PageModel
     [TempData] public string StatusMessage { get; set; }
 
     public List<UserViewModel> Users { get; set; } = new();
-    public List<string> AllRoles { get; } = new() { "Manager", "FinanceOfficer", "OperationsOfficer", "Agent" };
+    public List<string> AllRoles { get; } = new() { "Manager", "FinanceOfficer", "OperationsOfficer", "Agent", "RequisitionReviewer", "RequisitionApprover" };
 
 
     // --------------------- ADD USER ---------------------
@@ -193,7 +193,7 @@ public class UserManagementModel : PageModel
         await SetFullNameAsync(user, AddInput.FullName);
 
         SafeLog("User Created", AddInput.Email);
-        StatusMessage = "User created successfully!";
+        TempData["SuccessMessage"]= "User created successfully!";
 
         //use the notification service to send user the email
 
@@ -202,7 +202,7 @@ public class UserManagementModel : PageModel
             try
             {
                 string baseUrl = $"{Request.Scheme}://{Request.Host}";
-                string loginUrl = $"{baseUrl}/Account/Login";
+                string loginUrl = $"{baseUrl}/Identity/Account/Login";
 
                 string subject = "Your Zororo Memorial Park System Account";
 
@@ -286,7 +286,7 @@ public class UserManagementModel : PageModel
         await SetFullNameAsync(user, EditInput.FullName);
 
         SafeLog("User Updated", EditInput.Email);
-        StatusMessage = "User updated successfully!";
+        TempData["SuccessMessage"] = "User updated successfully!";
         return RedirectToPage();
     }
 
@@ -332,7 +332,7 @@ public class UserManagementModel : PageModel
         try
         {
             string baseUrl = $"{Request.Scheme}://{Request.Host}";
-            string loginUrl = $"{baseUrl}/Account/Login";
+            string loginUrl = $"{baseUrl}/Identity/Account/Login";
 
             string subject = "Your Password Has Been Reset • Zororo Memorial Park";
 
@@ -394,7 +394,7 @@ public class UserManagementModel : PageModel
         await _userManager.DeleteAsync(user);
 
         SafeLog("User Deleted", user.Email);
-        StatusMessage = "User deleted successfully!";
+        TempData["SuccessMessage"] = "User deleted successfully!";
         return RedirectToPage();
     }
 
@@ -422,7 +422,7 @@ public class UserManagementModel : PageModel
 
         SafeLog("Roles Updated", user.Email);
 
-        StatusMessage = "Roles updated successfully!";
+        TempData["SuccessMessage"] = "Roles updated successfully!";
         return RedirectToPage();
     }
 

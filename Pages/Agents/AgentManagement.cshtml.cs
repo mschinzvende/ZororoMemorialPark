@@ -40,56 +40,79 @@ public class AgentManagementModel : PageModel
     public List<SelectListItem> IsPercentageOptions { get; set; }
     public async Task OnGetAsync()
     {
-        Agents = await _context.tbl_Agents.ToListAsync();
+        try
+        {
 
-        IsPercentageOptions = new List<SelectListItem>
-    {
-        new SelectListItem { Text = "Percentage", Value = "true" },
-        new SelectListItem { Text = "Fixed Amount", Value = "false" }
-    };
+
+            Agents = await _context.tbl_Agents.ToListAsync();
+
+            IsPercentageOptions = new List<SelectListItem>
+            {
+                new SelectListItem { Text = "Percentage", Value = "true" },
+                new SelectListItem { Text = "Fixed Amount", Value = "false" }
+            };
+        }
+        catch (Exception ex)
+        {
+            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error Loading Agents", ex.Message);
+            TempData["ErrorMessage"] = "An error occurred while loading agents.";
+        }
     }
 
     public async Task<IActionResult> OnPostAddAgentAsync()
     {
-
-        //create user account for the agent
-        var user = new IdentityUser { UserName = Agent.sys_agentEmail, Email = Agent.sys_agentEmail };
-
-        var randomPassword = GenerateRandomPassword();
-        var result = await _userManager.CreateAsync(user, randomPassword);
-        if (result.Succeeded)
+        try
         {
-            StatusMessage = "Agent Created successfully!";
 
-            await _userManager.AddToRoleAsync(user, "Agent");
 
-            //send a welcome email
-            _ = Task.Run(async () =>
+            //create user account for the agent
+            var user = new IdentityUser { UserName = Agent.sys_agentEmail, Email = Agent.sys_agentEmail };
+
+            var randomPassword = GenerateRandomPassword();
+            var result = await _userManager.CreateAsync(user, randomPassword);
+            if (result.Succeeded)
             {
-                
+                TempData["SuccessMessage"] = "Agent Created successfully!";
 
-                await _notify.SendEmailAsync(
-                    Agent.sys_agentEmail,
-                    "Welcome to Zororo Memorial Park",
-                    $"<p>Dear Agent,</p><p>Your account has been created successfully. " +
-                    $"Your username is {Agent.sys_agentEmail}.</p> <p>Your Password is {randomPassword}</p><p>Thank you!</p>"
-                );
-            });
+                await _userManager.AddToRoleAsync(user, "Agent");
 
-            Agent.UserId = user.Id;
+                //send a welcome email
+                _ = Task.Run(async () =>
+                {
 
 
-            _context.tbl_Agents.Add(Agent);
-            await _context.SaveChangesAsync();
+                    await _notify.SendEmailAsync(
+                        Agent.sys_agentEmail,
+                        "Welcome to Zororo Memorial Park",
+                        $"<p>Dear Agent,</p><p>Your account has been created successfully. " +
+                        $"Your username is {Agent.sys_agentEmail}.</p> <p>Your Password is {randomPassword}</p><p>Thank you!</p>"
+                    );
+                });
 
-            _appLogger.LogActivityAsync(_userManager.GetUserId(User), $"User Created Agent {Agent.sys_agentName}", $"Agent User-{Agent.sys_agentEmail} created successfully.");
+                Agent.UserId = user.Id;
 
-            return RedirectToPage();
+
+                _context.tbl_Agents.Add(Agent);
+                await _context.SaveChangesAsync();
+
+                _appLogger.LogActivityAsync(_userManager.GetUserId(User), $"User Created Agent {Agent.sys_agentName}", $"Agent User-{Agent.sys_agentEmail} created successfully.");
+
+                return RedirectToPage();
+            }
+
+            else
+            {
+                TempData["ErrorMessage"] = "Failed to create agent. User account creation failed!" + result.ToString();
+                return RedirectToPage();
+            }
+
+
         }
 
-        else
+        catch(Exception ex)
         {
-            ErrorMessage = "Failed to create agent. User account creation failed!" + result.ToString();
+            _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error Creating Agent", ex.Message);
+            TempData["ErrorMessage"] = "An error occurred while creating the agent.";
             return RedirectToPage();
         }
        
@@ -97,87 +120,131 @@ public class AgentManagementModel : PageModel
 
     public async Task<IActionResult> OnPostEditAgentAsync()
     {
-        
-        
-        _context.tbl_Agents.Update(Agent);
-        await _context.SaveChangesAsync();
+        try
+        {
 
-        StatusMessage = "Agent updated successfully";
-        
-        return RedirectToPage();
+            _context.tbl_Agents.Update(Agent);
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Agent updated successfully";
+
+           await _appLogger.LogActivityAsync(_userManager.GetUserId(User), $"User Updated Agent {Agent.sys_agentName}", $"Agent User-{Agent.sys_agentEmail} updated successfully.");
+
+            return RedirectToPage();
+        }
+        catch(Exception ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error Updating Agent", ex.Message);
+
+            return RedirectToPage();
+        }
     }
 
     public async Task<IActionResult> OnPostDeleteAgentAsync(int id)
     {
-        var agent = await _context.tbl_Agents.FindAsync(id);
-        if (agent != null)
-        {
 
-            var user = await _userManager.FindByIdAsync(agent.UserId);
-            if (user != null)
+        try
+        {
+            var agent = await _context.tbl_Agents.FindAsync(id);
+            if (agent != null)
             {
-                _context.tbl_Agents.Remove(agent);
-                await _context.SaveChangesAsync();
-                await _userManager.DeleteAsync(user);
-               
+
+                var user = await _userManager.FindByIdAsync(agent.UserId);
+                if (user != null)
+                {
+                    _context.tbl_Agents.Remove(agent);
+                    await _context.SaveChangesAsync();
+                    await _userManager.DeleteAsync(user);
+
+                }
+
             }
+            TempData["Success Message"] = "Agent deleted successfully!";
+           await  _appLogger.LogActivityAsync(_userManager.GetUserId(User), $"User Deleted Agent {agent?.sys_agentName}", $"Agent User-{agent?.sys_agentEmail} deleted successfully.");
+            return RedirectToPage();
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error Deleting Agent", ex.Message);
+            return RedirectToPage();
 
         }
-        StatusMessage = "Agent deleted successfully!";
-        _appLogger.LogActivityAsync(_userManager.GetUserId(User), $"User Deleted Agent {agent?.sys_agentName}", $"Agent User-{agent?.sys_agentEmail} deleted successfully.");
-        return RedirectToPage();
     }
 
     public async Task<IActionResult> OnPostAddPaymentAsync([FromForm] tbl_CommissionPayments payment)
     {
-        
 
-        _context.tbl_CommissionPayments.Add(payment);
-        await _context.SaveChangesAsync();
 
-        // Update commission status if fully paid
-        var commission = await _context.tbl_CommissionsDue.FindAsync(payment.sys_commissionId);
-        if (commission != null)
+        try
         {
-            var totalPaid = await _context.tbl_CommissionPayments
-                .Where(p => p.sys_commissionId == commission.sys_commissionId)
-                .SumAsync(p => p.sys_amountPaid);
+            _context.tbl_CommissionPayments.Add(payment);
+            await _context.SaveChangesAsync();
 
-            if (totalPaid >= commission.sys_amount)
+            // Update commission status if fully paid
+            var commission = await _context.tbl_CommissionsDue.FindAsync(payment.sys_commissionId);
+            if (commission != null)
             {
-                commission.sys_isPaid = true;
-                _context.tbl_CommissionsDue.Update(commission);
-                await _context.SaveChangesAsync();
-            }
-        }
+                var totalPaid = await _context.tbl_CommissionPayments
+                    .Where(p => p.sys_commissionId == commission.sys_commissionId)
+                    .SumAsync(p => p.sys_amountPaid);
 
-        return new JsonResult(new { success = true });
+                if (totalPaid >= commission.sys_amount)
+                {
+                    commission.sys_isPaid = true;
+                    _context.tbl_CommissionsDue.Update(commission);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            TempData["SuccessMessage"] = "Payment added successfully.";
+            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Added Commission Payment", $"Payment of {payment.sys_amountPaid} added for Commission ID {payment.sys_commissionId}.");
+            return new JsonResult(new { success = true });
+        }
+        catch (Exception)
+        {
+            TempData["ErrorMessage"] = "An error occurred while adding the payment.";
+            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error Adding Commission Payment", "An error occurred while adding a commission payment.");
+
+            return new JsonResult(new { success = false });
+        }
     }
 
     public async Task<IActionResult> OnGetAgentDetailsAsync(int id)
     {
-        var agent = await _context.tbl_Agents.FindAsync(id);
-
-        var commissions = await _context.tbl_CommissionsDue
-    .Where(c => c.sys_agentId == id)
-    .ToListAsync();
-
-        var result = commissions.Select(c => new
+        try
         {
-            c.sys_commissionId,
-            c.sys_graveId,
-            c.sys_amount,
-            c.sys_isPaid,
-            amountPaid = _context.tbl_CommissionPayments
-                .Where(p => p.sys_commissionId == c.sys_commissionId)
-                .Sum(p => (decimal?)p.sys_amountPaid) ?? 0
-        }).ToList();
+            var agent = await _context.tbl_Agents.FindAsync(id);
 
-        var payments = await _context.tbl_CommissionPayments
-            .Where(p => commissions.Select(c => c.sys_commissionId).Contains(p.sys_commissionId))
-            .ToListAsync();
+            var commissions = await _context.tbl_CommissionsDue
+        .Where(c => c.sys_agentId == id)
+        .ToListAsync();
 
-        return new JsonResult(new { agent, result, payments });
+            var result = commissions.Select(c => new
+            {
+                c.sys_commissionId,
+                c.sys_graveId,
+                c.sys_amount,
+                c.sys_isPaid,
+                amountPaid = _context.tbl_CommissionPayments
+                    .Where(p => p.sys_commissionId == c.sys_commissionId)
+                    .Sum(p => (decimal?)p.sys_amountPaid) ?? 0
+            }).ToList();
+
+            var payments = await _context.tbl_CommissionPayments
+                .Where(p => commissions.Select(c => c.sys_commissionId).Contains(p.sys_commissionId))
+                .ToListAsync();
+
+            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Viewed Agent Details", $"Viewed details for Agent ID {id}.");
+            return new JsonResult(new { agent, result, payments });
+        }
+        catch (Exception)
+        {
+            TempData["ErrorMessage"] = "An error occurred while retrieving agent details.";
+            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error Viewing Agent Details", $"An error occurred while viewing details for Agent ID {id}.");
+        return new JsonResult(new { success = false });
+        }
     }
 
 
@@ -186,96 +253,96 @@ public class AgentManagementModel : PageModel
 
     public async Task<IActionResult> OnPostPayCommissionsAsync(string commissionData, string paymentDate)
     {
-        if (string.IsNullOrWhiteSpace(commissionData))
-            return new JsonResult(new { success = false, message = "No commissions selected." });
-
-        if (!DateTime.TryParse(paymentDate, out DateTime payDate))
-            payDate = DateTime.UtcNow;
-
-        // commissionData format: "id:amount,id:amount"
-        var entries = commissionData.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(e =>
-                        {
-                            var parts = e.Split(':');
-                            return (Id: int.Parse(parts[0]), Amount: double.Parse(parts[1]));
-                        })
-                        .ToList();
-
-        var ids = entries.Select(e => e.Id).ToList();
-        var commissions = await _context.tbl_CommissionsDue
-                                .Where(c => ids.Contains(c.sys_commissionId))
-                                .ToListAsync();
-
-        foreach (var entry in entries)
+        try
         {
-            var comm = commissions.FirstOrDefault(c => c.sys_commissionId == entry.Id);
-            if (comm == null) continue;
+            if (string.IsNullOrWhiteSpace(commissionData))
+                return new JsonResult(new { success = false, message = "No commissions selected." });
 
-            var alreadyPaid = await _context.tbl_CommissionPayments
-                                .Where(p => p.sys_commissionId == comm.sys_commissionId)
-                                .SumAsync(p => (double?)p.sys_amountPaid) ?? 0.0;
+            if (!DateTime.TryParse(paymentDate, out DateTime payDate))
+                payDate = DateTime.UtcNow;
 
-            var remaining = comm.sys_amount - alreadyPaid;
-            if (remaining <= 0) continue;
+            // commissionData format: "id:amount,id:amount"
+            var entries = commissionData.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(e =>
+                            {
+                                var parts = e.Split(':');
+                                return (Id: int.Parse(parts[0]), Amount: double.Parse(parts[1]));
+                            })
+                            .ToList();
 
-            var payAmount = Math.Min(entry.Amount, remaining);
+            var ids = entries.Select(e => e.Id).ToList();
+            var commissions = await _context.tbl_CommissionsDue
+                                    .Where(c => ids.Contains(c.sys_commissionId))
+                                    .ToListAsync();
 
-            _context.tbl_CommissionPayments.Add(new tbl_CommissionPayments
+            foreach (var entry in entries)
             {
-                sys_commissionId = comm.sys_commissionId,
-                sys_amountPaid = payAmount,
-                sys_paymentDate = payDate
+                var comm = commissions.FirstOrDefault(c => c.sys_commissionId == entry.Id);
+                if (comm == null) continue;
+
+                var alreadyPaid = await _context.tbl_CommissionPayments
+                                    .Where(p => p.sys_commissionId == comm.sys_commissionId)
+                                    .SumAsync(p => (double?)p.sys_amountPaid) ?? 0.0;
+
+                var remaining = comm.sys_amount - alreadyPaid;
+                if (remaining <= 0) continue;
+
+                var payAmount = Math.Min(entry.Amount, remaining);
+
+                _context.tbl_CommissionPayments.Add(new tbl_CommissionPayments
+                {
+                    sys_commissionId = comm.sys_commissionId,
+                    sys_amountPaid = payAmount,
+                    sys_paymentDate = payDate
+                });
+
+                if (alreadyPaid + payAmount >= comm.sys_amount)
+                    comm.sys_isPaid = true;
+            }
+
+            await _context.SaveChangesAsync();
+
+            var agentId = commissions.First().sys_agentId;
+            var agent = await _context.tbl_Agents.FirstOrDefaultAsync(a => a.sys_agentId == agentId);
+
+            var updatedCommissions = await _context.tbl_CommissionsDue
+                                        .Where(c => c.sys_agentId == agentId)
+                                        .ToListAsync();
+
+            var commissionIdsAll = updatedCommissions.Select(c => c.sys_commissionId).ToList();
+            var updatedPayments = await _context.tbl_CommissionPayments
+                                        .Where(p => commissionIdsAll.Contains(p.sys_commissionId))
+                                        .OrderByDescending(p => p.sys_paymentDate)
+                                        .ToListAsync();
+
+            return new JsonResult(new
+            {
+                success = true,
+                message = "Payments recorded.",
+                agent,
+                commissions = updatedCommissions.Select(c => new
+                {
+                    c.sys_commissionId,
+                    c.sys_graveId,
+                    c.sys_amount,
+                    c.sys_isPaid
+                }),
+                payments = updatedPayments.Select(p => new
+                {
+                    p.sys_commissionPaymentId,
+                    p.sys_commissionId,
+                    p.sys_amountPaid,
+                    paymentDate = p.sys_paymentDate.ToString("yyyy-MM-dd")
+                })
             });
-
-            if (alreadyPaid + payAmount >= comm.sys_amount)
-                comm.sys_isPaid = true;
         }
-
-        await _context.SaveChangesAsync();
-
-        var agentId = commissions.First().sys_agentId;
-        var agent = await _context.tbl_Agents.FirstOrDefaultAsync(a => a.sys_agentId == agentId);
-
-        var updatedCommissions = await _context.tbl_CommissionsDue
-                                    .Where(c => c.sys_agentId == agentId)
-                                    .ToListAsync();
-
-        var commissionIdsAll = updatedCommissions.Select(c => c.sys_commissionId).ToList();
-        var updatedPayments = await _context.tbl_CommissionPayments
-                                    .Where(p => commissionIdsAll.Contains(p.sys_commissionId))
-                                    .OrderByDescending(p => p.sys_paymentDate)
-                                    .ToListAsync();
-
-        return new JsonResult(new
+        catch (Exception ex)
         {
-            success = true,
-            message = "Payments recorded.",
-            agent,
-            commissions = updatedCommissions.Select(c => new {
-                c.sys_commissionId,
-                c.sys_graveId,
-                c.sys_amount,
-                c.sys_isPaid
-            }),
-            payments = updatedPayments.Select(p => new {
-                p.sys_commissionPaymentId,
-                p.sys_commissionId,
-                p.sys_amountPaid,
-                paymentDate = p.sys_paymentDate.ToString("yyyy-MM-dd")
-            })
-        });
+            TempData["Error Message"] = ex.Message;
+            
+            return new JsonResult(new { success = false, message = "An error occurred while processing payments." });
+        }
     }
-
-
-
-
-
-
-
-
-
-
-
 
 
 

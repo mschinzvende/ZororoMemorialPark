@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
+using ZororoMemorialPark.Data.Models;
+using Azure.Core;
 
 namespace ZororoMemorialPark.Services
 {
@@ -18,6 +20,9 @@ namespace ZororoMemorialPark.Services
             _settings = settings;
         }
 
+
+
+        
         // EMAIL
         public async Task SendEmailAsync(string to, string subject, string body)
         {

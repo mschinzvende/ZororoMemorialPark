@@ -31,10 +31,10 @@ namespace ZororoMemorialPark.Pages.Finance
         // FORM INPUT
         // ---------------------------
         [BindProperty]
-        public string hiddenCustomerName { get; set; }
+        public string customerName { get; set; }
 
         [BindProperty]
-        public string hiddenCustomerPhone { get; set; }
+        public string customerPhone { get; set; }
 
         [BindProperty]
         public List<InvoiceItemInput> Items { get; set; } = new();
@@ -94,8 +94,8 @@ namespace ZororoMemorialPark.Pages.Finance
 
                 var customer = new tbl_Customers
                 {
-                    sys_paymentMadeBy = hiddenCustomerName,
-                    sys_customerPhone = hiddenCustomerPhone
+                    sys_paymentMadeBy = customerName,
+                    sys_customerPhone = customerPhone
                 };
                 await _context.tbl_Customers.AddAsync(customer);
                 await _context.SaveChangesAsync();
