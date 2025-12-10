@@ -9,7 +9,9 @@ namespace ZororoMemorialPark.Data
             "Manager",
             "OperationsOfficer",
             "FinanceOfficer",
-            "Agent"
+            "Agent",
+            "RequisitionApprover",
+            "RequisitionReviewer"
         };
 
         // Old → New role map

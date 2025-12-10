@@ -4,6 +4,7 @@ using ZororoMemorialPark.Data;
 using System.Net.Mail;
 using System.Net;
 using ZororoMemorialPark.Data.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace ZororoMemorialPark.Pages.Settings
 {
@@ -95,32 +96,55 @@ namespace ZororoMemorialPark.Pages.Settings
 
         public async Task<IActionResult> OnPostTestEmailAsync()
         {
-            var settings = _context.SystemSettings.FirstOrDefault();
+            var settings = await _context.SystemSettings.FirstOrDefaultAsync();
+
+            if (settings == null)
+            {
+                TempData["Message"] = "SMTP Error: No system settings found.";
+                return RedirectToPage();
+            }
 
             try
             {
-                var client = new SmtpClient(settings.SmtpServer, settings.SmtpPort)
+                using var smtp = new MailKit.Net.Smtp.SmtpClient();
+
+                // Better debugging – shows real errors from cPanel
+                smtp.ServerCertificateValidationCallback = (s, c, h, e) => true;
+
+                if (settings.UseSSL)
                 {
-                    Credentials = new NetworkCredential(settings.SmtpUsername, settings.SmtpPassword),
-                    EnableSsl = settings.UseSSL
+                    await smtp.ConnectAsync(settings.SmtpServer, settings.SmtpPort, MailKit.Security.SecureSocketOptions.SslOnConnect);
+                }
+                else
+                {
+                    await smtp.ConnectAsync(settings.SmtpServer, settings.SmtpPort, MailKit.Security.SecureSocketOptions.StartTls);
+                }
+
+                await smtp.AuthenticateAsync(settings.SmtpUsername, settings.SmtpPassword);
+
+                var message = new MimeKit.MimeMessage();
+                message.From.Add(new MimeKit.MailboxAddress(settings.SenderName, settings.SenderEmail));
+                message.To.Add(new MimeKit.MailboxAddress(settings.CompanyName, settings.Email));
+                message.Subject = "SMTP Test Email";
+
+                message.Body = new MimeKit.TextPart("html")
+                {
+                    Text = "This is a test email from <strong>Zororo Memorial System</strong>."
                 };
 
-                var mail = new MailMessage(settings.SenderEmail, settings.Email)
-                {
-                    Subject = "SMTP Test Email",
-                    Body = "This is a test email from Zororo Memorial System."
-                };
-
-                await client.SendMailAsync(mail);
+                await smtp.SendAsync(message);
+                await smtp.DisconnectAsync(true);
 
                 TempData["Message"] = "? Test email sent successfully!";
             }
             catch (Exception ex)
             {
-                TempData["Message"] = "SMTP Error: " + ex.Message;
+                // Shows the REAL SMTP error
+                TempData["Message"] = "? SMTP Error: " + ex.Message;
             }
 
             return RedirectToPage();
         }
+
     }
 }

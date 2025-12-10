@@ -1,0 +1,271 @@
+﻿@page
+@model ZororoMemorialPark.Pages.Finance.RequisitionDetailsModel
+@{
+    ViewData["Title"] = "Requisition Details";
+    var r = Model.Requisition;
+}
+@inject UserManager<IdentityUser> UserManager
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center"
+    style="background-color: var(--primary-green); color: var(--primary-white);">
+        <div>
+            <h5 class="mb-0">Requisition #@r.sys_requisitionId</h5>
+            <small class="d-block" style="font-size:0.8rem;">
+                Submitted on @r.sys_requestDate.ToString("yyyy-MM-dd HH:mm")
+            </small>
+        </div>
+        <a asp-page="./Requisitions" class="btn btn-light btn-sm">Back to List</a>
+    </div>
+
+    <div class="card-body">
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <div class="row mb-3">
+            <div class="col-md-8">
+                <h6 class="fw-bold">Title</h6>
+                <p>@r.sys_title</p>
+
+                <h6 class="fw-bold">Description</h6>
+                <p>@(string.IsNullOrWhiteSpace(r.sys_description) ? "No description provided." : r.sys_description)</p>
+
+                <h6 class="fw-bold">Attachment</h6>
+                @if (!string.IsNullOrWhiteSpace(r.sys_attachmentPath))
+                {
+                    <p>
+                        <a href="@r.sys_attachmentPath" target="_blank">View Attachment</a>
+                    </p>
+                }
+                else
+                {
+                    <p class="text-muted">No attachment uploaded.</p>
+                }
+            </div>
+
+            <div class="col-md-4">
+                <div class="border rounded p-3 bg-light mb-2">
+                    <h6 class="fw-bold">Status</h6>
+                    @{
+                        var badgeClass = r.sys_status switch
+                        {
+                            "Pending" => "bg-warning text-dark",
+                            "PendingLevel2" => "bg-info text-dark",
+                            "PartiallyApproved" => "bg-primary",
+                            "Approved" => "bg-success",
+                            "Rejected" => "bg-danger",
+                            "Paid" => "bg-dark",
+                            _ => "bg-secondary"
+                        };
+                    }
+                    <span class="badge @badgeClass">@r.sys_status</span>
+
+                    @if (!string.IsNullOrWhiteSpace(r.sys_rejectReason))
+                    {
+                        <div class="mt-2">
+                            <strong>Header Reject Reason:</strong>
+                            <div class="text-danger">@r.sys_rejectReason</div>
+                        </div>
+                    }
+                </div>
+
+                <div class="border rounded p-3 bg-light">
+                    <h6 class="fw-bold">Payment</h6>
+                    @if (r.sys_status == "Approved" || r.sys_status == "PartiallyApproved" || r.sys_status == "Paid")
+                    {
+                        @if (r.sys_status != "Paid")
+                        {
+                            <form method="post" asp-page-handler="MarkPaid">
+                                <input type="hidden" name="id" value="@r.sys_requisitionId" />
+
+                                <div class="mb-2">
+                                    <label class="form-label fw-bold">Payment Reference</label>
+                                    <input asp-for="PaymentReference" class="form-control form-control-sm" />
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-success">Mark as Paid</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <p class="mb-1"><strong>Reference:</strong> @r.sys_paymentReference</p>
+                            <p class="mb-0"><strong>Date:</strong> @r.sys_paymentDate?.ToString("yyyy-MM-dd HH:mm")</p>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">Payment available after approval.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <hr />
+
+        <h6 class="fw-bold mb-2">Items</h6>
+
+        <div class="table-responsive mb-3">
+            <table class="table table-striped table-class table-sm">
+                <thead class="thead-light">
+                    <tr>
+                        <th>Item</th>
+                        <th class="text-end">Qty</th>
+                        <th class="text-end">Cost / Unit</th>
+                        <th class="text-end">Total</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                        <th style="width: 220px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td>@item.ItemName</td>
+                            <td class="text-end">@item.Quantity</td>
+                            <td class="text-end">$@item.CostPerUnit.ToString("N2")</td>
+                            <td class="text-end">$@item.TotalCost.ToString("N2")</td>
+                            <td>
+                                @{
+                                    var ibadge = item.Status switch
+                                    {
+                                        "Pending" => "bg-warning text-dark",
+                                        "Approved" => "bg-success",
+                                        "Rejected" => "bg-danger",
+                                        _ => "bg-secondary"
+                                    };
+                                }
+                                <span class="badge @ibadge">@item.Status</span>
+                            </td>
+                            <td style="font-size:0.8rem;">
+                                @if (!string.IsNullOrWhiteSpace(item.Approver1Notes))
+                                {
+                                    <div><strong>A1:</strong> @item.Approver1Notes</div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(item.Approver2Notes))
+                                {
+                                    <div><strong>A2:</strong> @item.Approver2Notes</div>
+                                }
+                            </td>
+                            <td>
+                                @* Approvals only when in active stage *@
+                                @if ((r.sys_currentApproverOrder == 1 && r.sys_approver1UserId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value) ||
+                               (r.sys_currentApproverOrder == 2 && r.sys_approver2UserId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value))
+                                {
+                                    if (item.Status == "Pending" || (r.sys_currentApproverOrder == 2 && item.Status == "Approved"))
+                                    {
+                                        <div class="mb-1">
+                                            <form method="post" asp-page-handler="ApproveItem" class="d-flex flex-wrap gap-1 align-items-center">
+                                                <input type="hidden" name="id" value="@r.sys_requisitionId" />
+                                                <input type="hidden" asp-for="ItemId" value="@item.ItemId" />
+
+                                                <input asp-for="ApprovedAmount"
+                                                       class="form-control form-control-sm"
+                                                       style="width:90px;"
+                                                       placeholder="Amount"
+                                                       value="@(item.ApprovedAmount ?? item.TotalCost)" />
+
+                                                <input asp-for="DecisionNotes"
+                                                       class="form-control form-control-sm"
+                                                       style="flex:1;min-width:120px;"
+                                                       placeholder="Notes" />
+
+                                                <button type="submit" class="btn btn-sm btn-success">
+                                                    Approve
+                                                </button>
+                                            </form>
+                                        </div>
+
+                                        <div>
+                                            <form method="post" asp-page-handler="RejectItem" class="d-flex flex-wrap gap-1 align-items-center">
+                                                <input type="hidden" name="id" value="@r.sys_requisitionId" />
+                                                <input type="hidden" asp-for="ItemId" value="@item.ItemId" />
+                                                <input asp-for="DecisionNotes"
+                                                       class="form-control form-control-sm"
+                                                       style="flex:1;min-width:160px;"
+                                                       placeholder="Reason" />
+                                                <button type="submit" class="btn btn-sm btn-danger">
+                                                    Reject
+                                                </button>
+                                            </form>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted" style="font-size:0.8rem;">No actions available.</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted" style="font-size:0.8rem;">Not in your approval stage.
+
+
+                                        @r.sys_currentApproverOrder ,@r.sys_approver2UserId @User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                                    </span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @* Finalize buttons *@
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <h6 class="fw-bold mb-2">Approval Workflow</h6>
+
+                @{
+                    var ruser = await UserManager.FindByIdAsync(r.sys_approver1UserId);
+                    var rclaims = await UserManager.GetClaimsAsync(ruser);
+
+                    var auser = await UserManager.FindByIdAsync(r.sys_approver2UserId);
+                    var aclaims = await UserManager.GetClaimsAsync(auser);
+                }
+
+                <p class="mb-1">
+                    <strong>Reviewer:</strong> @rclaims.FirstOrDefault(c => c.Type == "FullName")?.Value;<br />
+                    <strong>Approver:</strong> @aclaims.FirstOrDefault(c => c.Type == "FullName")?.Value;
+                </p>
+                <p class="text-muted mb-2" style="font-size:0.85rem;">
+                    Rejected items by Reviewer are not visible to Approver.
+                </p>
+
+                @if ((r.sys_currentApproverOrder == 1 && r.sys_approver1UserId == User?.Identity?.Name) ||
+                (r.sys_currentApproverOrder == 2 && r.sys_approver2UserId == User?.Identity?.Name))
+                {
+                    <form method="post" asp-page-handler="FinalizeReview">
+                        <input type="hidden" name="id" value="@r.sys_requisitionId" />
+                        <button type="submit" class="btn btn-sm btn-primary">
+                            Finalize Review (Level @r.sys_currentApproverOrder)
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <p class="text-muted mb-0" style="font-size:0.85rem;">
+                        Waiting for @(r.sys_currentApproverOrder == 1 ? "Approver 1" :
+                    r.sys_currentApproverOrder == 2 ? "Approver 2" :
+                    "no further approvals").
+                    </p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

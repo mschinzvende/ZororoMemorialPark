@@ -2,6 +2,8 @@
 @model UserManagementModel
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
+
+<div class="container-fluid py-4 mb-4">
 <div class="card shadow-lg border-0 rounded-3">
     <div class="card-header text-white" style="background-color:#006A46;">
         <h4 class="mb-0">User Management</h4>
@@ -9,13 +11,21 @@
 
     <div class="card-body">
 
-        @if (!string.IsNullOrEmpty(Model.StatusMessage))
-        {
-            <div class="alert alert-success alert-dismissible fade show mt-2" role="alert">
-                @Model.StatusMessage
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert" id="successMessage">
+                    @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @TempData["ErrorMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
 
         <!-- Add User -->
         <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addUserModal">
@@ -114,7 +124,7 @@
 
     </div>
 </div>
-
+</div>
 <!-- ADD USER MODAL -->
 <div class="modal fade" id="addUserModal" tabindex="-1">
     <div class="modal-dialog">

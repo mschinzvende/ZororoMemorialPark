@@ -52,6 +52,8 @@ builder.Services.AddTransient<SupplierPaymentsPdfService>();
 builder.Services.AddScoped<SystemSettingsService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddHostedService<BurialReminderService>();
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

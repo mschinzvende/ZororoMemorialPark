@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -16,15 +17,19 @@ namespace ZororoMemorialPark.Pages.Burials
         private readonly ApplicationDbContext _context;
         private readonly NotificationService _notificationService;
         private readonly SystemSettingsService _settingsService;
+        private readonly IAppLogger _appLogger;
+        private readonly UserManager<IdentityUser> _userManager;
 
         public BurialScheduleModel(
             ApplicationDbContext context,
             NotificationService notificationService,
-            SystemSettingsService settingsService)
+            SystemSettingsService settingsService, IAppLogger appLogger, UserManager<IdentityUser> userManager)
         {
             _context = context;
             _notificationService = notificationService;
             _settingsService = settingsService;
+            _appLogger = appLogger;
+            _userManager = userManager;
         }
 
         // Filter
@@ -118,62 +123,26 @@ namespace ZororoMemorialPark.Pages.Burials
                     .Where(b => b.BurialDateTime.Date > today)
                     .Take(100)
                     .ToList();
+
+                await _appLogger.LogActivityAsync(
+                    _userManager.GetUserId(User),
+                    "View",
+                    "Viewed burial schedule"
+                );
             }
             catch (Exception ex)
             {
                 TempData["ErrorMessage"] = "An error occurred loading burial schedule.";
+                _appLogger.LogActivityAsync(
+                    _userManager.GetUserId(User),
+                    "Error",
+                    $"Error loading burial schedule: {ex.Message}"
+                ).Wait();
+
             }
         }
 
-        // ---------------------------------------------------------
-        // FULLCALENDAR EVENTS
-        // ---------------------------------------------------------
-        public async Task<JsonResult> OnGetEventsAsync()
-        {
-            try
-            {
-                // Expand the window so ALL future and past burials are returned
-                var fromDate = DateTime.Today.AddYears(-10);
-                var to = DateTime.Today.AddYears(10);
-
-                var list = await (
-                    from a in _context.tbl_GraveAllocations
-                    join g in _context.tbl_Graves on a.sys_graveId equals g.sys_graveId
-                    join s in _context.tbl_Sections on g.sys_sectionId equals s.sys_sectionId
-                    join d in _context.tbl_Deceased on a.sys_deceasedId equals d.sys_deceasedId
-                    where a.sys_dateTimeOfBurial > DateTime.MinValue &&
-                          a.sys_dateTimeOfBurial >= fromDate &&
-                          a.sys_dateTimeOfBurial <= to
-                    select new
-                    {
-                        a.sys_allocationId,
-                        a.sys_dateTimeOfBurial,
-                        g.sys_plotNumber,
-                        s.sys_sectionName,
-                        d.sys_deceasedFullName
-                    }
-                ).ToListAsync();
-
-                var events = list.Select(e => new
-                {
-                    id = e.sys_allocationId.ToString(),
-                    title = $"{e.sys_deceasedFullName} – {e.sys_plotNumber} ({e.sys_sectionName})",
-                    start = e.sys_dateTimeOfBurial.ToString("yyyy-MM-ddTHH:mm:ss"),
-                    allDay = false
-                }).ToList();
-
-                return new JsonResult(events);
-            }
-            catch
-            {
-                // Always return an ARRAY to avoid FullCalendar crash
-                return new JsonResult(new List<object>());
-            }
-        }
-
-
-
-
+       
         // ---------------------------------------------------------
         // SEND NOK NOTIFICATION
         // ---------------------------------------------------------
@@ -215,11 +184,21 @@ namespace ZororoMemorialPark.Pages.Burials
                 );
 
                 TempData["SuccessMessage"] = "Notification sent to next of kin.";
+                await _appLogger.LogActivityAsync(
+                    _userManager.GetUserId(User),
+                    "Notify",
+                    $"Sent burial notification for allocation ID {id} to next of kin."
+                );
                 return RedirectToPage();
             }
             catch (Exception ex)
             {
                 TempData["ErrorMessage"] = "Failed to send notification.";
+                await _appLogger.LogActivityAsync(
+                    _userManager.GetUserId(User),
+                    "Error",
+                    $"Error sending burial notification for allocation ID {id}: {ex.Message}"
+                );
                 return RedirectToPage();
             }
         }

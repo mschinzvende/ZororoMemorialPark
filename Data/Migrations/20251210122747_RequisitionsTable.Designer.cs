@@ -12,8 +12,8 @@ using ZororoMemorialPark.Data;
 namespace ZororoMemorialPark.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251206183112_SystemSettingsTable")]
-    partial class SystemSettingsTable
+    [Migration("20251210122747_RequisitionsTable")]
+    partial class RequisitionsTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1014,6 +1014,123 @@ namespace ZororoMemorialPark.Data.Migrations
                     b.ToTable("tbl_ReceiptBooks");
                 });
 
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_RequisitionItems", b =>
+                {
+                    b.Property<int>("sys_itemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_itemId"));
+
+                    b.Property<double?>("ApprovedAmount")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Approver1Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Approver2Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("CostPerUnit")
+                        .HasColumnType("float");
+
+                    b.Property<string>("ItemName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("ReviewedByApprover1")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ReviewedByApprover2")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<double>("TotalCost")
+                        .HasColumnType("float");
+
+                    b.Property<int>("sys_requisitionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_itemId");
+
+                    b.HasIndex("sys_requisitionId");
+
+                    b.ToTable("tbl_RequisitionItems");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Requisitions", b =>
+                {
+                    b.Property<int>("sys_requisitionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_requisitionId"));
+
+                    b.Property<DateTime?>("sys_approver1CompletedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("sys_approver1UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("sys_approver2CompletedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("sys_approver2UserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_attachmentPath")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("sys_currentApproverOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("sys_description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_paidByUserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("sys_paymentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("sys_paymentReference")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_rejectReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("sys_requestDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("sys_requestedByUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("sys_title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("sys_requisitionId");
+
+                    b.ToTable("tbl_Requisitions");
+                });
+
             modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Sections", b =>
                 {
                     b.Property<int>("sys_sectionId")
@@ -1394,6 +1511,17 @@ namespace ZororoMemorialPark.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Agent");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_RequisitionItems", b =>
+                {
+                    b.HasOne("ZororoMemorialPark.Data.Models.tbl_Requisitions", "Requisition")
+                        .WithMany()
+                        .HasForeignKey("sys_requisitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Requisition");
                 });
 #pragma warning restore 612, 618
         }

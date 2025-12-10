@@ -1,9 +1,13 @@
 ﻿using System.Net;
-using System.Net.Mail;
 using System.Text;
 using Newtonsoft.Json;
 using System.Net.Http;
 using System.Threading.Tasks;
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using MimeKit;
+using ZororoMemorialPark.Data.Models;
+using Azure.Core;
 
 namespace ZororoMemorialPark.Services
 {
@@ -16,34 +20,58 @@ namespace ZororoMemorialPark.Services
             _settings = settings;
         }
 
+
+
+        
         // EMAIL
         public async Task SendEmailAsync(string to, string subject, string body)
         {
             var cfg = await _settings.GetSettingsAsync();
-            if (cfg == null || string.IsNullOrWhiteSpace(cfg.SmtpServer) ||
-                string.IsNullOrWhiteSpace(cfg.Email))
+
+            if (cfg == null ||
+                string.IsNullOrWhiteSpace(cfg.SmtpServer) ||
+                string.IsNullOrWhiteSpace(cfg.Email) ||
+                string.IsNullOrWhiteSpace(cfg.SmtpUsername) ||
+                string.IsNullOrWhiteSpace(cfg.SmtpPassword))
             {
-                return;
+                throw new Exception("SMTP configuration is incomplete in SystemSettings.");
             }
 
-            var msg = new MailMessage
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(cfg.SenderName ?? cfg.Email, cfg.Email));
+            message.To.Add(MailboxAddress.Parse(to));
+            message.Subject = subject;
+
+            message.Body = new TextPart("html")
             {
-                From = new MailAddress(cfg.Email, cfg.SenderName),
-                Subject = subject,
-                Body = body,
-                IsBodyHtml = true
+                Text = body
             };
 
-            msg.To.Add(to);
-
-            var client = new SmtpClient(cfg.SmtpServer, cfg.SmtpPort)
+            try
             {
-                Credentials = new NetworkCredential(cfg.SmtpUsername, cfg.SmtpPassword),
-                EnableSsl = cfg.UseSSL
-            };
+                using var client = new SmtpClient();
 
-            await client.SendMailAsync(msg);
+                // Let MailKit figure out best SSL mode
+                var secureOption = SecureSocketOptions.Auto;
+
+                // If you KNOW you’re using port 465, you can force it:
+                // secureOption = SecureSocketOptions.SslOnConnect;
+
+                await client.ConnectAsync(cfg.SmtpServer, cfg.SmtpPort, secureOption);
+
+                // If the server doesn’t support auth, this will fail clearly.
+                await client.AuthenticateAsync(cfg.SmtpUsername, cfg.SmtpPassword);
+
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                // Bubble the full detail up so you can see it in TempData or logs
+                throw new Exception($"MailKit SMTP error: {ex.Message}", ex);
+            }
         }
+
 
         public async Task SendNextOfKinNotificationAsync(
     string nokEmail,
@@ -54,60 +82,51 @@ namespace ZororoMemorialPark.Services
     string section)
         {
             var cfg = await _settings.GetSettingsAsync();
-            if (cfg == null) return;
+            if (cfg == null)
+                throw new Exception("System settings not configured.");
 
-            string subject = $"Burial Reminder for {deceasedName}";
-            string body =
-                $"Dear Family Member,<br><br>" +
-                $"This is a reminder of the upcoming burial:<br><br>" +
-                $"<strong>Deceased:</strong> {deceasedName}<br>" +
-                $"<strong>Date & Time:</strong> {burialDateTime:dddd, dd MMM yyyy HH:mm}<br>" +
-                $"<strong>Grave:</strong> {plot} ({section})<br><br>" +
-                $"Regards,<br>" +
-                $"{cfg.CompanyName}";
+            string subject = $"Burial Reminder – {deceasedName}";
 
-            // Send Email if available
+            string body = $@"
+        <p>Dear Family Member,</p>
+
+        <p>This is a reminder of the upcoming burial:</p>
+
+        <p>
+            <strong>Deceased:</strong> {deceasedName}<br>
+            <strong>Date & Time:</strong> {burialDateTime:dddd, dd MMM yyyy HH:mm}<br>
+            <strong>Grave:</strong> {plot} ({section})
+        </p>
+
+        <p>Please ensure necessary arrangements are in place before the scheduled burial time.</p>
+
+        <p>Regards,<br>
+        {cfg.CompanyName}</p>
+    ";
+
+            // **EMAIL — MailKit**
             if (!string.IsNullOrWhiteSpace(nokEmail))
             {
-                await SendEmailAsync(nokEmail, subject, body);
+                try
+                {
+                    await SendEmailAsync(nokEmail, subject, body);
+                }
+                catch (Exception ex)
+                {
+                    // Log or bubble — your choice
+                    throw new Exception($"Failed to send NOK email: {ex.Message}", ex);
+                }
             }
 
-            // --- OPTIONAL SMS ---
+            // **OPTIONAL — SMS**
             /*
             if (!string.IsNullOrWhiteSpace(nokPhone))
             {
-                await SendSmsAsync(nokPhone, $"{deceasedName} burial reminder: {burialDateTime:dd MMM HH:mm}");
+                await SendSmsAsync(nokPhone,
+                    $"{deceasedName} burial reminder: {burialDateTime:dd MMM HH:mm}, Plot {plot} ({section})");
             }
             */
         }
-
-
-        // SMS
-        /* public async Task SendSmsAsync(string phone, string message)
-         {
-             var cfg = await _settings.GetSettingsAsync();
-             if (cfg == null || string.IsNullOrWhiteSpace(cfg.SmsApiUrl) ||
-                 string.IsNullOrWhiteSpace(cfg.SmsApiKey) ||
-                 string.IsNullOrWhiteSpace(phone))
-             {
-                 return;
-             }
-
-             var payload = new
-             {
-                 api_key = cfg.SmsApiKey,
-                 sender = cfg.SmsSenderId,
-                 msg = message,
-                 to = phone
-             };
-
-             using var client = new HttpClient();
-             var content = new StringContent(
-                 JsonConvert.SerializeObject(payload),
-                 Encoding.UTF8,
-                 "application/json");
-
-             await client.PostAsync(cfg.SmsApiUrl, content);
-         }*/
     }
-}
+
+    }
