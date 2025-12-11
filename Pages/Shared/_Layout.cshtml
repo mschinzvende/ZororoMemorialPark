@@ -231,7 +231,7 @@
                                     </li>
 
                                     <li>
-                                        <a class="dropdown-item" href="/Finance/Requisitions">
+                                        <a class="dropdown-item" href="/Requisitions/Inbox">
                                             <i class="bi bi-file-earmark-text"></i> Requisitions
                                         </a>
                                     </li>
@@ -310,6 +310,11 @@
                                         </a>
                                     </li>
                                     <li>
+                                        <a class="dropdown-item" href="/Requisitions/Workflows">
+                                            <i class="bi bi-diagram-3"></i> Requisition Workflows
+                                        </a>
+                                    </li>
+                                    <li>
                                         <a class="dropdown-item" href="/UserManagement">
                                             <i class="bi bi-people"></i> Users
                                         </a>
@@ -365,9 +370,12 @@
             </div>
         </nav>
     </header>
-
-    <div class="p-3" style="min-height: calc(100vh - 120px);">
+    <div class="container-fluid py-4 mb-4">
+    
+        
         @RenderBody()
+
+    
     </div>
 
 

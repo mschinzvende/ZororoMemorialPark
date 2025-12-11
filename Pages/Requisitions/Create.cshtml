@@ -1,0 +1,143 @@
+﻿@page
+@model ZororoMemorialPark.Pages.Requisitions.CreateModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-info alert-dismissible fade show" role="alert" id="successMessage">
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card shadow border-0">
+    <div class="card-header text-white" style="background-color:#006A46;">
+        <h5 class="mb-0">Requisition Details</h5>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label">Justification</label>
+                <textarea asp-for="Requisition.RequestNumber" class="form-control" rows="2"
+                          placeholder="Optional reference or purpose note"></textarea>
+                <small class="text-muted">Request number will be generated automatically.</small>
+            </div>
+
+            <hr />
+            <h5 class="mb-3">Requisition Items</h5>
+
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead class="thead-light">
+                        <tr>
+                            <th style="width:45%">Item Description</th>
+                            <th style="width:15%">Qty</th>
+                            <th style="width:15%">Unit Cost</th>
+                            <th style="width:15%">Line Total</th>
+                            <th style="width:10%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsBody">
+                        @for (int i = 0; i < Model.Lines.Count; i++)
+                        {
+                            <tr>
+                                <td>
+                                    <input asp-for="Lines[@i].Description" class="form-control" />
+                                </td>
+                                <td>
+                                    <input asp-for="Lines[@i].Quantity"
+                                           class="form-control line-qty"
+                                           type="number" step="0.01"
+                                           oninput="recalculateLine(this)" />
+                                </td>
+                                <td>
+                                    <input asp-for="Lines[@i].UnitCost"
+                                           class="form-control line-cost"
+                                           type="number" step="0.01"
+                                           oninput="recalculateLine(this)" />
+                                </td>
+                                <td>
+                                    <input class="form-control line-total" type="text" readonly value="0.00" />
+                                </td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(this)">
+                                        Remove
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+
+            <button type="button" class="btn btn-outline-secondary btn-sm mb-3" onclick="addRow()">
+                + Add Item
+            </button>
+
+            <div class="mt-3">
+                <button type="submit" class="btn text-white" style="background-color:#006A46;">
+                    Submit Requisition
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        let lineIndex = @Model.Lines.Count;
+
+        // Automatically recalculates the line total whenever qty or cost changes
+        function recalculateLine(input) {
+            const row = input.closest('tr');
+            const qty = parseFloat(row.querySelector('.line-qty').value) || 0;
+            const cost = parseFloat(row.querySelector('.line-cost').value) || 0;
+            const total = (qty * cost).toFixed(2);
+            row.querySelector('.line-total').value = total;
+        }
+
+        // Add dynamic new row with auto calc attached
+        function addRow() {
+            const tbody = document.getElementById('itemsBody');
+            const row = document.createElement('tr');
+
+            row.innerHTML = `
+                <td>
+                    <input name="Lines[${lineIndex}].Description" class="form-control" />
+                </td>
+                <td>
+                    <input name="Lines[${lineIndex}].Quantity"
+                           class="form-control line-qty"
+                           type="number" step="0.01"
+                           oninput="recalculateLine(this)" />
+                </td>
+                <td>
+                    <input name="Lines[${lineIndex}].UnitCost"
+                           class="form-control line-cost"
+                           type="number" step="0.01"
+                           oninput="recalculateLine(this)" />
+                </td>
+                <td>
+                    <input class="form-control line-total" type="text" readonly value="0.00" />
+                </td>
+                <td class="text-end">
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(this)">
+                        Remove
+                    </button>
+                </td>`;
+
+            tbody.appendChild(row);
+            lineIndex++;
+        }
+
+        function removeRow(btn) {
+            const row = btn.closest('tr');
+            row.remove();
+        }
+    </script>
+}
+

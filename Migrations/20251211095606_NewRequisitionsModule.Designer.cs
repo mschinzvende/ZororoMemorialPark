@@ -9,11 +9,11 @@ using ZororoMemorialPark.Data;
 
 #nullable disable
 
-namespace ZororoMemorialPark.Data.Migrations
+namespace ZororoMemorialPark.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251210122747_RequisitionsTable")]
-    partial class RequisitionsTable
+    [Migration("20251211095606_NewRequisitionsModule")]
+    partial class NewRequisitionsModule
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1014,123 +1014,6 @@ namespace ZororoMemorialPark.Data.Migrations
                     b.ToTable("tbl_ReceiptBooks");
                 });
 
-            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_RequisitionItems", b =>
-                {
-                    b.Property<int>("sys_itemId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_itemId"));
-
-                    b.Property<double?>("ApprovedAmount")
-                        .HasColumnType("float");
-
-                    b.Property<string>("Approver1Notes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Approver2Notes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<double>("CostPerUnit")
-                        .HasColumnType("float");
-
-                    b.Property<string>("ItemName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("ReviewedByApprover1")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("ReviewedByApprover2")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<double>("TotalCost")
-                        .HasColumnType("float");
-
-                    b.Property<int>("sys_requisitionId")
-                        .HasColumnType("int");
-
-                    b.HasKey("sys_itemId");
-
-                    b.HasIndex("sys_requisitionId");
-
-                    b.ToTable("tbl_RequisitionItems");
-                });
-
-            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Requisitions", b =>
-                {
-                    b.Property<int>("sys_requisitionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_requisitionId"));
-
-                    b.Property<DateTime?>("sys_approver1CompletedOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("sys_approver1UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("sys_approver2CompletedOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("sys_approver2UserId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("sys_attachmentPath")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("sys_currentApproverOrder")
-                        .HasColumnType("int");
-
-                    b.Property<string>("sys_description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("sys_paidByUserId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("sys_paymentDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("sys_paymentReference")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("sys_rejectReason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("sys_requestDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("sys_requestedByUserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("sys_status")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("sys_title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("sys_requisitionId");
-
-                    b.ToTable("tbl_Requisitions");
-                });
-
             modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Sections", b =>
                 {
                     b.Property<int>("sys_sectionId")
@@ -1386,6 +1269,259 @@ namespace ZororoMemorialPark.Data.Migrations
                     b.ToTable("tbl_AuditLogs");
                 });
 
+            modelBuilder.Entity("tbl_Requisition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CurrentStepId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("FinalizedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FinalizedByUserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RequestNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("RequesterUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WorkflowDefinitionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrentStepId");
+
+                    b.HasIndex("WorkflowDefinitionId");
+
+                    b.ToTable("tbl_Requisitions");
+                });
+
+            modelBuilder.Entity("tbl_RequisitionHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("PerformedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PerformedByUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("RequisitionId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("WorkflowStepId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequisitionId");
+
+                    b.HasIndex("WorkflowStepId");
+
+                    b.ToTable("tbl_RequisitionHistories");
+                });
+
+            modelBuilder.Entity("tbl_RequisitionLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("CurrentQuantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("CurrentUnitCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("LatestComment")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("OriginalQuantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("OriginalUnitCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("RequisitionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequisitionId");
+
+                    b.ToTable("tbl_RequisitionLines");
+                });
+
+            modelBuilder.Entity("tbl_RequisitionLineChangeLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ChangedByUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("NewQuantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("NewUnitCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("OldQuantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("OldUnitCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("RequisitionLineId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WorkflowStepId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequisitionLineId");
+
+                    b.HasIndex("WorkflowStepId");
+
+                    b.ToTable("tbl_RequisitionLineChangeLogs");
+                });
+
+            modelBuilder.Entity("tbl_RequisitionLineComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CommentText")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("RequisitionLineId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WorkflowStepId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequisitionLineId");
+
+                    b.HasIndex("WorkflowStepId");
+
+                    b.ToTable("tbl_RequisitionLineComments");
+                });
+
+            modelBuilder.Entity("tbl_RequisitionWorkflowDefinition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RequesterRole")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("tbl_RequisitionWorkflowDefinitions");
+                });
+
+            modelBuilder.Entity("tbl_RequisitionWorkflowStep", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AssignedToUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StepName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("StepOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StepType")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WorkflowDefinitionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkflowDefinitionId");
+
+                    b.ToTable("tbl_RequisitionWorkflowSteps");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -1513,15 +1649,110 @@ namespace ZororoMemorialPark.Data.Migrations
                     b.Navigation("Agent");
                 });
 
-            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_RequisitionItems", b =>
+            modelBuilder.Entity("tbl_Requisition", b =>
                 {
-                    b.HasOne("ZororoMemorialPark.Data.Models.tbl_Requisitions", "Requisition")
+                    b.HasOne("tbl_RequisitionWorkflowStep", "CurrentStep")
                         .WithMany()
-                        .HasForeignKey("sys_requisitionId")
+                        .HasForeignKey("CurrentStepId");
+
+                    b.HasOne("tbl_RequisitionWorkflowDefinition", "WorkflowDefinition")
+                        .WithMany()
+                        .HasForeignKey("WorkflowDefinitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CurrentStep");
+
+                    b.Navigation("WorkflowDefinition");
+                });
+
+            modelBuilder.Entity("tbl_RequisitionHistory", b =>
+                {
+                    b.HasOne("tbl_Requisition", "Requisition")
+                        .WithMany("History")
+                        .HasForeignKey("RequisitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("tbl_RequisitionWorkflowStep", "WorkflowStep")
+                        .WithMany()
+                        .HasForeignKey("WorkflowStepId");
+
+                    b.Navigation("Requisition");
+
+                    b.Navigation("WorkflowStep");
+                });
+
+            modelBuilder.Entity("tbl_RequisitionLine", b =>
+                {
+                    b.HasOne("tbl_Requisition", "Requisition")
+                        .WithMany("Lines")
+                        .HasForeignKey("RequisitionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Requisition");
+                });
+
+            modelBuilder.Entity("tbl_RequisitionLineChangeLog", b =>
+                {
+                    b.HasOne("tbl_RequisitionLine", "RequisitionLine")
+                        .WithMany()
+                        .HasForeignKey("RequisitionLineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("tbl_RequisitionWorkflowStep", "WorkflowStep")
+                        .WithMany()
+                        .HasForeignKey("WorkflowStepId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RequisitionLine");
+
+                    b.Navigation("WorkflowStep");
+                });
+
+            modelBuilder.Entity("tbl_RequisitionLineComment", b =>
+                {
+                    b.HasOne("tbl_RequisitionLine", "RequisitionLine")
+                        .WithMany()
+                        .HasForeignKey("RequisitionLineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("tbl_RequisitionWorkflowStep", "WorkflowStep")
+                        .WithMany()
+                        .HasForeignKey("WorkflowStepId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RequisitionLine");
+
+                    b.Navigation("WorkflowStep");
+                });
+
+            modelBuilder.Entity("tbl_RequisitionWorkflowStep", b =>
+                {
+                    b.HasOne("tbl_RequisitionWorkflowDefinition", "WorkflowDefinition")
+                        .WithMany("Steps")
+                        .HasForeignKey("WorkflowDefinitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WorkflowDefinition");
+                });
+
+            modelBuilder.Entity("tbl_Requisition", b =>
+                {
+                    b.Navigation("History");
+
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("tbl_RequisitionWorkflowDefinition", b =>
+                {
+                    b.Navigation("Steps");
                 });
 #pragma warning restore 612, 618
         }

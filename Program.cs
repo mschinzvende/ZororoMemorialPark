@@ -17,8 +17,9 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog(); // Replace default logger
 
+//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 var connectionString = Environment.GetEnvironmentVariable("DB_STRING_ZDBZ");
-    
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
@@ -50,6 +51,8 @@ builder.Services.AddTransient<SupplierPaymentsPdfService>();
 builder.Services.AddScoped<SystemSettingsService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddHostedService<BurialReminderService>();
+
+builder.Services.AddScoped<IRequisitionWorkflowService, RequisitionWorkflowService>();
 
 
 var app = builder.Build();

@@ -66,8 +66,13 @@ namespace ZororoMemorialPark.Data
         public DbSet<tbl_InventoryAuditTrail> tbl_InventoryAuditTrail { get; set; }
 
         public DbSet<SystemSettings> SystemSettings { get; set; }
-        public DbSet<tbl_Requisitions> tbl_Requisitions { get; set; }
-        public DbSet<tbl_RequisitionItems> tbl_RequisitionItems { get; set; }
+        public DbSet<tbl_Requisition> tbl_Requisitions { get; set; }
+        public DbSet<tbl_RequisitionLine> tbl_RequisitionLines { get; set; }
+        public DbSet<tbl_RequisitionWorkflowDefinition> tbl_RequisitionWorkflowDefinitions { get; set; }
+        public DbSet<tbl_RequisitionWorkflowStep> tbl_RequisitionWorkflowSteps { get; set; }
+        public DbSet<tbl_RequisitionLineChangeLog> tbl_RequisitionLineChangeLogs { get; set; }
+        public DbSet<tbl_RequisitionLineComment> tbl_RequisitionLineComments { get; set; }
+        public DbSet<tbl_RequisitionHistory> tbl_RequisitionHistories { get; set; }
 
 
     }
