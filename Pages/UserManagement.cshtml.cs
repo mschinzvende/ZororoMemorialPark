@@ -34,7 +34,7 @@ public class UserManagementModel : PageModel
     [TempData] public string StatusMessage { get; set; }
 
     public List<UserViewModel> Users { get; set; } = new();
-    public List<string> AllRoles { get; } = new() { "Manager", "FinanceOfficer", "OperationsOfficer", "Agent", "RequisitionReviewer", "RequisitionApprover" };
+    public List<string> AllRoles { get; } = new() { "Manager", "FinanceOfficer", "OperationsOfficer", "Agent"};
 
 
     // --------------------- ADD USER ---------------------
