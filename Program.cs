@@ -51,6 +51,11 @@ builder.Services.AddTransient<SupplierPaymentsPdfService>();
 builder.Services.AddScoped<SystemSettingsService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddHostedService<BurialReminderService>();
+builder.Services.AddScoped<UserHelper>();
+builder.Services.AddScoped<PasswordResetService>();
+
+
+
 
 builder.Services.AddScoped<IRequisitionWorkflowService, RequisitionWorkflowService>();
 

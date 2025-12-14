@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using ZororoMemorialPark.Data;
+using ZororoMemorialPark.Services;
 
 namespace ZororoMemorialPark.Pages.Requisitions
 {
@@ -15,12 +16,14 @@ namespace ZororoMemorialPark.Pages.Requisitions
         private readonly ApplicationDbContext _context;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IRequisitionWorkflowService _workflowService;
+        private readonly NotificationService _notify;
 
-        public InboxModel(ApplicationDbContext context, UserManager<IdentityUser> userManager, IRequisitionWorkflowService workflowService)
+        public InboxModel(NotificationService notify, ApplicationDbContext context, UserManager<IdentityUser> userManager, IRequisitionWorkflowService workflowService)
         {
             _context = context;
             _userManager = userManager;
             _workflowService = workflowService;
+            _notify = notify;
         }
 
         public List<tbl_Requisition> AssignedToMe { get; set; } = new();
@@ -235,10 +238,44 @@ namespace ZororoMemorialPark.Pages.Requisitions
                 {
                     string emailTo = requester.Email;
                     string emailSubject = $"Requisition {requisition.RequestNumber} - Final Status: {requisition.Status}";
-                    string emailBody =
-                        $"Dear {requester.UserName},\n\nYour requisition ({requisition.RequestNumber}) has been {requisition.Status}.\n\nRemarks: {OverallComment}\n";
 
-                    // call email service here
+                    string baseUrl = $"{Request.Scheme}://{Request.Host}";
+                    string requisitionUrl = $"{baseUrl}/Requisitions/Details/{requisition.Id}";
+
+                    string emailBody =
+                    $@"
+                                <p>Dear {requester.UserName},</p>
+
+                                <p>
+                                    Your requisition (<strong>{requisition.RequestNumber}</strong>) has been 
+                                    <strong>{requisition.Status}</strong>.
+                                </p>
+
+                                <p><strong>Remarks:</strong> {OverallComment}</p>
+
+                                <p>You may view the full requisition details using the link below:</p>
+
+                                <p>
+                                    <a href=""{requisitionUrl}""
+                                       style=""background-color:#006A46;
+                                              color:white;
+                                              padding:10px 18px;
+                                              text-decoration:none;
+                                              border-radius:5px;
+                                              font-weight:bold;
+                                              display:inline-block;"">
+                                        View Requisition
+                                    </a>
+                                </p>
+
+                                <p>
+                                    Regards,<br/>
+                                    Zororo Memorial Park Admin
+                                </p>
+                                ";
+
+                   await _notify.SendEmailAsync(emailTo, emailSubject, emailBody); 
+
                 }
             }
 
@@ -246,11 +283,41 @@ namespace ZororoMemorialPark.Pages.Requisitions
             if (!finalDecision && nextUser != null)
             {
                 string emailTo = nextUser.Email;
-                string emailSubject = $"Requisition {requisition.RequestNumber} awaiting your action";
-                string emailBody =
-                    $"Dear {nextUser.UserName},\n\nRequisition ({requisition.RequestNumber}) is now assigned to you.\n";
+                string emailSubject = $"Requisition {requisition.RequestNumber} Awaiting Your Action";
 
-                // call email service here
+                string baseUrl = $"{Request.Scheme}://{Request.Host}";
+                string inboxUrl = $"{baseUrl}/Requisitions/Inbox";
+
+                string emailBody =
+                $@"
+                        <p>Dear {nextUser.UserName},</p>
+
+                        <p>
+                            A requisition (<strong>{requisition.RequestNumber}</strong>) has been 
+                            assigned to you and requires your action.
+                        </p>
+
+                        <p>Please click the button below to open your requisition inbox:</p>
+
+                        <p>
+                            <a href=""{inboxUrl}""
+                               style=""background-color:#006A46;
+                                      color:white;
+                                      padding:10px 18px;
+                                      text-decoration:none;
+                                      border-radius:5px;
+                                      font-weight:bold;
+                                      display:inline-block;"">
+                                Open Requisition Inbox
+                            </a>
+                        </p>
+
+                        <p>
+                            Regards,<br/>
+                            Zororo Memorial Park Admin
+                        </p>
+                        ";
+                await _notify.SendEmailAsync(emailTo,emailSubject, emailBody);
             }
 
             StatusMessage = $"Requisition {requisition.RequestNumber} {action} successfully.";

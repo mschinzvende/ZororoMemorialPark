@@ -74,6 +74,8 @@ namespace ZororoMemorialPark.Data
         public DbSet<tbl_RequisitionLineComment> tbl_RequisitionLineComments { get; set; }
         public DbSet<tbl_RequisitionHistory> tbl_RequisitionHistories { get; set; }
 
+        public DbSet<tbl_PasswordResetCode> tbl_PasswordResetCodes { get; set; }
+
 
     }
 }

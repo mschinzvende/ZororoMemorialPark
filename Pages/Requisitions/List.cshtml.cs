@@ -11,11 +11,13 @@ namespace ZororoMemorialPark.Pages.Requisitions
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserHelper _theUser;
 
-        public ListModel(ApplicationDbContext context, UserManager<IdentityUser> userManager)
+        public ListModel(ApplicationDbContext context, UserManager<IdentityUser> userManager, UserHelper theUser)
         {
             _context = context;
             _userManager = userManager;
+            _theUser = theUser;
         }
 
         // FILTERS
@@ -80,20 +82,26 @@ namespace ZororoMemorialPark.Pages.Requisitions
                 qry = qry.Where(r => r.Status.ToString() == Status);
             }
 
-            var result = await qry
-                .OrderByDescending(r => r.CreatedAt)
-                .Select(r => new RequisitionListItem
+                    var requisitions = await qry
+                                .OrderByDescending(r => r.CreatedAt)
+                                .ToListAsync();
+            var result = new List<RequisitionListItem>();
+
+            foreach (var r in requisitions)
+            {
+                result.Add(new RequisitionListItem
                 {
                     Id = r.Id,
                     RequestNumber = r.RequestNumber,
-                    Requester = r.RequesterUserId, // replace with fullname lookup if needed
+                    Requester = await _theUser.GetFullNameByIdAsync(r.RequesterUserId), // NOW VALID
                     CreatedAt = r.CreatedAt,
-                    WorkflowName = r.WorkflowDefinition.Name,
+                    WorkflowName = r.WorkflowDefinition?.Name,
                     CurrentStepName = r.CurrentStep != null ? r.CurrentStep.StepName : "Completed",
                     Status = r.Status.ToString(),
                     TotalAmount = r.Lines.Sum(x => x.CurrentQuantity * x.CurrentUnitCost)
-                })
-                .ToListAsync();
+                });
+            }
+           
 
             Requisitions = result;
             return Page();

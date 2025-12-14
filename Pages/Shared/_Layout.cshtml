@@ -102,8 +102,8 @@
                 <!-- Brand -->
                 <a class="navbar-brand d-flex align-items-center" href="/">
                     <img src="@logo"
-                         alt="Logo"
-                         style="height:38px; width:auto; margin-right:8px;" />
+                    alt="Logo"
+                    style="height:38px; width:auto; margin-right:8px;" />
 
                     <span>@companyName</span>
                 </a>
@@ -174,7 +174,7 @@
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="tombDropdown"
-                                   data-bs-toggle="dropdown">
+                                data-bs-toggle="dropdown">
                                     Tombstones
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end">
@@ -192,7 +192,7 @@
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="jobsDropdown"
-                                   data-bs-toggle="dropdown">
+                                data-bs-toggle="dropdown">
                                     Jobs
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end">
@@ -216,41 +216,58 @@
                         }
 
                         <!-- Finance -->
-                        @if (isManager || isFinance)
+                        @if (isManager || isFinance || isOps)
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="financeDropdown"
-                                   data-bs-toggle="dropdown">
+                                data-bs-toggle="dropdown">
                                     Finance
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end">
-                                    <li>
-                                        <a class="dropdown-item" href="/Finance/InvoicesList">
-                                            <i class="bi bi-receipt"></i> Invoices
-                                        </a>
-                                    </li>
 
-                                    <li>
-                                        <a class="dropdown-item" href="/Requisitions/Inbox">
-                                            <i class="bi bi-file-earmark-text"></i> Requisitions
-                                        </a>
-                                    </li>
+                                    @if (isManager || isFinance)
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" href="/Finance/InvoicesList">
+                                                <i class="bi bi-receipt"></i> Invoices
+                                            </a>
+                                        </li>
+                                    }
+                                    @if (isManager || isFinance || isOps)
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" href="/Requisitions/Inbox">
+                                                <i class="bi bi-file-earmark-text"></i> Requisitions
+                                            </a>
+                                        </li>
+                                    }
 
-                                    
-
-                                    <li>
-                                        <a class="dropdown-item" href="/Finance/PaymentMethods">
-                                            <i class="bi bi-credit-card"></i> Payment Methods
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="/Finance/ReceiptBooks">
-                                            <i class="bi bi-journal"></i> Receipt Books
-                                        </a>
-                                    </li>
+                                    @if(isManager || isFinance)
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" href="/Requisitions/List">
+                                                <i class="bi bi-clock-history"></i> Requisition History
+                                            </a>
+                                        </li>
+                                    }
+                                    @if (isManager || isFinance)
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" href="/Finance/PaymentMethods">
+                                                <i class="bi bi-credit-card"></i> Payment Methods
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="/Finance/ReceiptBooks">
+                                                <i class="bi bi-journal"></i> Receipt Books
+                                            </a>
+                                        </li>
+                                    }
                                 </ul>
                             </li>
                         }
+
+
 
                         <!-- Inventory (Manager only) -->
                         @if (isManager)

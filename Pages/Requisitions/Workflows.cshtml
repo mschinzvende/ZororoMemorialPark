@@ -2,90 +2,98 @@
 @model ZororoMemorialPark.Pages.Requisitions.WorkflowsModel
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
-<div class="py-4">
-    <div class="d-flex justify-content-between w-100 flex-wrap">
+<div class="card shadow-sm mb-5">
+    <div class="card-header d-flex justify-content-between align-items-center"
+         style="background-color: var(--primary-green); color: var(--primary-white);">
         <div>
-            <h1 class="h4">Requisition Workflows</h1>
-            <p class="mb-0">Manage workflow definitions and approval paths.</p>
+            <h5 class="mb-0">Requisition Workflows</h5>
+            <small class="d-block" style="font-size: 0.8rem;">
+                Manage workflow definitions and approval paths.
+            </small>
         </div>
 
-        <div>
-            <a asp-page="/Requisitions/WorkflowConfig"
-               class="btn text-white"
-               style="background-color:#006A46;">
+        <div class="d-flex gap-2">
+            <a asp-page="/Requisitions/WorkflowConfig" class="btn btn-light btn-sm">
                 + Create Workflow
             </a>
         </div>
     </div>
-</div>
 
-@if (!string.IsNullOrEmpty(Model.StatusMessage))
-{
-    <div class="alert alert-info alert-dismissible fade show" role="alert">
-        @Model.StatusMessage
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-}
-
-<div class="card shadow border-0">
     <div class="card-body">
-        @if (Model.Workflows == null || !Model.Workflows.Any())
-        {
-            <p class="text-muted">No workflows have been created yet.</p>
-        }
-        else
-        {
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="thead-light">
-                        <tr>
-                            <th>Name</th>
-                            <th>Requester Role</th>
-                            <th>Steps</th>
-                            <th>Status</th>
-                            <th class="text-end">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var w in Model.Workflows)
-                        {
-                            <tr>
-                                <td>@w.Name</td>
-                                <td>@w.RequesterRole</td>
-                                <td>@w.StepCount</td>
-                                <td>
-                                    @if (w.IsActive)
-                                    {
-                                        <span class="badge bg-success">Active</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary">Inactive</span>
-                                    }
-                                </td>
-                                <td class="text-end">
-                                    <a asp-page="/Requisitions/WorkflowConfig"
-                                       asp-route-id="@w.Id"
-                                       class="btn btn-sm btn-outline-primary">
-                                        Configure
-                                    </a>
 
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-danger"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#deleteModal"
-                                            data-id="@w.Id"
-                                            data-name="@w.Name">
-                                        Delete
-                                    </button>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+
+
+        @if (!string.IsNullOrEmpty(Model.StatusMessage))
+        {
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                @Model.StatusMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         }
+
+        <div class="card shadow border-0">
+            <div class="card-body">
+                @if (Model.Workflows == null || !Model.Workflows.Any())
+                {
+                    <p class="text-muted">No workflows have been created yet.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Requester Role</th>
+                                    <th>Steps</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var w in Model.Workflows)
+                                {
+                                    <tr>
+                                        <td>@w.Name</td>
+                                        <td>@w.RequesterRole</td>
+                                        <td>@w.StepCount</td>
+                                        <td>
+                                            @if (w.IsActive)
+                                            {
+                                                <span class="badge bg-success">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <a asp-page="/Requisitions/WorkflowConfig"
+                                               asp-route-id="@w.Id"
+                                               class="btn btn-sm btn-outline-primary">
+                                                Configure
+                                            </a>
+
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteModal"
+                                                    data-id="@w.Id"
+                                                    data-name="@w.Name">
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
     </div>
+
 </div>
 
 <!-- Delete Confirmation Modal -->

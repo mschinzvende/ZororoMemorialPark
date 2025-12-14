@@ -9,6 +9,10 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using ZororoMemorialPark.Services;
+using System.Net;
+using System.Text.Encodings.Web;
+using Microsoft.AspNetCore.WebUtilities;
+using System.Text;
 
 [Authorize(Roles = "Manager")]
 public class UserManagementModel : PageModel
@@ -18,17 +22,20 @@ public class UserManagementModel : PageModel
     private readonly IAppLogger _logger;
     private readonly SystemSettingsService _settings;
     private readonly NotificationService _notify;
+    private readonly PasswordResetService _passwordReset;
 
     public UserManagementModel(
         UserManager<IdentityUser> userManager,
         RoleManager<IdentityRole> roleManager,
-        IAppLogger logger, SystemSettingsService settings, NotificationService notify)
+        IAppLogger logger, SystemSettingsService settings, 
+        NotificationService notify, PasswordResetService passwordReset)
     {
         _userManager = userManager;
         _roleManager = roleManager;
         _logger = logger;
         _settings = settings;
         _notify = notify;
+        _passwordReset = passwordReset;
     }
 
     [TempData] public string StatusMessage { get; set; }
@@ -161,15 +168,11 @@ public class UserManagementModel : PageModel
     // --------------------- ADD USER ---------------------
     public async Task<IActionResult> OnPostAddUserAsync()
     {
-        // Clear stale ModelState entries from other modals
-        ModelState.Clear();
+        ModelState.ClearValidationState(nameof(AddInput));
+        TryValidateModel(AddInput, nameof(AddInput));
 
-        if (!TryValidateModel(AddInput, nameof(AddInput)))
-        {
-            ShowAddModal = true;
-            await LoadUsersAsync();
-            return Page();
-        }
+
+        
 
         var user = new IdentityUser
         {
@@ -178,8 +181,7 @@ public class UserManagementModel : PageModel
             PhoneNumber = AddInput.PhoneNumber
         };
 
-        var create = await _userManager.CreateAsync(user, AddInput.Password);
-
+        var create = await _userManager.CreateAsync(user);
         if (!create.Succeeded)
         {
             foreach (var e in create.Errors)
@@ -190,60 +192,65 @@ public class UserManagementModel : PageModel
             return Page();
         }
 
+       
+
+        // Generate 6-digit activation code
+        var activationCode = await _passwordReset.GenerateResetCodeAsync(user.Id);
+
+        // Build activation URL
+        string baseUrl = $"{Request.Scheme}://{Request.Host}";
+        string activationUrl = $"{baseUrl}/Identity/Account/ActivateAccount?userId={user.Id}";
+
+        // Send email
+        try
+        {
+            string subject = "Your Zororo Memorial Park Account Activation";
+
+            string body = $@"
+<p>Dear {AddInput.FullName},</p>
+
+<p>Your user account for the 
+<strong>Zororo Memorial Park Management System</strong> has been created.</p>
+
+<p>Please activate your account using the code below:</p>
+
+<h2 style=""color:#006A46;"">{activationCode}</h2>
+
+<p>This code expires in <strong>15 minutes</strong>.</p>
+
+<p>Click the link below to activate and set your password:</p>
+
+<p>
+    <a href=""{activationUrl}""
+        style=""background-color:#006A46;color:white;padding:10px 18px;
+               text-decoration:none;border-radius:5px;font-weight:bold;"">
+        Activate Account
+    </a>
+</p>
+
+<p>If you did not request this account, please contact the administrator.</p>
+
+<br/>
+<p>Regards,<br/>Zororo Memorial Park Admin</p>
+";
+
+            await _notify.SendEmailAsync(user.Email, subject, body);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Email sending error: " + ex.Message);
+        }
+
+        // Save full name claim
         await SetFullNameAsync(user, AddInput.FullName);
 
         SafeLog("User Created", AddInput.Email);
-        TempData["SuccessMessage"]= "User created successfully!";
 
-        //use the notification service to send user the email
-
-        if (!string.IsNullOrWhiteSpace(user.Email))
-        {
-            try
-            {
-                string baseUrl = $"{Request.Scheme}://{Request.Host}";
-                string loginUrl = $"{baseUrl}/Identity/Account/Login";
-
-                string subject = "Your Zororo Memorial Park System Account";
-
-                string body = $@"
-            <p>Dear {AddInput.FullName},</p>
-
-            <p>Your user account for <strong>Zororo Memorial Park Management System</strong> has been successfully created.</p>
-
-            <p><strong>Login Email:</strong> {user.Email}<br/>
-               <strong>Temporary Password:</strong> {AddInput.Password}</p>
-
-            <p>You can log in using the link below:</p>
-
-            <p>
-                <a href=""{loginUrl}"" 
-                   style=""background-color:#006A46;color:white;padding:10px 18px;
-                          text-decoration:none;border-radius:5px;font-weight:bold;"">
-                   Click here to login
-                </a>
-            </p>
-
-            <p>Please log in and change your password immediately for security reasons.</p>
-
-            <br/>
-            <p>Regards,<br/>Zororo Memorial Park Admin</p>
-        ";
-
-                await _notify.SendEmailAsync(user.Email, subject, body);
-            }
-            catch (Exception ex)
-            {
-                // Don't block the process on email failure
-                Console.WriteLine("Email notification error: " + ex.Message);
-            }
-        }
-
-
-
+        TempData["SuccessMessage"] = "User created successfully and activation email sent.";
 
         return RedirectToPage();
     }
+
 
 
 
@@ -295,15 +302,6 @@ public class UserManagementModel : PageModel
     // --------------------- RESET PASSWORD ---------------------
     public async Task<IActionResult> OnPostResetPasswordAsync()
     {
-        ModelState.Clear();
-
-        if (!TryValidateModel(ResetInput, nameof(ResetInput)))
-        {
-            ShowResetModal = true;
-            await LoadUsersAsync();
-            return Page();
-        }
-
         var user = await _userManager.FindByIdAsync(ResetInput.UserId);
         if (user == null)
         {
@@ -313,69 +311,48 @@ public class UserManagementModel : PageModel
             return Page();
         }
 
-        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-        var result = await _userManager.ResetPasswordAsync(user, token, ResetInput.NewPassword);
+        // Generate a 6-digit reset code
+        var code = await _passwordReset.GenerateResetCodeAsync(user.Id);
 
-        if (!result.Succeeded)
-        {
-            foreach (var e in result.Errors)
-                ModelState.AddModelError("", e.Description);
+        // Build reset page URL
+        string baseUrl = $"{Request.Scheme}://{Request.Host}";
+        string resetUrl = $"{baseUrl}/Identity/Account/ResetPassword?userId={user.Id}";
 
-            ShowResetModal = true;
-            await LoadUsersAsync();
-            return Page();
-        }
+        string subject = "Password Reset Code • Zororo Memorial Park";
 
+        string body = $@"
+<p>Dear {user.UserName},</p>
 
-        // ============= SEND PASSWORD RESET EMAIL =============
-        
-        try
-        {
-            string baseUrl = $"{Request.Scheme}://{Request.Host}";
-            string loginUrl = $"{baseUrl}/Identity/Account/Login";
+<p>You requested to reset your password for the 
+<strong>Zororo Memorial Park Management System</strong>.</p>
 
-            string subject = "Your Password Has Been Reset • Zororo Memorial Park";
+<p>Your password reset code is:</p>
 
-            string body = $@"
-        <p>Dear {user.UserName},</p>
+<h2 style=""color:#006A46;"">{code}</h2>
 
-        <p>Your password for the <strong>Zororo Memorial Park Management System</strong> has been successfully reset.</p>
+<p>This code expires in <strong>15 minutes</strong>.</p>
 
-        <p><strong>Login Email:</strong> {user.Email}<br/>
-        <strong>New Password:</strong> {ResetInput.NewPassword}</p>
+<p>Please click the link below to enter your code and set a new password:</p>
 
-        <p>
-            <a href=""{loginUrl}"" 
-               style=""background-color:#006A46;color:white;padding:10px 18px;
-                      text-decoration:none;border-radius:5px;font-weight:bold;"">
-                Click here to login
-            </a>
-        </p>
+<p>
+    <a href=""{resetUrl}"" 
+       style=""background-color:#006A46;color:white;padding:10px 18px;
+              text-decoration:none;border-radius:5px;font-weight:bold;display:inline-block;"">
+        Enter Reset Code
+    </a>
+</p>
 
-        <p>If you did not request this password reset, please contact the system administrator immediately.</p>
+<p>If you did not request this action, please contact the administrator immediately.</p>
 
-        <p>Regards,<br/>Zororo Memorial Park Admin</p>
-    ";
+<p>Regards,<br/>Zororo Memorial Park Admin</p>
+";
 
-            // Send email normally (NOT inside Task.Run)
-            await _notify.SendEmailAsync(user.Email, subject, body);
+        await _notify.SendEmailAsync(user.Email, subject, body);
+        TempData["SuccessMessage"] = "Reset code generated and email sent.";
 
-            TempData["SuccessMessage"] = "Password has been reset and an email notification was sent.";
-        }
-        catch (Exception ex)
-        {
-            // Show the REAL error on the page
-            TempData["ErrorMessage"] = "Email sending failed: " + ex.Message;
-        }
-
-
-
-
-        SafeLog("Password Reset", user.Email);
-
-        
         return RedirectToPage();
     }
+
 
 
 

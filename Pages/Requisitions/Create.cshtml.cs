@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using ZororoMemorialPark.Data;
+using ZororoMemorialPark.Services;
 
 namespace ZororoMemorialPark.Pages.Requisitions
 {
@@ -15,15 +16,17 @@ namespace ZororoMemorialPark.Pages.Requisitions
         private readonly ApplicationDbContext _context;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IRequisitionWorkflowService _workflowService;
+        private readonly NotificationService _notify;
 
         public CreateModel(
             ApplicationDbContext context,
             UserManager<IdentityUser> userManager,
-            IRequisitionWorkflowService workflowService)
+            IRequisitionWorkflowService workflowService, NotificationService notify)
         {
             _context = context;
             _userManager = userManager;
             _workflowService = workflowService;
+            _notify = notify;
         }
 
         [BindProperty]
@@ -86,6 +89,7 @@ namespace ZororoMemorialPark.Pages.Requisitions
             var requisition = new tbl_Requisition
             {
                 RequestNumber = requestNumber,
+                Justification = Request.Form["Justification"],
                 RequesterUserId = user.Id,
                 CreatedAt = DateTime.UtcNow,
                 Status = RequisitionStatus.InProgress,
@@ -123,15 +127,45 @@ namespace ZororoMemorialPark.Pages.Requisitions
             var reviewer = await _userManager.FindByIdAsync(firstStep.AssignedToUserId);
             if (reviewer != null)
             {
-                string emailTo = reviewer.Email;
-                string emailSubject = $"New Requisition {requisition.RequestNumber} awaiting your action";
-                string emailBody = $"Dear {reviewer.UserName},\n\n" +
-                    $"A new requisition ({requisition.RequestNumber}) has been submitted and is awaiting your review.\n\n" +
-                    "Please log into the system to review the details.\n\n" +
-                    "Thank you.";
+                string baseUrl = $"{Request.Scheme}://{Request.Host}";
+                string inboxUrl = $"{baseUrl}/Requisitions/Inbox";
+
+                string emailBody =
+                $@"
+                            <p>Dear {reviewer.UserName},</p>
+
+                            <p>
+                                A new requisition (<strong>{requisition.RequestNumber}</strong>) has been submitted 
+                                and is awaiting your review.
+                            </p>
+
+                            <p>Please click the button below to open your requisition inbox:</p>
+
+                            <p>
+                                <a href=""{inboxUrl}""
+                                   style=""background-color:#006A46;
+                                          color:white;
+                                          padding:10px 18px;
+                                          text-decoration:none;
+                                          border-radius:5px;
+                                          font-weight:bold;
+                                          display:inline-block;"">
+                                    Open Requisition Inbox
+                                </a>
+                            </p>
+
+                            <p>
+                                Regards,<br/>
+                                Zororo Memorial Park Admin
+                            </p>
+                            ";
+
 
                 // Call your email method here, e.g.
-                // await _emailService.SendAsync(emailTo, emailSubject, emailBody);
+                await _notify.SendEmailAsync(
+                    reviewer.Email,
+                    subject: $"New Requisition {requisition.RequestNumber} Submitted",
+                    body: emailBody);
             }
 
             StatusMessage = $"Requisition {requisition.RequestNumber} submitted successfully.";

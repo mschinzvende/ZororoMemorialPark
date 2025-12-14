@@ -19,8 +19,11 @@ public class tbl_Requisition
 
     [Required]
     [MaxLength(50)]
+    [ValidateNever]
     public string RequestNumber { get; set; } = string.Empty;
 
+    [MaxLength(500)]
+    public string Justification { get; set; } = string.Empty;
     [ValidateNever]
     public string RequesterUserId { get; set; } = string.Empty;
 

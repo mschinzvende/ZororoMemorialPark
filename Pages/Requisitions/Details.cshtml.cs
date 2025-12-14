@@ -8,10 +8,12 @@ namespace ZororoMemorialPark.Pages.Requisitions
     public class DetailsModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserHelper _theUser;
 
-        public DetailsModel(ApplicationDbContext context)
+        public DetailsModel(ApplicationDbContext context, UserHelper theUser)
         {
             _context = context;
+            _theUser = theUser;
         }
 
         public tbl_Requisition? Requisition { get; set; }
@@ -20,6 +22,7 @@ namespace ZororoMemorialPark.Pages.Requisitions
         public List<HistoryDisplay> History { get; set; } = new();
         public List<WorkflowStepDisplay> Steps { get; set; } = new();
 
+        public string RequesterName { get; set; }
         public class LineDisplay
         {
             public tbl_RequisitionLine Line { get; set; } = new();
@@ -54,9 +57,13 @@ namespace ZororoMemorialPark.Pages.Requisitions
                 .Include(r => r.History)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
+            
+
             if (Requisition == null)
                 return NotFound();
 
+
+            RequesterName = await _theUser.GetFullNameByIdAsync(Requisition.RequesterUserId);
             // FETCH ALL STEPS
             var steps = await _context.tbl_RequisitionWorkflowSteps
                 .Where(s => s.WorkflowDefinitionId == Requisition.WorkflowDefinitionId)

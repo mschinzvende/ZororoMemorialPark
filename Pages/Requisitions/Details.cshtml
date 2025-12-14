@@ -20,7 +20,7 @@
     <div class="card-body">
         <div class="row mb-3">
             <div class="col-md-6">
-                <strong>Requester:</strong> @Model.Requisition.RequesterUserId
+                <strong>Requester:</strong> @Model.RequesterName
                 <br />
                 <strong>Created:</strong> @Model.Requisition.CreatedAt.ToString("yyyy-MM-dd HH:mm")
                 <br />
@@ -41,7 +41,7 @@
         <div>
             <strong>Justification:</strong>
             <div class="border rounded p-2 bg-light mt-1">
-                
+                @Model.Requisition.Justification
             </div>
         </div>
     </div>

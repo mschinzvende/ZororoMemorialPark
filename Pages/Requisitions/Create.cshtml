@@ -11,7 +11,8 @@
     </div>
 }
 
-<div class="card shadow border-0">
+
+<div class="card shadow border-0 mb-5">
     <div class="card-header text-white" style="background-color:#006A46;">
         <h5 class="mb-0">Requisition Details</h5>
     </div>
@@ -19,8 +20,10 @@
         <form method="post">
             <div class="mb-3">
                 <label class="form-label">Justification</label>
-                <textarea asp-for="Requisition.RequestNumber" class="form-control" rows="2"
-                          placeholder="Optional reference or purpose note"></textarea>
+                <textarea asp-for="Requisition.Justification" class="form-control" rows="2"
+                          placeholder="" name="Justification"></textarea>
+
+                
                 <small class="text-muted">Request number will be generated automatically.</small>
             </div>
 

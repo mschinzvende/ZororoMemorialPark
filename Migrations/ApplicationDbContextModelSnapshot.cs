@@ -908,6 +908,33 @@ namespace ZororoMemorialPark.Migrations
                     b.ToTable("tbl_Jobs");
                 });
 
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_PasswordResetCode", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("Used")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("tbl_PasswordResetCodes");
+                });
+
             modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_PaymentMethods", b =>
                 {
                     b.Property<int>("sys_paymentMethodId")
@@ -1285,6 +1312,11 @@ namespace ZororoMemorialPark.Migrations
 
                     b.Property<string>("FinalizedByUserId")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Justification")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("RequestNumber")
                         .IsRequired()

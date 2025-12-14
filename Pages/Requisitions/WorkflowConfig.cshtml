@@ -2,112 +2,126 @@
 @model ZororoMemorialPark.Pages.Requisitions.WorkflowConfigModel
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
-<div class="py-4">
-    <div class="d-flex justify-content-between w-100 flex-wrap">
-        <div class="mb-3 mb-lg-0">
-            <h1 class="h4">Requisition Workflow Configuration</h1>
-            <p class="mb-0">Define who reviews and approves requisitions based on requester role.</p>
+<div class="card shadow-sm mb-5">
+    <div class="card-header d-flex justify-content-between align-items-center"
+         style="background-color: var(--primary-green); color: var(--primary-white);">
+        <div>
+            <h5 class="mb-0">Requisition Workflow Configuration</h5>
+            <small class="d-block" style="font-size: 0.8rem;">
+                Define who reviews and approves requisitions based on requester role.
+            </small>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a asp-page="./Workflows" class="btn btn-light btn-sm">
+                 Back to Workflows
+            </a>
         </div>
     </div>
-</div>
 
-@if (!string.IsNullOrEmpty(Model.StatusMessage))
-{
-    <div class="alert alert-info alert-dismissible fade show" role="alert" id="successMessage">
-        @Model.StatusMessage
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-}
-
-<div class="card shadow border-0 mb-4">
-    <div class="card-header text-white" style="background-color:#006A46;">
-        <h5 class="mb-0">Workflow Details</h5>
-    </div>
     <div class="card-body">
-        <form method="post" asp-page-handler="Save">
 
-            <input type="hidden" asp-for="Workflow.Id" />
-
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label class="form-label">Workflow Name</label>
-                    <input asp-for="Workflow.Name" class="form-control" />
-                    <span asp-validation-for="Workflow.Name" class="text-danger"></span>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Requester Role</label>
-                    <select asp-for="Workflow.RequesterRole" class="form-select"
-                            asp-items="Model.RoleOptions">
-                        <option value="">-- Select role --</option>
-                    </select>
-                    <span asp-validation-for="Workflow.RequesterRole" class="text-danger"></span>
-                </div>
+        @if (!string.IsNullOrEmpty(Model.StatusMessage))
+        {
+            <div class="alert alert-info alert-dismissible fade show" role="alert" id="successMessage">
+                @Model.StatusMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
+        }
 
-            <div class="form-check mb-3">
-                <input asp-for="Workflow.IsActive" class="form-check-input" />
-                <label class="form-check-label">Is Active</label>
+        <div class="card shadow border-0 mb-4">
+            <div class="card-header text-white" style="background-color:#006A46;">
+                <h5 class="mb-0">Workflow Details</h5>
             </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="Save">
 
-            <hr />
+                    <input type="hidden" asp-for="Workflow.Id" />
 
-            <h5 class="mb-3">Workflow Steps</h5>
-            <p class="text-muted mb-3">
-                Define the sequence of reviewers and approvers. Step 1 runs first, then Step 2, etc.
-            </p>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Workflow Name</label>
+                            <input asp-for="Workflow.Name" class="form-control" />
+                            <span asp-validation-for="Workflow.Name" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Requester Role</label>
+                            <select asp-for="Workflow.RequesterRole" class="form-select"
+                                    asp-items="Model.RoleOptions">
+                                <option value="">-- Select role --</option>
+                            </select>
+                            <span asp-validation-for="Workflow.RequesterRole" class="text-danger"></span>
+                        </div>
+                    </div>
 
-            <table class="table table-sm align-middle">
-                <thead class="thead-light">
-                    <tr>
-                        <th style="width:20%">Type</th>
-                        <th style="width:35%">Assigned To</th>
-                        <th style="width:35%">Step Name (Optional)</th>
-                        <th style="width:10%"></th>
-                    </tr>
-                </thead>
-                <tbody id="stepsBody">
-                    @if (Model.Steps != null && Model.Steps.Count > 0)
-                    {
-                        for (int i = 0; i < Model.Steps.Count; i++)
-                        {
+                    <div class="form-check mb-3">
+                        <input asp-for="Workflow.IsActive" class="form-check-input" />
+                        <label class="form-check-label">Is Active</label>
+                    </div>
+
+                    <hr />
+
+                    <h5 class="mb-3">Workflow Steps</h5>
+                    <p class="text-muted mb-3">
+                        Define the sequence of reviewers and approvers. Step 1 runs first, then Step 2, etc.
+                    </p>
+
+                    <table class="table table-sm align-middle">
+                        <thead class="thead-light">
                             <tr>
-                                <td>
-                                    <select asp-for="Steps[@i].StepType" class="form-select">
-                                        <option value="1">Review</option>
-                                        <option value="2">Approval</option>
-                                    </select>
-                                </td>
-                                <td>
-                                    <select asp-for="Steps[@i].AssignedToUserId" class="form-select"
-                                            asp-items="Model.UserOptions">
-                                        <option value="">-- Select user --</option>
-                                    </select>
-                                </td>
-                                <td>
-                                    <input asp-for="Steps[@i].StepName" class="form-control" placeholder="e.g. Finance Review" />
-                                </td>
-                                <td class="text-end">
-                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeStep(this)">
-                                        Remove
-                                    </button>
-                                </td>
+                                <th style="width:20%">Type</th>
+                                <th style="width:35%">Assigned To</th>
+                                <th style="width:35%">Step Name (Optional)</th>
+                                <th style="width:10%"></th>
                             </tr>
-                        }
-                    }
-                </tbody>
-            </table>
+                        </thead>
+                        <tbody id="stepsBody">
+                            @if (Model.Steps != null && Model.Steps.Count > 0)
+                            {
+                                for (int i = 0; i < Model.Steps.Count; i++)
+                                {
+                                    <tr>
+                                        <td>
+                                            <select asp-for="Steps[@i].StepType" class="form-select">
+                                                <option value="1">Review</option>
+                                                <option value="2">Approval</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select asp-for="Steps[@i].AssignedToUserId" class="form-select"
+                                                    asp-items="Model.UserOptions">
+                                                <option value="">-- Select user --</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input asp-for="Steps[@i].StepName" class="form-control" placeholder="e.g. Finance Review" />
+                                        </td>
+                                        <td class="text-end">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeStep(this)">
+                                                Remove
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
 
-            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addStepRow()">
-                + Add Step
-            </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addStepRow()">
+                        + Add Step
+                    </button>
 
-            <div class="mt-4">
-                <button type="submit" class="btn text-white" style="background-color:#006A46;">
-                    Save Workflow
-                </button>
+                    <div class="mt-4">
+                        <button type="submit" class="btn text-white" style="background-color:#006A46;">
+                            Save Workflow
+                        </button>
+                    </div>
+                </form>
             </div>
-        </form>
+        </div>
+
     </div>
+
 </div>
 
 @section Scripts {
