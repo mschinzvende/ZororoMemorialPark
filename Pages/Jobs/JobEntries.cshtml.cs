@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using ZororoMemorialPark.Data;
@@ -163,8 +164,8 @@ namespace ZororoMemorialPark.Pages.Jobs
                     sys_graveId = Request.Form["sys_graveId"].ToString() != "" ? int.Parse(Request.Form["sys_graveId"]) : 0,
                     sys_supplierId = Request.Form["sys_supplierId"].ToString() != "" ? int.Parse(Request.Form["sys_supplierId"]) : 0,
                     sys_stageId = Request.Form["sys_stageId"].ToString() != "" ? int.Parse(Request.Form["sys_stageId"]) : 0,
-                    sys_startDate = Request.Form["sys_startDate"].ToString() != "" ? DateOnly.Parse(Request.Form["sys_startDate"]) :DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
-                    sys_endDate = Request.Form["sys_endDate"].ToString() != "" ? DateOnly.Parse(Request.Form["sys_endDate"]) : DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
+                    sys_startDate = DateOnly.ParseExact(Request.Form["sys_startDate"],"yyyy-MM-dd",CultureInfo.InvariantCulture),
+                    sys_endDate = DateOnly.ParseExact(Request.Form["sys_endDate"], "yyyy-MM-dd", CultureInfo.InvariantCulture),
                     sys_jobStatus = Request.Form["sys_status"].ToString()
 
                 };
@@ -326,8 +327,8 @@ namespace ZororoMemorialPark.Pages.Jobs
                 job.sys_graveId = graveId;
                 job.sys_supplierId = supplierId;
                 job.sys_stageId = stageId;
-                job.sys_startDate = startDate;
-                job.sys_endDate = endDate;
+                job.sys_startDate = DateOnly.ParseExact(Request.Form["sys_startDate"], "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                job.sys_endDate = DateOnly.ParseExact(Request.Form["sys_endDate"], "yyyy-MM-dd", CultureInfo.InvariantCulture);
                 job.sys_jobStatus = Request.Form["sys_status"];
 
 

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using ZororoMemorialPark.Data;
 using ZororoMemorialPark.Data.Models;
 using ZororoMemorialPark.Pages.Jobs;
@@ -1160,13 +1161,23 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 // Update job
 
+                var theStartDate = DateOnly.ParseExact(
+                                    Request.Form["sys_startDate"],
+                                    "yyyy-MM-dd",
+                                    CultureInfo.InvariantCulture
+                                );
 
+                var theEndDate = DateOnly.ParseExact(
+                                                    Request.Form["sys_endDate"],
+                                                    "yyyy-MM-dd",
+                                                    CultureInfo.InvariantCulture
+                                                );
 
                 job.sys_graveId = graveId;
                 job.sys_supplierId = supplierId;
                 job.sys_stageId = stageId;
-                job.sys_startDate = startDate;
-                job.sys_endDate = endDate;
+                job.sys_startDate = theStartDate;
+                job.sys_endDate = theEndDate;
                 job.sys_jobStatus = Request.Form["sys_status"];
 
 
