@@ -1225,8 +1225,9 @@ namespace ZororoMemorialPark.Pages.Graves
                             sys_graveId = job.sys_graveId,
                             sys_supplierId = 11, //Default Supplier ID for system tasks
                             sys_stageId = nextStage.sys_stageId,
-                            sys_startDate = DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
-                            sys_endDate = DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
+                            sys_startDate = DateOnly.ParseExact(DateTime.Now.ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            sys_endDate = DateOnly.ParseExact(DateTime.Now.ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            
                             sys_jobStatus = "Pending"
                         };
                         _context.tbl_Jobs.Add(newJob);
