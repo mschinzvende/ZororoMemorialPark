@@ -12,7 +12,7 @@ namespace ZororoMemorialPark.Data.Models
         public int sys_sectionId { get; set; }
         public string sys_plotNumber { get; set; }
         public string sys_graveSaleStatus { get; set; }
-        public double sys_price { get; set; }
+       
         public double sys_latitude { get; set; }
         public double sys_longitude { get; set; }
 

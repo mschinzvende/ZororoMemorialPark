@@ -76,6 +76,9 @@ namespace ZororoMemorialPark.Data
 
         public DbSet<tbl_PasswordResetCode> tbl_PasswordResetCodes { get; set; }
 
+        public DbSet<tbl_BurialBookings> tbl_BurialBookings { get; set; }
+        public DbSet<tbl_BurialPayments> tbl_BurialPayments { get; set; }
+
 
     }
 }

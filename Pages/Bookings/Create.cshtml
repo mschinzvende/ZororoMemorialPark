@@ -1,0 +1,187 @@
+﻿@page
+@model ZororoMemorialPark.Pages.Bookings.CreateModel
+
+
+<div class="container-fluid py-4 mb-4">
+    <div class="card shadow-sm mb-5">
+        <div class="card-header d-flex justify-content-between align-items-center"
+             style="background-color: var(--primary-green); color: var(--primary-white);">
+            <div>
+                <h5 class="mb-0">New Burial Booking</h5>
+                
+            </div>
+
+            
+        </div>
+
+        <div class="card-body">
+
+
+<div class="py-3">
+   
+
+    <form method="post" class="card shadow-sm border-0 mt-3" autocomplete="off">
+        <div class="card-body">
+            <div asp-validation-summary="All" class="text-danger mb-2"></div>
+
+            <div class="row g-3">
+
+                <div class="col-md-3">
+                    <label class="form-label">Section <span class="text-danger">*</span></label>
+                    <select class="form-select" asp-for="SectionId" required>
+                        <option value="">-- Select Section --</option>
+                        @foreach (var s in Model.Sections)
+                        {
+                            <option value="@s.sys_sectionId">
+                                @s.sys_sectionName ($@s.sys_SecPrice)
+                            </option>
+                        }
+                    </select>
+                    <small class="text-muted">Only sections with available graves are listed.</small>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Burial Date <span class="text-danger">*</span></label>
+                    <input type="date"
+                           id="burialDate"
+                           name="burialDate"
+                           class="form-control"
+                           required />
+                    <small id="burialError" class="text-danger d-none"></small>
+
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Available Slots <span class="text-danger">*</span></label>
+                    <select id="burialTime" name="burialDateTime" class="form-select" required>
+                        <option value="">-- Select a slot --</option>
+                    </select>
+                    <div id="slotMessage" class="text-danger mt-1"></div>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Deceased First Name <span class="text-danger">*</span></label>
+                    <input class="form-control" asp-for="DeceasedFirstName" required />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Deceased Last Name <span class="text-danger">*</span></label>
+                    <input class="form-control" asp-for="DeceasedLastName" required />
+                </div>
+
+                <div class="col-md-3">
+                                <label class="form-label">Payment Made By <span class="text-danger">*</span></label>
+                    <input class="form-control" asp-for="PaymentMadeBy" placeholder="Payer name (customer)" required />
+                </div>
+
+                <div class="col-md-3">
+                                <label class="form-label">Customer Phone <span class="text-danger">*</span></label>
+                    <input class="form-control" asp-for="CustomerPhone" required/>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="card-footer bg-white d-flex justify-content-end gap-2">
+            <a class="btn btn-outline-secondary" asp-page="Index">Cancel</a>
+            <button class="btn btn-success" id="createBookingBtn">Create Booking</button>
+        </div>
+    </form>
+</div>
+
+</div>
+
+</div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const burialDateInput = document.getElementById("burialDate");
+        const timeSelect = document.getElementById("burialTime");
+        const messageEl = document.getElementById("slotMessage");
+        const burialError = document.getElementById("burialError");
+        const submitBtn = document.getElementById("createBookingBtn");
+
+        // ---------- DATE LIMITS ----------
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const maxDate = new Date(today);
+        maxDate.setDate(today.getDate() + 7);
+
+        burialDateInput.min = today.toISOString().split("T")[0];
+        burialDateInput.max = maxDate.toISOString().split("T")[0];
+
+        submitBtn.disabled = true;
+
+        // ---------- DATE CHANGE ----------
+        burialDateInput.addEventListener("change", async function () {
+            burialError.classList.add("d-none");
+            timeSelect.innerHTML = `<option value="">-- Select a slot --</option>`;
+            submitBtn.disabled = true;
+
+            if (!this.value) return;
+
+            const selectedDate = new Date(this.value);
+            selectedDate.setHours(0, 0, 0, 0);
+
+            if (selectedDate < today || selectedDate > maxDate) {
+                burialError.textContent = "Burial date must be between today and the next 7 days.";
+                burialError.classList.remove("d-none");
+                this.value = "";
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `?handler=AvailableBurialSlots&burialDate=${encodeURIComponent(this.value)}`
+                );
+
+                const result = await response.json();
+
+                if (!result.slots || result.slots.length === 0) {
+                    messageEl.textContent = "No slots available for this date.";
+                    return;
+                }
+
+                messageEl.textContent = "";
+
+                const now = new Date();
+
+                result.slots.forEach(slot => {
+                    const slotDateTime = new Date(slot);
+
+                    // 🚫 If today, block past times
+                    if (selectedDate.getTime() === today.getTime() && slotDateTime <= now) {
+                        return;
+                    }
+
+                    const opt = document.createElement("option");
+                    opt.value = slot;
+                    opt.textContent = slotDateTime.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    });
+
+                    timeSelect.appendChild(opt);
+                });
+
+                if (timeSelect.options.length === 1) {
+                    messageEl.textContent = "No future time slots available today.";
+                    submitBtn.disabled = true;
+                }
+
+            } catch (err) {
+                console.error(err);
+                messageEl.textContent = "Failed to load burial slots.";
+            }
+        });
+
+        // ---------- TIME CHANGE ----------
+        timeSelect.addEventListener("change", function () {
+            submitBtn.disabled = !this.value;
+        });
+
+    });
+</script>

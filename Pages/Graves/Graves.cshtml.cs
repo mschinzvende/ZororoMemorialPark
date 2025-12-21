@@ -54,6 +54,10 @@ namespace ZororoMemorialPark.Pages.Graves
         public int ReservedTotalCount { get; set; }
         public int OccupiedTotalCount { get; set; }
 
+        [BindProperty(SupportsGet = true)]
+        public string ActiveTab { get; set; } = "available";
+
+
         public async Task OnGetAsync(int? pageNumber, int? pageSize, string searchTerm)
         {
             try
@@ -81,7 +85,7 @@ namespace ZororoMemorialPark.Pages.Graves
                         sys_graveId = g.sys_graveId,
                         sys_plotNumber = g.sys_plotNumber,
                         sys_graveSaleStatus = g.sys_graveSaleStatus,
-                        sys_price = g.sys_price,
+                        sys_price = s.sys_SecPrice,
                         sys_sectionId = g.sys_sectionId,
                         SectionName = s.sys_sectionName,
                         sys_stageId = g.sys_stageId,
@@ -153,7 +157,7 @@ namespace ZororoMemorialPark.Pages.Graves
                         sys_graveId = g.sys_graveId,
                         sys_plotNumber = g.sys_plotNumber,
                         sys_graveSaleStatus = g.sys_graveSaleStatus,
-                        sys_price = g.sys_price,
+                        sys_price = s.sys_SecPrice,
                         sys_sectionId = g.sys_sectionId,
                         SectionName = s.sys_sectionName,
                         sys_stageId = g.sys_stageId,
@@ -178,7 +182,15 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 // Under Construction
                 var ucQuery = underConstructionBaseQuery
-                    .Where(g => g.sys_jobStatus == "In Progress" || g.sys_jobStatus == "Pending");
+    .Where(g => g.sys_jobStatus == "In Progress" || g.sys_jobStatus == "Pending");
+
+                if (ActiveTab == "underconstruction" && !string.IsNullOrWhiteSpace(SearchTerm))
+                {
+                    ucQuery = ucQuery.Where(g =>
+                        g.sys_plotNumber.Contains(SearchTerm) ||
+                        g.SectionName.Contains(SearchTerm));
+                }
+
 
                 UnderConstructionTotalCount = await ucQuery.CountAsync();
                 UnderConstructionGraves = await ucQuery
@@ -188,6 +200,13 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 // Available (Unsold)
                 var availableQuery = baseQuery.Where(g => g.sys_graveSaleStatus == "Unsold");
+
+                if (ActiveTab == "available" && !string.IsNullOrWhiteSpace(SearchTerm))
+                {
+                    availableQuery = availableQuery.Where(g =>
+                        g.sys_plotNumber.Contains(SearchTerm) ||
+                        g.SectionName.Contains(SearchTerm));
+                }
                 AvailableTotalCount = await availableQuery.CountAsync();
                 AvailableGraves = await availableQuery
                     .Skip((PageNumber - 1) * PageSize)
@@ -196,6 +215,14 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 // Reserved
                 var reservedQuery = baseQuery.Where(g => g.sys_graveSaleStatus == "Reserved");
+
+                if (ActiveTab == "reserved" && !string.IsNullOrWhiteSpace(SearchTerm))
+                {
+                    reservedQuery = reservedQuery.Where(g =>
+                        g.sys_plotNumber.Contains(SearchTerm) ||
+                        g.SectionName.Contains(SearchTerm));
+                }
+
                 ReservedTotalCount = await reservedQuery.CountAsync();
                 ReservedGraves = await reservedQuery
                     .Skip((PageNumber - 1) * PageSize)
@@ -204,6 +231,15 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 // Occupied
                 var occQuery = occupiedBaseQuery.Where(g => g.sys_saleStatus == "Occupied");
+
+                if (ActiveTab == "occupied" && !string.IsNullOrWhiteSpace(SearchTerm))
+                {
+                    occQuery = occQuery.Where(g =>
+                        g.sys_plotNumber.Contains(SearchTerm) ||
+                        g.SectionName.Contains(SearchTerm) ||
+                        g.sys_nextOfKinName.Contains(SearchTerm));
+                }
+
                 OccupiedTotalCount = await occQuery.CountAsync();
                 OccupiedGraves = await occQuery
                     .Skip((PageNumber - 1) * PageSize)
@@ -233,7 +269,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 int sectionId = int.Parse(Request.Form["sys_sectionId"]);
                 int stageId = int.Parse(Request.Form["sys_stageId"]);
                 string status = Request.Form["sys_graveSaleStatus"];
-                double price = double.Parse(Request.Form["sys_price"]);
+                
                 double latitude = double.Parse(Request.Form["sys_Latitude"]);
                 double longitude = double.Parse(Request.Form["sys_Longitude"]);
                 string plot = Request.Form["sys_plotNumber"];
@@ -266,7 +302,6 @@ namespace ZororoMemorialPark.Pages.Graves
                     sys_sectionId = sectionId,
                     sys_stageId = stageId,
                     sys_graveSaleStatus = status,
-                    sys_price = price,
                     sys_latitude = latitude,
                     sys_longitude = longitude
                 };
@@ -349,8 +384,8 @@ namespace ZororoMemorialPark.Pages.Graves
                         sys_plotNumber = newPlot,
                         sys_sectionId = sectionId,
                         sys_stageId = stageId,
-                        sys_graveSaleStatus = "Under Construction",
-                        sys_price = price
+                        sys_graveSaleStatus = "Under Construction"
+                       
                     };
 
                     gravesToAdd.Add(grave);
@@ -407,7 +442,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 grave.sys_plotNumber = Request.Form["sys_plotNumber"];
                 grave.sys_sectionId = int.Parse(Request.Form["sys_sectionId"]);
                 grave.sys_stageId = int.Parse(Request.Form["sys_stageId"]);
-                grave.sys_price = double.Parse(Request.Form["sys_price"]);
+                
                 grave.sys_graveSaleStatus = Request.Form["sys_graveSaleStatus"];
                 grave.sys_latitude = double.Parse(Request.Form["sys_Latitude"]);
                 grave.sys_longitude = double.Parse(Request.Form["sys_Longitude"]);
@@ -600,6 +635,7 @@ namespace ZororoMemorialPark.Pages.Graves
             public string StageName { get; set; }
             public double sys_latitude { get; set; }
             public double sys_longitude { get; set; }
+            
         }
 
         public class OccupiedGraveViewModel

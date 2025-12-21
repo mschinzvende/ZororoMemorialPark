@@ -70,8 +70,8 @@ namespace ZororoMemorialPark.Pages.Finance
             var graveSalesDict = saleLinks
                 .ToDictionary(
                     x => x.sys_invoiceId,
-                    x => allocationDict.ContainsKey(x.sys_allocationId)
-                            ? (int?)allocationDict[x.sys_allocationId]
+                    x => allocationDict.ContainsKey(x.sys_allocationId??0)
+                            ? (int?)allocationDict[x.sys_allocationId??0]
                             : null
                 );
 

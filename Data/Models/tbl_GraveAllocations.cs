@@ -16,6 +16,7 @@ namespace ZororoMemorialPark.Data.Models
         public string sys_burialOrder { get; set; }
 
         public string sys_tombstoneStatus { get; set; } = "Not Installed"; // Not Purchased, Purchased, Installed   
+        public int sys_bookingId { get; set; }
     }
 }
  

@@ -596,6 +596,9 @@ namespace ZororoMemorialPark.Migrations
                     b.Property<DateOnly>("sys_allocatedOn")
                         .HasColumnType("date");
 
+                    b.Property<int>("sys_bookingId")
+                        .HasColumnType("int");
+
                     b.Property<string>("sys_burialOrder")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -687,9 +690,6 @@ namespace ZororoMemorialPark.Migrations
 
                     b.Property<int>("sys_previousStageId")
                         .HasColumnType("int");
-
-                    b.Property<double>("sys_price")
-                        .HasColumnType("float");
 
                     b.Property<int>("sys_sectionId")
                         .HasColumnType("int");
@@ -1046,6 +1046,9 @@ namespace ZororoMemorialPark.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_sectionId"));
 
+                    b.Property<double>("sys_SecPrice")
+                        .HasColumnType("float");
+
                     b.Property<string>("sys_jobReminder")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1291,6 +1294,90 @@ namespace ZororoMemorialPark.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("tbl_AuditLogs");
+                });
+
+            modelBuilder.Entity("tbl_BurialBookings", b =>
+                {
+                    b.Property<int>("sys_bookingId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_bookingId"));
+
+                    b.Property<int?>("sys_agentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("sys_bookingStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("sys_createdOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("sys_customerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("sys_deceasedFirstName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_deceasedLastName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("sys_expiresOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("sys_invoiceId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("sys_requestedBurialDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("sys_sectionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_bookingId");
+
+                    b.ToTable("tbl_BurialBookings");
+                });
+
+            modelBuilder.Entity("tbl_BurialPayments", b =>
+                {
+                    b.Property<int>("sys_paymentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_paymentId"));
+
+                    b.Property<double>("sys_amountPaid")
+                        .HasColumnType("float");
+
+                    b.Property<string>("sys_capturedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("sys_invoiceId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("sys_paymentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("sys_paymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("sys_receiptBookId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("sys_receiptNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_paymentId");
+
+                    b.ToTable("tbl_BurialPayments");
                 });
 
             modelBuilder.Entity("tbl_Requisition", b =>

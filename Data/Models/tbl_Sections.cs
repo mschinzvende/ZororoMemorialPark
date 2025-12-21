@@ -10,5 +10,10 @@ namespace ZororoMemorialPark.Data.Models
 
         public string sys_jobReminder { get; set; }
         public int sys_reminderPeriod { get; set; }
+
+        public double sys_SecPrice { get; set; }
+
+
+
     }
 }

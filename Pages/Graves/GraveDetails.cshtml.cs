@@ -238,16 +238,16 @@ namespace ZororoMemorialPark.Pages.Graves
                     AllocationPayments = await (
                         from gai in _context.tbl_GraveAllocationInvoices
                         join inv in _context.tbl_Invoices on gai.sys_invoiceId equals inv.sys_invoiceId
-                        join pay in _context.tbl_IncomePayments on inv.sys_invoiceId equals pay.sys_invoiceId
+                        join pay in _context.tbl_BurialPayments on inv.sys_invoiceId equals pay.sys_invoiceId
                         where gai.sys_allocationId == Allocation.sys_allocationId
                         select new CustomerPaymentDto
                         {
-                            sys_incomeId = pay.sys_incomeId,
-                            sys_date = pay.sys_date,
+                            sys_incomeId = pay.sys_paymentId,
+                            sys_date = DateOnly.FromDateTime(pay.sys_paymentDate),
                             
-                            sys_amount = pay.sys_amount,
+                            sys_amount = pay.sys_amountPaid,
                             sys_paymentMethod = pay.sys_paymentMethod,
-                            sys_notes = pay.sys_notes,
+                            
                             sys_receiptNo = pay.sys_receiptNumber
                         }).ToListAsync();
 
@@ -256,7 +256,7 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 //Calculate totals for allocation
                 TotalPaidAllocation = AllocationPayments.Sum(CustomerPaymentDto => CustomerPaymentDto.sys_amount);
-                AllocationBalance = (Grave?.sys_price ?? 0) - TotalPaidAllocation;
+                AllocationBalance = (Section?.sys_SecPrice ?? 0) - TotalPaidAllocation;
 
                 if (AllocationBalance <= 0)
                 {
@@ -274,7 +274,7 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 //Calculate totals for reservations
                 TotalPaidReservation = ReservationPayments.Sum(CustomerPaymentDto => CustomerPaymentDto.sys_amount);
-                ReservationBalance = (Grave?.sys_price ?? 0) - TotalPaidReservation;
+                ReservationBalance = (Section?.sys_SecPrice ?? 0) - TotalPaidReservation;
 
                 if (ReservationBalance <= 0)
                 {
@@ -502,6 +502,8 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 Grave = await _context.tbl_Graves.FindAsync(graveId);
 
+                var theSection = await _context.tbl_Sections.FindAsync(Grave.sys_sectionId);
+
                 // Create Deceased
                 var deceased = new tbl_Deceased
                 {
@@ -553,7 +555,7 @@ namespace ZororoMemorialPark.Pages.Graves
                     {
                         sys_invoiceId = invoice.sys_invoiceId,
                         sys_itemName = $"Grave Allocation - Grave ID {Grave.sys_plotNumber}",
-                        sys_itemCost = Grave.sys_price
+                        sys_itemCost = theSection.sys_SecPrice
                     };
                     _context.tbl_InvoiceItems.Add(invoiceItem);
                     await _context.SaveChangesAsync();
@@ -765,13 +767,15 @@ namespace ZororoMemorialPark.Pages.Graves
             //get the grave
 
             var grave = await _context.tbl_Graves.FindAsync(graveId);
+            var theSection = await _context.tbl_Sections.FindAsync(grave.sys_sectionId);
+
             // Create Invoice Item
 
             var invoiceItem = new tbl_InvoiceItems
             {
                 sys_invoiceId = invoice.sys_invoiceId,
                 sys_itemName = $"Grave Reservation - Grave ID {grave.sys_plotNumber}",
-                sys_itemCost = grave.sys_price
+                sys_itemCost = theSection.sys_SecPrice
             };
             _context.tbl_InvoiceItems.Add(invoiceItem);
             await _context.SaveChangesAsync();
