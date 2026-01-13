@@ -20,6 +20,10 @@ namespace ZororoMemorialPark.Pages.Integrations.WhatsApp
             _bot = bot;
         }
 
+        
+
+
+
         // META VERIFICATION (GET)
         public IActionResult OnGet(
             [FromQuery(Name = "hub.mode")] string mode,
