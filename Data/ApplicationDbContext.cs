@@ -79,6 +79,8 @@ namespace ZororoMemorialPark.Data
         public DbSet<tbl_BurialBookings> tbl_BurialBookings { get; set; }
         public DbSet<tbl_BurialPayments> tbl_BurialPayments { get; set; }
 
+        public DbSet<tbl_WhatsAppSession> tbl_WhatsAppSessions { get; set; }
+        public DbSet<tbl_WhatsAppOtp> tbl_WhatsAppOtps { get; set; }
 
     }
 }

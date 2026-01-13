@@ -25,6 +25,9 @@ public class tbl_BurialBookings
 
     public DateTime sys_createdOn { get; set; }
     public DateTime sys_expiresOn { get; set; }
+
+    public string? sys_receiptPath { get; set; }
+
 }
 
 

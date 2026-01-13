@@ -5,6 +5,8 @@ using Serilog;
 using ZororoMemorialPark.Services;
 using QuestPDF.Infrastructure;
 using ZororoMemorialPark.Data.Models;
+using ZororoMemorialPark.Services.WhatsApp;
+using ZororoMemorialPark.Services.Bookings;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,8 +19,8 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog(); // Replace default logger
 
-//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-var connectionString = Environment.GetEnvironmentVariable("DB_STRING_ZDBZ");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+//var connectionString = Environment.GetEnvironmentVariable("DB_STRING_ZDBZ");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
@@ -56,12 +58,16 @@ builder.Services.AddScoped<PasswordResetService>();
 builder.Services.AddScoped<IBurialCapacityService, BurialCapacityService>();
 builder.Services.AddHostedService<BookingExpiryHostedService>();
 
-
-
-
-
-
 builder.Services.AddScoped<IRequisitionWorkflowService, RequisitionWorkflowService>();
+
+
+builder.Services.Configure<WhatsAppOptions>(
+    builder.Configuration.GetSection("WhatsApp"));
+
+builder.Services.AddHttpClient<WhatsAppClient>();
+
+builder.Services.AddScoped<BurialBookingEngine>();
+builder.Services.AddScoped<WhatsAppBookingBotService>();
 
 
 var app = builder.Build();
