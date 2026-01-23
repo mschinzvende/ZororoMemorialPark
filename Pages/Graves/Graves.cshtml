@@ -309,18 +309,27 @@
                         <div class="col-sm-6">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Plot Number</label>
-                                <input min="1" type="number" name="sys_plotNumber" class="form-control border"
-                                       style="border-color: var(--primary-green);" required />
+                                <input type="text"
+                                       name="sys_plotNumber"
+                                       id="singlePlotNumber"
+                                       class="form-control"
+                                       readonly
+                                       required />
+
                             </div>
                         </div>
 
                         <div class="col-sm-6">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Section</label>
-                                <select name="sys_sectionId" class="form-select" required>
-                                    @foreach (var sec in Model.Sections)
+                                <select name="sys_sectionId"
+                                        class="form-select"
+                                        required
+                                        onchange="loadNextPlotNumber(this.value, 'singlePlotNumber')">
+                                        <option selected></option>
+                                    @foreach (var grave_section in Model.Sections)
                                     {
-                                        <option value="@sec.sys_sectionId">@sec.sys_sectionName</option>
+                                        <option value="@grave_section.sys_sectionId">@grave_section.sys_sectionName</option>
                                     }
                                 </select>
                             </div>
@@ -342,12 +351,9 @@
 
                         <div class="col-sm-6">
                             <div class="mb-3">
-                                <label class="form-label fw-bold">Sale Status</label>
+                                <label class="form-label fw-bold">Status</label>
                                 <select name="sys_graveSaleStatus" class="form-select">
                                     <option value="Under Construction">Under Construction</option>
-                                    <option value="Unsold">Unsold</option>
-                                    <option value="Sold">Sold</option>
-                                    <option value="Reserved">Reserved</option>
                                 </select>
                             </div>
                         </div>
@@ -402,10 +408,14 @@
                         <div class="col-sm-6">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Section</label>
-                                <select name="sys_sectionId" class="form-select" required>
-                                    @foreach (var sec in Model.Sections)
+                                <select name="sys_sectionId"
+                                        class="form-select"
+                                        required
+                                        onchange="loadNextPlotNumber(this.value, 'bulkPlotSeed')">
+                                        <option  selected></option>
+                                    @foreach (var grave_section in Model.Sections)
                                     {
-                                        <option value="@sec.sys_sectionId">@sec.sys_sectionName</option>
+                                        <option value="@grave_section.sys_sectionId">@grave_section.sys_sectionName</option>
                                     }
                                 </select>
                             </div>
@@ -415,6 +425,7 @@
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Stage</label>
                                 <select name="sys_stageId" class="form-select" required>
+
                                     @foreach (var stage in Model.Stages)
                                     {
                                         <option value="@stage.sys_stageId">@stage.sys_stageName</option>
@@ -426,7 +437,13 @@
                         <div class="col-sm-6">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Starting Plot Number</label>
-                                <input type="number" name="plotSeed" class="form-control" min="1" required />
+                                <input type="text"
+                                       name="plotSeed"
+                                       id="bulkPlotSeed"
+                                       class="form-control"
+                                       readonly
+                                       required />
+
                             </div>
                         </div>
 
@@ -674,4 +691,20 @@
             history.replaceState(null, "", url);
         });
     });
+</script>
+
+<script>
+    async function loadNextPlotNumber(sectionId, targetInputId) {
+        if (!sectionId) return;
+
+        try {
+            const response = await fetch(`?handler=NextPlotNumber&sectionId=${sectionId}`);
+            if (!response.ok) return;
+
+            const data = await response.json();
+            document.getElementById(targetInputId).value = data.nextPlot;
+        } catch (e) {
+            console.error("Failed to fetch plot number", e);
+        }
+    }
 </script>

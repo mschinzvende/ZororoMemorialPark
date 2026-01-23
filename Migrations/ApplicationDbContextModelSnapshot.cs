@@ -395,6 +395,9 @@ namespace ZororoMemorialPark.Migrations
                     b.Property<double>("sys_amount")
                         .HasColumnType("float");
 
+                    b.Property<int>("sys_bookingId")
+                        .HasColumnType("int");
+
                     b.Property<int>("sys_graveId")
                         .HasColumnType("int");
 
@@ -574,7 +577,7 @@ namespace ZororoMemorialPark.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_GAInvoicesId"));
 
-                    b.Property<int>("sys_allocationId")
+                    b.Property<int?>("sys_allocationId")
                         .HasColumnType("int");
 
                     b.Property<int>("sys_invoiceId")
@@ -660,6 +663,9 @@ namespace ZororoMemorialPark.Migrations
 
                     b.Property<int>("sys_graveId")
                         .HasColumnType("int");
+
+                    b.Property<DateOnly>("sys_reservedOn")
+                        .HasColumnType("date");
 
                     b.HasKey("sys_reservationId");
 
@@ -1252,6 +1258,72 @@ namespace ZororoMemorialPark.Migrations
                     b.ToTable("tbl_Tombstones");
                 });
 
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_WhatsAppOtp", b =>
+                {
+                    b.Property<int>("sys_otpId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_otpId"));
+
+                    b.Property<int>("sys_agentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("sys_createdOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("sys_expiresOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("sys_isUsed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("sys_otpHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_phone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("sys_otpId");
+
+                    b.ToTable("tbl_WhatsAppOtps");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_WhatsAppSession", b =>
+                {
+                    b.Property<int>("sys_sessionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_sessionId"));
+
+                    b.Property<int?>("sys_agentId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("sys_isActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("sys_lastUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("sys_payload")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_phone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_state")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("sys_sessionId");
+
+                    b.ToTable("tbl_WhatsAppSessions");
+                });
+
             modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_jobEvaluationParameters", b =>
                 {
                     b.Property<int>("sys_jobEvaluationParameterId")
@@ -1330,6 +1402,9 @@ namespace ZororoMemorialPark.Migrations
 
                     b.Property<int?>("sys_invoiceId")
                         .HasColumnType("int");
+
+                    b.Property<string>("sys_receiptPath")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("sys_requestedBurialDateTime")
                         .HasColumnType("datetime2");

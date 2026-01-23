@@ -44,6 +44,7 @@
                                     <th>Price</th>
                                     <th>Reminder</th>
                                     <th>Period</th>
+                                    <th>Last Grave No.</th>
                                     <th style="width:150px;">Actions</th>
                                 </tr>
                             </thead>
@@ -55,6 +56,7 @@
                                         <td>$@grave_section.sys_SecPrice</td>
                                         <td> @grave_section.sys_jobReminder</td>
                                         <td>@grave_section.sys_reminderPeriod Year(s)</td>
+                                        <td>@grave_section.sys_lastGraveNo</td>
                                         <td>
                                             <button class="btn btn-sm btn-outline-secondary"
                                                     data-bs-toggle="modal"
@@ -63,7 +65,8 @@
                                                     data-name="@grave_section.sys_sectionName"
                                                     data-price="@grave_section.sys_SecPrice"
                                                     data-reminder="@grave_section.sys_jobReminder"
-                                                    data-period="@grave_section.sys_reminderPeriod">
+                                                    data-period="@grave_section.sys_reminderPeriod"
+                                                    data-lastNo="@grave_section.sys_lastGraveNo">
                                                 Edit
                                             </button>
 
@@ -151,6 +154,14 @@
                                 <input value="0" type="number" min="0" step="1" name="reminderPeriod" class="form-control border" style="border-color: var(--primary-green);" />
                             </div>
                         </div>
+
+
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Last Grave No.</label>
+                                <input value="0" type="number" min="0" step="1" name="sys_lastGraveNo" class="form-control border" style="border-color: var(--primary-green);" />
+                            </div>
+                        </div>
                     </div>
                     
                     
@@ -204,6 +215,13 @@
                             <input name="sys_reminderPeriod" class="form-control border" style="border-color: var(--primary-green);" />
                         </div>
                     </div>
+
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Last Grave No.</label>
+                                <input name="sys_lastGraveNo" class="form-control border" style="border-color: var(--primary-green);" />
+                            </div>
+                        </div>
             </div>
                     <div class="text-end">
                         <button type="submit" class="btn btn-primary">Update</button>
@@ -252,7 +270,7 @@
         var price = button.getAttribute('data-price');
         var reminder = button.getAttribute('data-reminder')
         var period = button.getAttribute('data-period')
-
+         var lastNo = button.getAttribute('data-lastNo')
         // Fill form fields
         var modal = this;
         modal.querySelector('input[name="sys_sectionId"]').value = id;
@@ -260,6 +278,7 @@
         modal.querySelector('input[name="sys_sectionPrice"]').value = price;
         modal.querySelector('input[name="sys_jobReminder"]').value = reminder;
         modal.querySelector('input[name="sys_reminderPeriod"]').value = period;
+        modal.querySelector('input[name="sys_lastGraveNo"]').value = lastNo;
     });
 
     // When Delete modal is about to show

@@ -71,7 +71,7 @@
                         <td>@r.Booking.sys_deceasedFirstName @r.Booking.sys_deceasedLastName</td>
                         <td>@r.Booking.sys_requestedBurialDateTime.ToString("yyyy-MM-dd HH:mm")</td>
                         <td>@r.SectionName</td>
-                        <td>@r.SectionPrice</td>
+                        <td>$@r.SectionPrice</td>
                         <td><span class="badge bg-secondary">@r.Booking.sys_bookingStatus</span></td>
                         <td>@(r.Booking.sys_invoiceId?.ToString() ?? "-")</td>
                         <td class="text-end">

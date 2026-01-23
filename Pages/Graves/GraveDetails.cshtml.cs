@@ -733,7 +733,8 @@ namespace ZororoMemorialPark.Pages.Graves
             var reservation = new tbl_GraveReservations
             {
                 sys_graveId = graveId,
-                sys_customerId = customer.sys_customerId
+                sys_customerId = customer.sys_customerId,
+                sys_reservedOn = DateOnly.FromDateTime(DateTime.Now)
             };
             _context.tbl_GraveReservations.Add(reservation);
             await _context.SaveChangesAsync();
@@ -793,6 +794,7 @@ namespace ZororoMemorialPark.Pages.Graves
 
             // Update Grave status
             grave.sys_graveSaleStatus = "Reserved";
+            
             _context.tbl_Graves.Update(grave);
             await _context.SaveChangesAsync();
 

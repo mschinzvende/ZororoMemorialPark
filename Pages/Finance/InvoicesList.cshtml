@@ -211,7 +211,7 @@
                                         View
                                     </a>
 
-                                    @if (inv.Balance > 0)
+                                        @if (inv.Balance > 0 && inv.InvoiceType != "GraveSale")
                                     {
                                         <button class="btn btn-success"
                                                 type="button"
