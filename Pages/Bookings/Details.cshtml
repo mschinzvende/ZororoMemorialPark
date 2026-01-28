@@ -745,7 +745,7 @@
             if (dobDate > today) {
                 dobError.textContent = "Date of Birth cannot be in the future.";
                 dobError.classList.replace("d-none", "d-block");
-                dob.value = ""; return;
+                 return;
             }
 
             // Max 120 years rule
@@ -756,7 +756,7 @@
             if (dobDate < oldest) {
                 dobError.textContent = "Date of Birth cannot be more than 120 years ago.";
                 dobError.classList.replace("d-none", "d-block");
-                dob.value = ""; return;
+                 return;
             }
 
             if (dod.value) dod.dispatchEvent(new Event("change"));
@@ -777,14 +777,14 @@
             if (dodDate > today) {
                 dodError.textContent = "Date of Death cannot be in the future.";
                 dodError.classList.replace("d-none", "d-block");
-                dod.value = ""; return;
+                 return;
             }
 
             // DOD before DOB not allowed (same-day allowed)
             if (dobDate && dodDate < dobDate) {
                 dodError.textContent = "Date of Death cannot be before Date of Birth.";
                 dodError.classList.replace("d-none", "d-block");
-                dod.value = ""; return;
+                 return;
             }
 
             // Max age 120
@@ -793,7 +793,7 @@
                 if (age > 120) {
                     dodError.textContent = "Age cannot exceed 120 years.";
                     dodError.classList.replace("d-none", "d-block");
-                    dod.value = ""; return;
+                     return;
                 }
             }
 

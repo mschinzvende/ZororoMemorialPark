@@ -147,7 +147,9 @@ else if (status == "Occupied" && occupiedGraves != null)
                     <th><input type="checkbox" id="selectAll-@status"></th>
                     <th>Plot Number</th>
                     <th>Section</th>
+                    <th>Deceased</th>
                     <th>Occupied On</th>
+
                     <th>Next of kin</th>
                     <th>Contact #</th>
                     <th>Tombstone Status</th>
@@ -181,6 +183,7 @@ else if (status == "Occupied" && occupiedGraves != null)
                         }
 
                         <td>@occupiedGrave.SectionName</td>
+                        <td>@occupiedGrave.sys_deceasedName</td>
                         <td>@occupiedGrave.sys_occupationDate</td>
                         <td>@occupiedGrave.sys_nextOfKinName</td>
                         <td>@occupiedGrave.sys_nextOfKinContact</td>

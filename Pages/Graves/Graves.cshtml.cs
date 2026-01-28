@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Security.Policy;
 
 namespace ZororoMemorialPark.Pages.Graves
 {
@@ -79,12 +80,14 @@ namespace ZororoMemorialPark.Pages.Graves
                     from g in _context.tbl_Graves
                     join s in _context.tbl_Sections on g.sys_sectionId equals s.sys_sectionId
                     join st in _context.tbl_DevelopmentStages on g.sys_stageId equals st.sys_stageId
+                    
                     orderby g.sys_plotNumber
                     select new GraveViewModel
                     {
                         sys_graveId = g.sys_graveId,
                         sys_plotNumber = g.sys_plotNumber,
                         sys_graveSaleStatus = g.sys_graveSaleStatus,
+                        
                         sys_price = s.sys_SecPrice,
                         sys_sectionId = g.sys_sectionId,
                         SectionName = s.sys_sectionName,
@@ -113,6 +116,7 @@ namespace ZororoMemorialPark.Pages.Graves
                         sys_graveId = g.sys_graveId,
                         sys_plotNumber = g.sys_plotNumber,
                         sys_occupationDate = o.sys_allocatedOn,
+                        sys_deceasedName = dc.sys_deceasedFullName,
                         sys_saleStatus = g.sys_graveSaleStatus,
                         sys_nextOfKinName = dc.sys_deceasedNextOfKinName,
                         sys_nextOfKinContact = dc.sys_deceasedNextOfKinPhone,
@@ -136,7 +140,8 @@ namespace ZororoMemorialPark.Pages.Graves
                 {
                     occupiedBaseQuery = occupiedBaseQuery.Where(g =>
                         g.sys_plotNumber.Contains(SearchTerm) ||
-                        g.SectionName.Contains(SearchTerm) ||
+                        g.SectionName.Contains(SearchTerm) || 
+                        g.sys_deceasedName.Contains(SearchTerm) ||
                         g.sys_nextOfKinName.Contains(SearchTerm));
                 }
 
@@ -236,7 +241,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 {
                     occQuery = occQuery.Where(g =>
                         g.sys_plotNumber.Contains(SearchTerm) ||
-                        g.SectionName.Contains(SearchTerm) ||
+                        g.SectionName.Contains(SearchTerm) || g.sys_deceasedName.Contains(SearchTerm) ||
                         g.sys_nextOfKinName.Contains(SearchTerm));
                 }
 
@@ -627,6 +632,7 @@ namespace ZororoMemorialPark.Pages.Graves
             public int sys_graveId { get; set; }
             public string sys_plotNumber { get; set; }
             public string sys_graveSaleStatus { get; set; }
+        
             public double sys_price { get; set; }
             public int sys_sectionId { get; set; }
             public string SectionName { get; set; }
@@ -642,6 +648,10 @@ namespace ZororoMemorialPark.Pages.Graves
             public int sys_graveId { get; set; }
             public string sys_plotNumber { get; set; }
             public string sys_graveTombStatus { get; set; }
+
+            public string sys_deceasedName { get; set; }
+
+            
             public DateOnly sys_occupationDate { get; set; }
             public string sys_saleStatus { get; set; }
             public string sys_nextOfKinName { get; set; }
