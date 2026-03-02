@@ -20,6 +20,8 @@ namespace ZororoMemorialPark.Services
             _settings = settings;
         }
 
+        //WhatsApp
+
 
 
         

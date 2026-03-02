@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using ZororoMemorialPark.Data;
 using ZororoMemorialPark.Services;
+using ZororoMemorialPark.Services.WhatsApp;
 
 namespace ZororoMemorialPark.Pages.Requisitions
 {
@@ -17,16 +18,21 @@ namespace ZororoMemorialPark.Pages.Requisitions
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IRequisitionWorkflowService _workflowService;
         private readonly NotificationService _notify;
+        private readonly WhatsAppNotificationService _whatsApp;
 
         public CreateModel(
             ApplicationDbContext context,
             UserManager<IdentityUser> userManager,
-            IRequisitionWorkflowService workflowService, NotificationService notify)
+            IRequisitionWorkflowService workflowService, 
+            NotificationService notify,
+            WhatsAppNotificationService whatsApp
+            )
         {
             _context = context;
             _userManager = userManager;
             _workflowService = workflowService;
             _notify = notify;
+            _whatsApp = whatsApp;
         }
 
         [BindProperty]
@@ -121,10 +127,29 @@ namespace ZororoMemorialPark.Pages.Requisitions
             _context.tbl_Requisitions.Add(requisition);
             await _context.SaveChangesAsync();
 
+            var reviewer = await _userManager.FindByIdAsync(firstStep.AssignedToUserId);
+
+            // =============================
+            //  Send Whats App to Reviewer
+            // =============================
+
+            if (!string.IsNullOrWhiteSpace(reviewer.PhoneNumber))
+            {
+                var phone = reviewer.PhoneNumber;
+
+               var appResponse =  await _whatsApp.SendRequisitionNotificationWithLink(
+                    to: phone,
+                    templateName: "requisition_review_notification",
+                    reviewerName: reviewer.UserName,
+                    requestNumber: requisition.RequestNumber,
+                    requisitionId: requisition.Id.ToString()
+                );
+            }
+
             // ==============================
             // Email variables for reviewer
             // ==============================
-            var reviewer = await _userManager.FindByIdAsync(firstStep.AssignedToUserId);
+            
             if (reviewer != null)
             {
                 string baseUrl = $"{Request.Scheme}://{Request.Host}";

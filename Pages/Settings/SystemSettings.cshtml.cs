@@ -67,6 +67,9 @@ namespace ZororoMemorialPark.Pages.Settings
             }
             
             settingsInDb.UseSSL = Settings.UseSSL;
+            settingsInDb.waAccessToken = Settings.waAccessToken;
+            settingsInDb.waApiUrl = Settings.waApiUrl;
+            settingsInDb.systemUrl = Settings.systemUrl;
 
             settingsInDb.MaxBurialsPerDay = Settings.MaxBurialsPerDay;
             settingsInDb.MinutesBetweenBurials = Settings.MinutesBetweenBurials;

@@ -30,6 +30,11 @@ namespace ZororoMemorialPark.Data.Models
         public string SmtpPassword { get; set; }
         public bool UseSSL { get; set; }
 
+        public string waApiUrl { get; set; }
+        public string waAccessToken { get; set; }
+
+        public string systemUrl { get; set; }
+
         // Burial rules
         public int MaxBurialsPerDay { get; set; }
         public int MinutesBetweenBurials { get; set; }
