@@ -45,7 +45,10 @@ namespace ZororoMemorialPark.Services.WhatsApp
     string templateName,
     string reviewerName,
     string requestNumber,
-    string requisitionId)
+    string lineSummary,
+    string totalCost,
+    string requisitionId,
+    string actionToken)
         {
             await EnsureInitializedAsync();
 
@@ -60,15 +63,22 @@ namespace ZororoMemorialPark.Services.WhatsApp
                     language = new { code = "en" },
                     components = new object[]
                     {
+                // BODY
                 new
                 {
                     type = "body",
                     parameters = new object[]
                     {
                         new { type = "text", text = reviewerName },
-                        new { type = "text", text = requestNumber }
+                        new { type = "text", text = requestNumber },
+                        new { type = "text", text=lineSummary },
+                        new { type = "text", text=totalCost }
                     }
                 },
+
+                
+
+                // BUTTON 1 → Accept
                 new
                 {
                     type = "button",
@@ -76,11 +86,19 @@ namespace ZororoMemorialPark.Services.WhatsApp
                     index = "0",
                     parameters = new object[]
                     {
-                        new
-                        {
-                            type = "text",
-                            text = requisitionId
-                        }
+                        new { type = "text", text = actionToken }
+                    }
+                },
+
+                // BUTTON 2 → Reject
+                new
+                {
+                    type = "button",
+                    sub_type = "url",
+                    index = "1",
+                    parameters = new object[]
+                    {
+                        new { type = "text", text = actionToken }
                     }
                 }
                     }
@@ -99,8 +117,6 @@ namespace ZororoMemorialPark.Services.WhatsApp
             Console.WriteLine($"Response Status: {response.StatusCode}");
             Console.WriteLine($"Response Content: {responseContent}");
             return response;
-
-            
         }
 
 

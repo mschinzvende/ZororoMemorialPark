@@ -82,6 +82,8 @@ namespace ZororoMemorialPark.Data
         public DbSet<tbl_WhatsAppSession> tbl_WhatsAppSessions { get; set; }
         public DbSet<tbl_WhatsAppOtp> tbl_WhatsAppOtps { get; set; }
 
+        public DbSet<tbl_RequisitionActionToken> tbl_RequisitionActionToken { get; set; }
+
     }
 }
 

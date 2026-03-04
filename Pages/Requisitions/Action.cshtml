@@ -1,0 +1,67 @@
+﻿@page "{decision}/{token:guid}"
+@model ZororoMemorialPark.Pages.Requisitions.ActionModel
+@{
+    ViewData["Title"] = "Confirm Requisition Action";
+}
+
+@inject ZororoMemorialPark.Services.SystemSettingsService SettingsService
+
+@{
+    var settings = await SettingsService.GetSettingsAsync();
+    string logo = settings?.LogoPath ?? "/images/default-logo.png";
+    string companyName = settings?.CompanyName ?? "Zororo Memorial";
+}
+
+<div class="container mt-5">
+    <div class="card shadow-lg border-0">
+
+        <!-- Header -->
+        <div class="text-center p-4" style="background-color:#006A46;">
+            <img src="@logo" alt="Logo" style="max-height:70px;" />
+            <h4 class="text-white mt-3 mb-0">@companyName</h4>
+        </div>
+
+        <!-- Body -->
+        <div class="p-4">
+
+            <h5 class="mb-3">
+                Requisition: <strong>@Model.Requisition?.RequestNumber</strong>
+            </h5>
+
+            <p class="mb-4">
+                You are about to
+                <strong class="@(Model.Decision == "approve" ? "text-success" : "text-danger")">
+                    @Model.Decision.ToUpper()
+                </strong>
+                this requisition.
+            </p>
+
+            <div class="alert alert-warning">
+                Please confirm your action. This cannot be undone.
+            </div>
+
+            <form method="post" asp-page-handler="Confirm">
+                <input type="hidden" name="decision" value="@Model.Decision" />
+                <input type="hidden" name="token" value="@Model.Token" />
+
+                <div class="d-flex justify-content-center gap-3 mt-4">
+                    <button type="submit"
+                            class="btn @(Model.Decision == "approve" ? "btn-success" : "btn-danger") px-4">
+                        Confirm @Model.Decision
+                    </button>
+
+                    <a href="/" class="btn btn-secondary px-4">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center py-3 bg-light small text-muted">
+            © @DateTime.UtcNow.Year @companyName
+        </div>
+
+    </div>
+</div>

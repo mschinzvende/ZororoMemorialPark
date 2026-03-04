@@ -1,4 +1,3 @@
-// Pages/Requisitions/WorkflowConfig.cshtml.cs
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ZororoMemorialPark.Data;
+using ZororoMemorialPark.Data.Models;
 
 namespace ZororoMemorialPark.Pages.Requisitions
 {
@@ -36,9 +36,14 @@ namespace ZororoMemorialPark.Pages.Requisitions
         public List<SelectListItem> RoleOptions { get; set; } = new();
         public List<SelectListItem> UserOptions { get; set; } = new();
 
+        public bool IsLocked { get; set; }
+
         [TempData]
         public string? StatusMessage { get; set; }
 
+        // ===========================
+        // GET
+        // ===========================
         public async Task<IActionResult> OnGetAsync(int? id)
         {
             await LoadLookupsAsync();
@@ -47,87 +52,111 @@ namespace ZororoMemorialPark.Pages.Requisitions
             {
                 Workflow = await _context.tbl_RequisitionWorkflowDefinitions
                     .Include(w => w.Steps.OrderBy(s => s.StepOrder))
-                    .FirstOrDefaultAsync(w => w.Id == id.Value) ?? new tbl_RequisitionWorkflowDefinition();
+                    .FirstOrDefaultAsync(w => w.Id == id.Value)
+                    ?? new tbl_RequisitionWorkflowDefinition();
 
                 Steps = Workflow.Steps.OrderBy(s => s.StepOrder).ToList();
-            }
-            else
-            {
-                Workflow = new tbl_RequisitionWorkflowDefinition();
-                Steps = new List<tbl_RequisitionWorkflowStep>();
+
+                IsLocked = await _context.tbl_Requisitions
+                    .AnyAsync(r => r.WorkflowDefinitionId == Workflow.Id);
             }
 
             return Page();
         }
 
+        // ===========================
+        // SAVE
+        // ===========================
         public async Task<IActionResult> OnPostSaveAsync()
         {
             await LoadLookupsAsync();
 
+            Steps = Steps ?? new List<tbl_RequisitionWorkflowStep>();
+
+            // Remove empty rows
+            Steps = Steps
+                .Where(s => !string.IsNullOrEmpty(s.AssignedToUserId))
+                .ToList();
+
+            if (!Steps.Any())
+            {
+                ModelState.AddModelError("", "At least one workflow step is required.");
+            }
+
             if (!ModelState.IsValid)
             {
-                StatusMessage = "Error: Fix validation issues.";
                 return Page();
             }
 
-            bool isNew = (Workflow.Id == 0);
+            bool isNew = Workflow.Id == 0;
+
+            if (!isNew)
+            {
+                var isInUse = await _context.tbl_Requisitions
+                    .AnyAsync(r => r.WorkflowDefinitionId == Workflow.Id);
+
+                if (isInUse)
+                {
+                    StatusMessage = "This workflow is already in use and cannot be modified.";
+                    IsLocked = true;
+                    return Page();
+                }
+            }
 
             if (isNew)
             {
-                // NEW WORKFLOW
                 _context.tbl_RequisitionWorkflowDefinitions.Add(Workflow);
-                await _context.SaveChangesAsync(); // Save first to get Workflow.Id
+                await _context.SaveChangesAsync();
             }
             else
             {
-                // EXISTING WORKFLOW
                 var dbWorkflow = await _context.tbl_RequisitionWorkflowDefinitions
                     .Include(w => w.Steps)
                     .FirstOrDefaultAsync(w => w.Id == Workflow.Id);
 
                 if (dbWorkflow == null)
                 {
-                    StatusMessage = "Error: Workflow not found.";
-                    return RedirectToPage();
+                    StatusMessage = "Workflow not found.";
+                    return RedirectToPage("./Workflows");
                 }
 
-                // Update fields
                 dbWorkflow.Name = Workflow.Name;
                 dbWorkflow.RequesterRole = Workflow.RequesterRole;
                 dbWorkflow.IsActive = Workflow.IsActive;
 
-                // Delete old steps
                 _context.tbl_RequisitionWorkflowSteps.RemoveRange(dbWorkflow.Steps);
-
                 await _context.SaveChangesAsync();
             }
 
-            // Now insert steps fresh
             int order = 1;
             foreach (var step in Steps)
             {
                 step.Id = 0;
                 step.WorkflowDefinitionId = Workflow.Id;
                 step.StepOrder = order++;
-
                 _context.tbl_RequisitionWorkflowSteps.Add(step);
             }
 
             await _context.SaveChangesAsync();
 
             StatusMessage = "Workflow saved successfully.";
-
             return RedirectToPage("./Workflows");
         }
 
-
+        // ===========================
         private async Task LoadLookupsAsync()
         {
             RoleOptions = await _roleManager.Roles
-                .Select(r => new SelectListItem { Value = r.Name, Text = r.Name })
+                .OrderBy(r => r.Name)
+                .Select(r => new SelectListItem
+                {
+                    Value = r.Name,
+                    Text = r.Name
+                })
                 .ToListAsync();
 
             UserOptions = await _userManager.Users
+                .OrderBy(u => u.UserName)
                 .Select(u => new SelectListItem
                 {
                     Value = u.Id,
