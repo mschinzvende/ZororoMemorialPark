@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -10,6 +11,7 @@ using ZororoMemorialPark.Services.WhatsApp;
 
 namespace ZororoMemorialPark.Pages.Requisitions
 {
+    [AllowAnonymous]
     public class ActionModel : PageModel
     {
         private readonly ApplicationDbContext _context;
@@ -36,13 +38,36 @@ namespace ZororoMemorialPark.Pages.Requisitions
         public string Decision { get; set; } = "";
         public Guid Token { get; set; }
 
+
+        private Guid? CleanToken(string rawToken)
+        {
+            if (string.IsNullOrWhiteSpace(rawToken))
+                return null;
+
+            // decode %7B%7B1%7D%7D
+            rawToken = Uri.UnescapeDataString(rawToken);
+
+            // remove template placeholder if present
+            rawToken = rawToken.Replace("{{1}}", "").Trim();
+
+            if (Guid.TryParse(rawToken, out var guid))
+                return guid;
+
+            return null;
+        }
+
         // =============================
         //  STEP 1: SHOW CONFIRMATION PAGE
         // =============================
-        public async Task<IActionResult> OnGetAsync(string decision, Guid token)
+        public async Task<IActionResult> OnGetAsync(string decision, string token)
         {
+            var cleanToken = CleanToken(token);
+
+            if (cleanToken == null)
+                return Content("Invalid approval token.");
+
             var actionToken = await _context.tbl_RequisitionActionToken
-                .FirstOrDefaultAsync(t => t.Token == token);
+                .FirstOrDefaultAsync(t => t.Token == cleanToken.Value);
 
             if (actionToken == null || actionToken.IsUsed || actionToken.ExpiryDate < DateTime.UtcNow)
                 return Content("Invalid or expired link.");
@@ -60,7 +85,7 @@ namespace ZororoMemorialPark.Pages.Requisitions
 
             Requisition = requisition;
             Decision = decision.ToLower();
-            Token = token;
+            Token = cleanToken.Value;
 
             return Page(); // shows confirmation UI
         }
@@ -68,10 +93,15 @@ namespace ZororoMemorialPark.Pages.Requisitions
         // =============================
         //  STEP 2: EXECUTE AFTER CONFIRM
         // =============================
-        public async Task<IActionResult> OnPostConfirmAsync(string decision, Guid token)
+        public async Task<IActionResult> OnPostConfirmAsync(string decision, string token)
         {
+            var cleanToken = CleanToken(token);
+
+            if (cleanToken == null)
+                return Content("Invalid approval token.");
+
             var actionToken = await _context.tbl_RequisitionActionToken
-                .FirstOrDefaultAsync(t => t.Token == token);
+                .FirstOrDefaultAsync(t => t.Token == cleanToken.Value);
 
             if (actionToken == null || actionToken.IsUsed || actionToken.ExpiryDate < DateTime.UtcNow)
                 return Content("Invalid or expired link.");
@@ -135,7 +165,11 @@ namespace ZororoMemorialPark.Pages.Requisitions
                 await NotifyApproverAsync(requisition, nextUser);
             }
 
-            return Content($"Requisition {requisition.RequestNumber} processed successfully.");
+            return RedirectToPage("Result", new
+            {
+                status = approve ? "approved" : "rejected",
+                request = requisition.RequestNumber
+            });
         }
 
         // =============================
@@ -171,7 +205,7 @@ namespace ZororoMemorialPark.Pages.Requisitions
             {
                 await _whatsApp.SendRequisitionNotificationWithLink(
                     approver.PhoneNumber,
-                    "req_notifications",
+                    "memorial_request_notificaton",
                     name,
                     requisition.RequestNumber,
                     sb.ToString(),

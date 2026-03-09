@@ -150,7 +150,7 @@ namespace ZororoMemorialPark.Pages.Requisitions
             {
                 await _whatsApp.SendRequisitionNotificationWithLink(
                     approver.PhoneNumber,
-                    "req_notifications",
+                    "memorial_request_notificaton",
                     name,
                     requisition.RequestNumber,
                     sb.ToString(),

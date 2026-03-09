@@ -1,0 +1,88 @@
+﻿@page
+@model ZororoMemorialPark.Pages.Requisitions.ResultModel
+
+@{
+    Layout = null;
+}
+
+@inject ZororoMemorialPark.Services.SystemSettingsService SettingsService
+
+@{
+    var settings = await SettingsService.GetSettingsAsync();
+    string logo = settings?.LogoPath ?? "/images/default-logo.png";
+    string companyName = settings?.CompanyName ?? "Zororo Memorial";
+
+    bool approved = Model.Status == "approved";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Requisition Result</title>
+
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+</head>
+
+<body style="background:#f4f6f8; font-family:Arial;">
+
+    <div class="container mt-5">
+
+        <div class="card shadow-lg border-0 text-center">
+
+            <!-- HEADER -->
+            <div class="p-4" style="background-color:#006A46;">
+                <img src="@logo" style="max-height:70px;" />
+                <h4 class="text-white mt-3">@companyName</h4>
+            </div>
+
+            <!-- BODY -->
+            <div class="p-5">
+
+                <div class="mb-4">
+
+                    @if (approved)
+                    {
+                        <div style="font-size:60px; color:#28a745;">
+                            ✔
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="font-size:60px; color:#dc3545;">
+                            ✖
+                        </div>
+                    }
+
+                </div>
+
+                <h3 class="mb-3">
+                    Requisition @Model.RequestNumber
+                </h3>
+
+                <h4 class="@(approved ? "text-success" : "text-danger")">
+
+                    @(approved ? "Approved" : "Rejected")
+
+                </h4>
+
+                <p class="text-muted mt-3">
+
+                    Thank you. Your action has been recorded.
+
+                </p>
+
+            </div>
+
+            <!-- FOOTER -->
+            <div class="py-3 bg-light text-muted small">
+                © @DateTime.UtcNow.Year @companyName
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+</html>

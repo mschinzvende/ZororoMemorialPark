@@ -78,11 +78,11 @@ namespace ZororoMemorialPark.Services.WhatsApp
 
                 
 
-                // BUTTON 1 → Accept
+                //BUTTON 1 → Accept
                 new
                 {
                     type = "button",
-                    sub_type = "url",
+                    sub_type = "URL",
                     index = "0",
                     parameters = new object[]
                     {
@@ -94,8 +94,8 @@ namespace ZororoMemorialPark.Services.WhatsApp
                 new
                 {
                     type = "button",
-                    sub_type = "url",
-                    index = "1",
+                    sub_type = "URL",
+                    index ="1",
                     parameters = new object[]
                     {
                         new { type = "text", text = actionToken }
