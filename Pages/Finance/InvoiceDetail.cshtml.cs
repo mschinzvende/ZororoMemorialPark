@@ -145,5 +145,25 @@ namespace ZororoMemorialPark.Pages.Finance
             TempData["SuccessMessage"] = "Payment captured successfully.";
             return RedirectToPage("/Finance/InvoiceDetail", new { id = InvoiceId });
         }
+
+        public async Task<IActionResult> OnPostReversePaymentAsync(int paymentId, int invoiceId)
+        {
+            var payment = await _context.tbl_IncomePayments
+                .FirstOrDefaultAsync(p => p.sys_incomeId == paymentId);
+
+            if (payment == null)
+            {
+                TempData["ErrorMessage"] = "Payment not found.";
+                return RedirectToPage(new { id = invoiceId });
+            }
+
+            _context.tbl_IncomePayments.Remove(payment);
+
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Payment reversed successfully.";
+
+            return RedirectToPage("/Finance/InvoiceDetail", new { id = invoiceId });
+        }
     }
 }
