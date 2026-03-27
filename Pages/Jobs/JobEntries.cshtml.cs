@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using ZororoMemorialPark.Data;
@@ -85,48 +86,92 @@ namespace ZororoMemorialPark.Pages.Jobs
                 .Take(PageSize)
                 .ToListAsync();
 
-            // Efficiently compute balances for the jobs on this page in a single DB query
-            var jobIds = PageJobs.Select(j => j.sys_jobId).ToList();
-            var balancesDict = new Dictionary<int, double>();
-            if (jobIds.Count > 0)
+            var graveIds = PageJobs
+                .Where(j => j.sys_graveId > 0)
+                .Select(j => j.sys_graveId)
+                .Distinct()
+                .ToList();
+
+            var graveProgressLookup = new Dictionary<int, string>();
+
+            if (graveIds.Any())
             {
-                balancesDict = await _context.tbl_Expenses
-                    .Where(e => jobIds.Contains(e.sys_jobId))
-                    .GroupBy(e => e.sys_jobId)
+                var graveJobStats = await _context.tbl_Jobs
+                    .Where(j => graveIds.Contains(j.sys_graveId))
+                    .GroupBy(j => j.sys_graveId)
                     .Select(g => new
                     {
-                        JobId = g.Key,
-                        Balance = g.Sum(e => (double?)e.sys_amountDue - (double?)e.sys_amountPaid) ?? 0.0
+                        GraveId = g.Key,
+                        TotalJobs = g.Count(),
+                        CompletedJobs = g.Count(x => x.sys_jobStatus == "Complete")
                     })
-                    .ToDictionaryAsync(x => x.JobId, x => x.Balance);
+                    .ToListAsync();
+
+                foreach (var g in graveJobStats)
+                {
+                    if (g.TotalJobs > 0 && g.CompletedJobs == g.TotalJobs)
+                        graveProgressLookup[g.GraveId] = "Fully Developed";
+                    else if (g.CompletedJobs >= 0)
+                        graveProgressLookup[g.GraveId] = "In Progress";
+
+                }
+
+
+
+                // Efficiently compute balances for the jobs on this page in a single DB query
+                var jobIds = PageJobs.Select(j => j.sys_jobId).ToList();
+                var balancesDict = new Dictionary<int, double>();
+                if (jobIds.Count > 0)
+                {
+                    balancesDict = await _context.tbl_Expenses
+                        .Where(e => jobIds.Contains(e.sys_jobId))
+                        .GroupBy(e => e.sys_jobId)
+                        .Select(g => new
+                        {
+                            JobId = g.Key,
+                            Balance = g.Sum(e => (double?)e.sys_amountDue - (double?)e.sys_amountPaid) ?? 0.0
+                        })
+                        .ToDictionaryAsync(x => x.JobId, x => x.Balance);
+                }
+
+                // build the view model list for the current page
+                JobList = PageJobs.Select(j =>
+                {
+                    graveProgressLookup.TryGetValue(j.sys_graveId, out string graveStatus);
+
+                    return new JobViewModel
+                    {
+                        JobId = j.sys_jobId,
+                        GraveID = j.sys_graveId,
+                        SupplierID = j.sys_supplierId,
+                        StageID = j.sys_stageId,
+                        SectionID = j.tbl_Grave?.sys_sectionId ?? 0,
+
+                        GravePlot = j.tbl_Grave?.sys_plotNumber ?? string.Empty,
+                        SupplierName = j.tbl_Supplier?.sys_supplierName ?? string.Empty,
+                        StageName = j.tbl_DevelopmentStage?.sys_stageName ?? string.Empty,
+
+                        StartDate = j.sys_startDate,
+                        EndDate = j.sys_endDate,
+                        JobStatus = j.sys_jobStatus ?? string.Empty,
+
+                        Balance = _context.tbl_Expenses
+                            .Where(e => e.sys_jobId == j.sys_jobId)
+                            .OrderByDescending(e => e.sys_expenseId)
+                            .Select(e => e.sys_balanceDue)
+                            .FirstOrDefault(),
+
+                        GraveProgressStatus = graveStatus ?? "Not Started"
+                    };
+                }).ToList();
+
+
+                return Page();
             }
-
-            // build the view model list for the current page
-            JobList = PageJobs.Select(j => new JobViewModel
-            {
-                JobId = j.sys_jobId,
-                GravePlot = j.tbl_Grave?.sys_plotNumber ?? string.Empty,
-                SupplierName = j.tbl_Supplier?.sys_supplierName ?? string.Empty,
-                StageName = j.tbl_DevelopmentStage?.sys_stageName ?? string.Empty,
-                StartDate = j.sys_startDate,
-                EndDate = j.sys_endDate,
-                
-                GraveID = j.tbl_Grave?.sys_graveId ?? 0,
-                SupplierID = j.tbl_Supplier?.sys_supplierId ?? 0,
-                StageID = j.tbl_DevelopmentStage?.sys_stageId ?? 0,
-                SectionID = j.tbl_Grave != null ? j.tbl_Grave.sys_sectionId : 0,
-                JobStatus = j.sys_jobStatus ?? string.Empty,
-                Balance = _context.tbl_Expenses
-                    .Where(e => e.sys_jobId == j.sys_jobId)
-                    .OrderByDescending(e => e.sys_expenseId)
-                    .Select(e => e.sys_balanceDue)
-                    .FirstOrDefault()
-
-
-            }).ToList();
 
             return Page();
         }
+        
 
         // Helper to load dropdown lists (always returns non-null lists)
         private async Task LoadDropdownsAsync()
@@ -163,8 +208,8 @@ namespace ZororoMemorialPark.Pages.Jobs
                     sys_graveId = Request.Form["sys_graveId"].ToString() != "" ? int.Parse(Request.Form["sys_graveId"]) : 0,
                     sys_supplierId = Request.Form["sys_supplierId"].ToString() != "" ? int.Parse(Request.Form["sys_supplierId"]) : 0,
                     sys_stageId = Request.Form["sys_stageId"].ToString() != "" ? int.Parse(Request.Form["sys_stageId"]) : 0,
-                    sys_startDate = Request.Form["sys_startDate"].ToString() != "" ? DateOnly.Parse(Request.Form["sys_startDate"]) :DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
-                    sys_endDate = Request.Form["sys_endDate"].ToString() != "" ? DateOnly.Parse(Request.Form["sys_endDate"]) : DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
+                    sys_startDate = DateOnly.ParseExact(Request.Form["sys_startDate"],"yyyy-MM-dd",CultureInfo.InvariantCulture),
+                    sys_endDate = DateOnly.ParseExact(Request.Form["sys_endDate"], "yyyy-MM-dd", CultureInfo.InvariantCulture),
                     sys_jobStatus = Request.Form["sys_status"].ToString()
 
                 };
@@ -326,8 +371,8 @@ namespace ZororoMemorialPark.Pages.Jobs
                 job.sys_graveId = graveId;
                 job.sys_supplierId = supplierId;
                 job.sys_stageId = stageId;
-                job.sys_startDate = startDate;
-                job.sys_endDate = endDate;
+                job.sys_startDate = DateOnly.ParseExact(Request.Form["sys_startDate"], "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                job.sys_endDate = DateOnly.ParseExact(Request.Form["sys_endDate"], "yyyy-MM-dd", CultureInfo.InvariantCulture);
                 job.sys_jobStatus = Request.Form["sys_status"];
 
 
@@ -375,8 +420,8 @@ namespace ZororoMemorialPark.Pages.Jobs
                             sys_graveId = job.sys_graveId,
                             sys_supplierId = 11, //Default Supplier ID for system tasks
                             sys_stageId = nextStage.sys_stageId,
-                            sys_startDate = DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
-                            sys_endDate = DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
+                            sys_startDate = DateOnly.ParseExact(DateTime.Now.ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            sys_endDate = DateOnly.ParseExact(DateTime.Now.ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture),
                             sys_jobStatus = "Pending"
                         };
                         _context.tbl_Jobs.Add(newJob);
@@ -806,18 +851,20 @@ namespace ZororoMemorialPark.Pages.Jobs
         public int JobId { get; set; }
         public int GraveID { get; set; }
         public int SupplierID { get; set; }
-
         public int SectionID { get; set; }
         public int StageID { get; set; }
-
-        public int EvaluationParameterID { get; set; }
 
         public string GravePlot { get; set; } = string.Empty;
         public string SupplierName { get; set; } = string.Empty;
         public string StageName { get; set; } = string.Empty;
         public string JobStatus { get; set; } = string.Empty;
+
         public DateOnly? StartDate { get; set; }
         public DateOnly? EndDate { get; set; }
+
         public double Balance { get; set; }
+
+        // NEW — derived grave-level status
+        public string GraveProgressStatus { get; set; } = "Not Started";
     }
 }

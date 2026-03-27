@@ -75,10 +75,14 @@
                                 </form>
 
                                 <!-- Reset Password -->
-                                <button type="button" class="btn btn-sm btn-info"
-                                        onclick="openResetModal('@user.Id')">
-                                    <i class="bi bi-arrow-counterclockwise"></i> Reset
-                                </button>
+                                    <form method="post" asp-page-handler="ResetPassword">
+
+                                        <input type="hidden" asp-for="ResetInput.UserId" id="ResetUserId" value="@user.Id" />
+
+                                        <button type="submit" class="btn btn-sm btn-info">
+                                            <i class="bi bi-arrow-counterclockwise"></i>Reset Password</button>
+                                    </form>
+                                
 
                                 <!-- Edit -->
                                 <button type="button" class="btn btn-sm btn-warning"

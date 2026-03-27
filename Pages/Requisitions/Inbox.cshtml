@@ -1,0 +1,334 @@
+﻿@page "{id?}"
+@model ZororoMemorialPark.Pages.Requisitions.InboxModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+
+
+
+
+<div class="card shadow-sm mb-5">
+    <div class="card-header d-flex justify-content-between align-items-center"
+         style="background-color: var(--primary-green); color: var(--primary-white);">
+        <div>
+            <h5 class="mb-0">Requisition Inbox</h5>
+            <small class="d-block" style="font-size: 0.8rem;">
+                Requisitions assigned to you and your submitted requests.
+            </small>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a asp-page="Create" class="btn btn-light btn-sm">
+                <i class="bi bi-plus-circle"></i> New Requisition
+            </a>
+
+            
+        </div>
+    </div>
+
+    <div class="card-body">
+
+
+
+        @if (!string.IsNullOrEmpty(Model.StatusMessage))
+        {
+            <div class="alert alert-info alert-dismissible fade show" role="alert" id="successMessage">
+                @Model.StatusMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <div class="row">
+
+            <!-- LEFT SIDE — Assigned + Submitted -->
+            <div class="col-lg-5">
+
+                <!-- ASSIGNED TO ME -->
+                <div class="card border-0 shadow mb-4">
+                    <div class="card-header text-white" style="background-color:#006A46;">
+                        <h5 class="mb-0"><i class="bi bi-inbox"></i> Assigned To Me</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (!Model.AssignedToMe.Any())
+                        {
+                            <p class="text-muted mb-0">No requisitions currently require your action.</p>
+                        }
+                        else
+                        {
+                            <div class="list-group">
+                                @foreach (var r in Model.AssignedToMe)
+                                {
+                                    var total = r.Lines.Sum(l => l.CurrentQuantity * l.CurrentUnitCost);
+
+                                    <a asp-page="/Requisitions/Inbox" asp-route-id="@r.Id"
+                                       class="list-group-item list-group-item-action @(Model.SelectedRequisition?.Id == r.Id ? "active" : "")">
+
+                                        <div class="d-flex justify-content-between">
+                                            <span>
+                                                <i class="bi bi-receipt"></i>
+                                                <strong>@r.RequestNumber</strong>
+                                            </span>
+                                            <small>@r.CreatedAt.ToString("yyyy-MM-dd")</small>
+                                        </div>
+
+                                        <div class="small text-truncate">
+                                            @string.Join(", ", r.Lines.Select(l => l.Description))
+                                        </div>
+
+                                        <div class="d-flex justify-content-between mt-1">
+                                            <span class="badge
+                                                @(r.CurrentStep?.StepType == WorkflowStepType.Review ? "bg-info" :
+                                                  r.CurrentStep?.StepType == WorkflowStepType.Approval ? "bg-primary" :
+                                                  "bg-secondary")">
+                                                @r.CurrentStep?.StepName
+                                            </span>
+
+                                            <span class="text-muted">
+                                                $@total.ToString("N2")
+                                            </span>
+                                        </div>
+                                    </a>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- MY SUBMITTED -->
+                <div class="card border-0 shadow">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="bi bi-upload"></i> My Submitted Requisitions</h6>
+                    </div>
+                    <div class="card-body">
+
+                        @if (!Model.MySubmitted.Any())
+                        {
+                            <p class="text-muted mb-0">You haven't submitted any requisitions yet.</p>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Req #</th>
+                                            <th>Status</th>
+                                            <th>Total</th>
+                                            <th>Created</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var r in Model.MySubmitted)
+                                        {
+                                            var total = r.Lines.Sum(l => l.CurrentQuantity * l.CurrentUnitCost);
+
+                                            <tr>
+                                                <td>@r.RequestNumber</td>
+
+                                                <td>
+                                                    @if (r.Status == RequisitionStatus.InProgress)
+                                                    {
+                                                        <span class="badge bg-warning text-dark">In Progress</span>
+                                                    }
+                                                    else if (r.Status == RequisitionStatus.Approved)
+                                                    {
+                                                        <span class="badge bg-success">Approved</span>
+                                                    }
+                                                    else if (r.Status == RequisitionStatus.Rejected)
+                                                    {
+                                                        <span class="badge bg-danger">Rejected</span>
+                                                    }
+                                                </td>
+
+                                                <td>$@total.ToString("N2")</td>
+
+                                                <td>@r.CreatedAt.ToString("yyyy-MM-dd")</td>
+
+                                                <td class="text-end">
+                                                    <a asp-page="/Requisitions/Details" asp-route-id="@r.Id"
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+
+                    </div>
+                </div>
+
+            </div>
+
+
+            <!-- RIGHT SIDE — SELECTED REQUISITION -->
+            <div class="col-lg-7">
+
+                @if (Model.SelectedRequisition == null)
+                {
+                    <div class="card border-0 shadow">
+                        <div class="card-body">
+                            <p class="text-muted mb-0">Select a requisition on the left to review or take action.</p>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="card border-0 shadow">
+                        <div class="card-header text-white" style="background-color:#006A46;">
+                            <h5 class="mb-0">
+                                Requisition @Model.SelectedRequisition.RequestNumber
+                                <a asp-page="/Requisitions/Details" asp-route-id="@Model.SelectedRequisition.Id"
+                                   class="btn btn-sm btn-light float-end">
+                                    <i class="bi bi-eye"></i> View Details
+                                </a>
+                            </h5>
+                        </div>
+
+                        <div class="card-body">
+
+                            <!-- STATUS BADGE -->
+                            <p>
+                                <strong>Status:</strong>
+                                @if (Model.SelectedRequisition.Status == RequisitionStatus.Approved)
+                                {
+                                    <span class="badge bg-success">Approved</span>
+                                }
+                                else if (Model.SelectedRequisition.Status == RequisitionStatus.Rejected)
+                                {
+                                    <span class="badge bg-danger">Rejected</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">In Progress</span>
+                                }
+                                <br />
+
+                                <strong>Current Stage:</strong>
+                                @if (Model.SelectedRequisition.CurrentStep != null)
+                                {
+                                    <span class="badge
+                                        @(Model.SelectedRequisition.CurrentStep.StepType == WorkflowStepType.Review ? "bg-info" :
+                                          Model.SelectedRequisition.CurrentStep.StepType == WorkflowStepType.Approval ? "bg-primary" :
+                                          "bg-secondary")">
+
+                                        @Model.SelectedRequisition.CurrentStep.StepName
+                                    </span>
+                                }
+                            </p>
+
+                            <!-- IF USER CANNOT ACTION: READ ONLY DISPLAY -->
+                            @if (!Model.CanAction)
+                            {
+                                <p class="text-muted">You are not assigned to the current workflow step. This requisition is read-only.</p>
+
+                                <div class="table-responsive mb-3">
+                                    <table class="table table-sm align-middle">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th>Description</th>
+                                                <th>Qty</th>
+                                                <th>Cost</th>
+                                                <th>Total</th>
+                                                <th>Comment</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var line in Model.LineEdits)
+                                            {
+                                                var total = line.CurrentQuantity * line.CurrentUnitCost;
+
+                                                <tr>
+                                                    <td>@line.Description</td>
+                                                    <td>@line.CurrentQuantity</td>
+                                                    <td>$@line.CurrentUnitCost.ToString("N2")</td>
+                                                    <td>$@total.ToString("N2")</td>
+                                                    <td>@line.LineComment</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <p class="text-muted">No actions available.</p>
+                            }
+                            else
+                            {
+                                <!-- EDITABLE ACTION FORM -->
+                                <form method="post" asp-page-handler="Action">
+                                    <input type="hidden" name="requisitionId" value="@Model.SelectedRequisition.Id" />
+
+                                    <div class="table-responsive mb-3">
+                                        <table class="table table-sm align-middle">
+                                            <thead class="thead-light">
+                                                <tr>
+                                                    <th>Description</th>
+                                                    <th style="width:15%">Qty</th>
+                                                    <th style="width:20%">Unit Cost</th>
+                                                    <th style="width:30%">Comment</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @for (int i = 0; i < Model.LineEdits.Count; i++)
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            @Model.LineEdits[i].Description
+                                                            <input type="hidden" asp-for="LineEdits[@i].LineId" />
+                                                            <input type="hidden" asp-for="LineEdits[@i].Description" />
+                                                        </td>
+                                                        <td>
+                                                            <input asp-for="LineEdits[@i].CurrentQuantity"
+                                                                   class="form-control form-control-sm" type="number" step="0.01" />
+                                                        </td>
+                                                        <td>
+                                                            <input asp-for="LineEdits[@i].CurrentUnitCost"
+                                                                   class="form-control form-control-sm" type="number" step="0.01" />
+                                                        </td>
+                                                        <td>
+                                                            <textarea asp-for="LineEdits[@i].LineComment" class="form-control form-control-sm"
+                                                                      rows="1" placeholder="Comment"></textarea>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Overall Comment</label>
+                                        <textarea asp-for="OverallComment" class="form-control" rows="3"></textarea>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" asp-for="Approve" value="true" checked />
+                                            <label class="form-check-label">Approve</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" asp-for="Approve" value="false" />
+                                            <label class="form-check-label">Reject</label>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3 text-end">
+                                        <button type="submit" class="btn text-white" style="background-color:#006A46;">
+                                            Submit Decision
+                                        </button>
+                                    </div>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

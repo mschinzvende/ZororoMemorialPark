@@ -18,27 +18,64 @@
 <style>
     .tab-pane {
         border: 2px solid transparent;
-        border-radius: 0 0 .25rem .25rem; /* rounded bottom corners */
+        border-radius: 0 0 .25rem .25rem;
         padding: 1rem;
     }
 
-    /* Active tab colors */
-    #underConstruction.active.show {
+    /* Tab pane border colors (ACTIVE ONLY) */
+    #underconstruction.active.show {
         border-color: saddlebrown;
+
+    }
+    /* UNDER CONSTRUCTION */
+    .nav-tabs .nav-link.tab-underconstruction {
+        background-color: saddlebrown;
+        color:white;
+        
     }
 
     #available.active.show {
         border-color: #28a745;
     }
+    /* AVAILABLE / UNSOLD */
+    .nav-tabs .nav-link.tab-available {
+        background-color: #28a745;
+        color: white;
+
+    }
+
 
     #reserved.active.show {
         border-color: #ffc107;
     }
 
+    /* RESERVED */
+    .nav-tabs .nav-link.tab-reserved {
+        background-color: #ffc107;
+        color: #FFFFFF;
+    }
+
     #occupied.active.show {
         border-color: #343a40;
     }
+    /* OCCUPIED */
+    .nav-tabs .nav-link.tab-occupied {
+        background-color: #343a40;
+        color:white;
+    }
+
+    /* Active tab reinforcement */
+    .nav-tabs .nav-link.active {
+        filter: brightness(1.05);
+        box-shadow: inset 0 -3px 0 rgba(0,0,0,.2);
+    }
+
+    /* Hover */
+    .nav-tabs .nav-link:hover {
+        filter: brightness(0.95);
+    }
 </style>
+
 
 <div class="container-fluid py-4 mb-4">
     <div class="col-lg-12 mx-auto">
@@ -76,15 +113,16 @@
                     </div>
                 }
 
-                <!-- Tabs -->
+                <!-- TABS -->
                 <ul class="nav nav-tabs mb-3" id="graveTabs" role="tablist">
 
                     @if (isManager || isOps)
                     {
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="underConstruction-tab" data-bs-toggle="tab"
-                                    data-bs-target="#underConstruction" type="button" role="tab"
-                                    style="background-color: saddlebrown; color:white;">
+                        <li class="nav-item">
+                            <button class="nav-link tab-underconstruction @(Model.ActiveTab == "underconstruction" ? "active" : "")"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#underconstruction"
+                                    type="button">
                                 Under Construction
                             </button>
                         </li>
@@ -92,10 +130,11 @@
 
                     @if (isManager || isOps || isFinance || isAgent)
                     {
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="available-tab" data-bs-toggle="tab"
-                                    data-bs-target="#available" type="button" role="tab"
-                                    style="background-color: #28a745; color:white;">
+                        <li class="nav-item">
+                            <button class="nav-link tab-available @(Model.ActiveTab == "available" ? "active" : "")"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#available"
+                                    type="button">
                                 Unsold
                             </button>
                         </li>
@@ -103,93 +142,85 @@
 
                     @if (isManager || isOps || isFinance)
                     {
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="reserved-tab" data-bs-toggle="tab"
-                                    data-bs-target="#reserved" type="button" role="tab"
-                                    style="background-color: #ffc107; color:black;">
+                        <li class="nav-item">
+                            <button class="nav-link tab-reserved @(Model.ActiveTab == "reserved" ? "active" : "")"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#reserved"
+                                    type="button">
                                 Reserved
                             </button>
                         </li>
                     }
 
-                    @if (isManager || isOps || isFinance)
+                    @if (isManager || isOps)
                     {
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="occupied-tab" data-bs-toggle="tab"
-                                    data-bs-target="#occupied" type="button" role="tab"
-                                    style="background-color: #343a40; color:white;">
+                        <li class="nav-item">
+                            <button class="nav-link tab-occupied @(Model.ActiveTab == "occupied" ? "active" : "")"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#occupied"
+                                    type="button">
                                 Occupied
                             </button>
                         </li>
                     }
-
                 </ul>
+
+
 
                 <div class="tab-content">
 
-                    <!-- Under Construction Graves -->
-                    @if (isManager || isOps)
-                    {
-                        <div class="tab-pane fade show active" id="underConstruction" role="tabpanel">
-                            @await Html.PartialAsync("_GravesTablePartial", new
-                                {
-                                    Graves = Model.UnderConstructionGraves,
-                                    Status = "Under Construction",
-                                    PageNumber = Model.PageNumber,
-                                    PageSize = Model.PageSize,
-                                    TotalCount = Model.UnderConstructionTotalCount,
-                                    SearchTerm = Model.SearchTerm
-                                })
-                        </div>
-                    }
+                    <div class="tab-pane fade @(Model.ActiveTab == "underconstruction" ? "show active" : "")" id="underconstruction">
+                        @await Html.PartialAsync("_GravesTablePartial", new
+                            {
+                                Graves = Model.UnderConstructionGraves,
+                                Status = "Under Construction",
+                                PageNumber = Model.PageNumber,
+                                PageSize = Model.PageSize,
+                                TotalCount = Model.UnderConstructionTotalCount,
+                                SearchTerm = Model.SearchTerm,
+                                ActiveTab = "underconstruction"
+                            })
+                    </div>
 
-                    <!-- Available Graves -->
-                    @if (isManager || isOps || isFinance || isAgent)
-                    {
-                        <div class="tab-pane fade @(isManager || isOps ? "" : "show active")" id="available" role="tabpanel">
-                            @await Html.PartialAsync("_GravesTablePartial", new
-                                {
-                                    Graves = Model.AvailableGraves,
-                                    Status = "Unsold",
-                                    PageNumber = Model.PageNumber,
-                                    PageSize = Model.PageSize,
-                                    TotalCount = Model.AvailableTotalCount,
-                                    SearchTerm = Model.SearchTerm
-                                })
-                        </div>
-                    }
+                    <div class="tab-pane fade @(Model.ActiveTab == "available" ? "show active" : "")" id="available">
+                        @await Html.PartialAsync("_GravesTablePartial", new
+                            {
+                                Graves = Model.AvailableGraves,
+                                Status = "Unsold",
+                                PageNumber = Model.PageNumber,
+                                PageSize = Model.PageSize,
+                                TotalCount = Model.AvailableTotalCount,
+                                SearchTerm = Model.SearchTerm,
+                                ActiveTab = "available"
+                            })
+                    </div>
 
-                    <!-- Reserved Graves -->
-                    @if (isManager || isOps || isFinance)
-                    {
-                        <div class="tab-pane fade" id="reserved" role="tabpanel">
-                            @await Html.PartialAsync("_GravesTablePartial", new
-                                {
-                                    Graves = Model.ReservedGraves,
-                                    Status = "Reserved",
-                                    PageNumber = Model.PageNumber,
-                                    PageSize = Model.PageSize,
-                                    TotalCount = Model.ReservedTotalCount,
-                                    SearchTerm = Model.SearchTerm
-                                })
-                        </div>
-                    }
+                    <div class="tab-pane fade @(Model.ActiveTab == "reserved" ? "show active" : "")" id="reserved">
+                        @await Html.PartialAsync("_GravesTablePartial", new
+                            {
+                                Graves = Model.ReservedGraves,
+                                Status = "Reserved",
+                                PageNumber = Model.PageNumber,
+                                PageSize = Model.PageSize,
+                                TotalCount = Model.ReservedTotalCount,
+                                SearchTerm = Model.SearchTerm,
+                                ActiveTab = "reserved"
+                            })
+                    </div>
 
-                    <!-- Occupied Graves -->
-                    @if (isManager || isOps)
-                    {
-                        <div class="tab-pane fade" id="occupied" role="tabpanel">
-                            @await Html.PartialAsync("_GravesTablePartial", new
-                                {
-                                    Graves = Model.OccupiedGraves,
-                                    Status = "Occupied",
-                                    PageNumber = Model.PageNumber,
-                                    PageSize = Model.PageSize,
-                                    TotalCount = Model.OccupiedTotalCount,
-                                    SearchTerm = Model.SearchTerm
-                                })
-                        </div>
-                    }
+                    <div class="tab-pane fade @(Model.ActiveTab == "occupied" ? "show active" : "")" id="occupied">
+                        @await Html.PartialAsync("_GravesTablePartial", new
+                            {
+                                Graves = Model.OccupiedGraves,
+                                Status = "Occupied",
+                                PageNumber = Model.PageNumber,
+                                PageSize = Model.PageSize,
+                                TotalCount = Model.OccupiedTotalCount,
+                                SearchTerm = Model.SearchTerm,
+                                ActiveTab = "occupied"
+                            })
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -278,18 +309,27 @@
                         <div class="col-sm-6">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Plot Number</label>
-                                <input min="1" type="number" name="sys_plotNumber" class="form-control border"
-                                       style="border-color: var(--primary-green);" required />
+                                <input type="text"
+                                       name="sys_plotNumber"
+                                       id="singlePlotNumber"
+                                       class="form-control"
+                                       readonly
+                                       required />
+
                             </div>
                         </div>
 
                         <div class="col-sm-6">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Section</label>
-                                <select name="sys_sectionId" class="form-select" required>
-                                    @foreach (var sec in Model.Sections)
+                                <select name="sys_sectionId"
+                                        class="form-select"
+                                        required
+                                        onchange="loadNextPlotNumber(this.value, 'singlePlotNumber')">
+                                        <option selected></option>
+                                    @foreach (var grave_section in Model.Sections)
                                     {
-                                        <option value="@sec.sys_sectionId">@sec.sys_sectionName</option>
+                                        <option value="@grave_section.sys_sectionId">@grave_section.sys_sectionName</option>
                                     }
                                 </select>
                             </div>
@@ -307,21 +347,13 @@
                             </div>
                         </div>
 
-                        <div class="col-sm-6">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Price</label>
-                                <input type="number" name="sys_price" step="0.01" class="form-control" min="0" />
-                            </div>
-                        </div>
+                        
 
                         <div class="col-sm-6">
                             <div class="mb-3">
-                                <label class="form-label fw-bold">Sale Status</label>
+                                <label class="form-label fw-bold">Status</label>
                                 <select name="sys_graveSaleStatus" class="form-select">
                                     <option value="Under Construction">Under Construction</option>
-                                    <option value="Unsold">Unsold</option>
-                                    <option value="Sold">Sold</option>
-                                    <option value="Reserved">Reserved</option>
                                 </select>
                             </div>
                         </div>
@@ -376,10 +408,14 @@
                         <div class="col-sm-6">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Section</label>
-                                <select name="sys_sectionId" class="form-select" required>
-                                    @foreach (var sec in Model.Sections)
+                                <select name="sys_sectionId"
+                                        class="form-select"
+                                        required
+                                        onchange="loadNextPlotNumber(this.value, 'bulkPlotSeed')">
+                                        <option  selected></option>
+                                    @foreach (var grave_section in Model.Sections)
                                     {
-                                        <option value="@sec.sys_sectionId">@sec.sys_sectionName</option>
+                                        <option value="@grave_section.sys_sectionId">@grave_section.sys_sectionName</option>
                                     }
                                 </select>
                             </div>
@@ -389,6 +425,7 @@
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Stage</label>
                                 <select name="sys_stageId" class="form-select" required>
+
                                     @foreach (var stage in Model.Stages)
                                     {
                                         <option value="@stage.sys_stageId">@stage.sys_stageName</option>
@@ -400,16 +437,17 @@
                         <div class="col-sm-6">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Starting Plot Number</label>
-                                <input type="number" name="plotSeed" class="form-control" min="1" required />
+                                <input type="text"
+                                       name="plotSeed"
+                                       id="bulkPlotSeed"
+                                       class="form-control"
+                                       readonly
+                                       required />
+
                             </div>
                         </div>
 
-                        <div class="col-sm-6">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Price</label>
-                                <input type="number" name="sys_price" step="0.01" class="form-control" min="0" />
-                            </div>
-                        </div>
+                        
                     </div>
 
                     <div class="row">
@@ -459,11 +497,6 @@
                                 <option value="@stage.sys_stageId">@stage.sys_stageName</option>
                             }
                         </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Price</label>
-                        <input type="number" step="0.01" name="sys_price" class="form-control border" style="border-color: var(--primary-green);" />
                     </div>
 
                     <div class="mb-3">
@@ -553,7 +586,7 @@
             var plotNumber = button.getAttribute('data-plot');
             var sectionId = button.getAttribute('data-section');
             var stageId = button.getAttribute('data-stage');
-            var price = button.getAttribute('data-price');
+            
             var status = button.getAttribute('data-status');
             var latitude = button.getAttribute('data-latitude');
             var longitude = button.getAttribute('data-longitude');
@@ -563,7 +596,7 @@
             modal.querySelector('input[name="sys_plotNumber"]').value = plotNumber;
             modal.querySelector('select[name="sys_sectionId"]').value = sectionId;
             modal.querySelector('select[name="sys_stageId"]').value = stageId;
-            modal.querySelector('input[name="sys_price"]').value = price;
+           
             modal.querySelector('select[name="sys_graveSaleStatus"]').value = status;
             modal.querySelector('input[name="sys_Latitude"]').value = latitude;
             modal.querySelector('input[name="sys_Longitude"]').value = longitude;
@@ -646,4 +679,32 @@
             });
         }
     });
+</script>
+
+
+<script>
+    document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', e => {
+            const target = e.target.getAttribute("data-bs-target").replace("#", "");
+            const url = new URL(window.location);
+            url.searchParams.set("activeTab", target);
+            history.replaceState(null, "", url);
+        });
+    });
+</script>
+
+<script>
+    async function loadNextPlotNumber(sectionId, targetInputId) {
+        if (!sectionId) return;
+
+        try {
+            const response = await fetch(`?handler=NextPlotNumber&sectionId=${sectionId}`);
+            if (!response.ok) return;
+
+            const data = await response.json();
+            document.getElementById(targetInputId).value = data.nextPlot;
+        } catch (e) {
+            console.error("Failed to fetch plot number", e);
+        }
+    }
 </script>

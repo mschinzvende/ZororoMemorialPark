@@ -12,5 +12,7 @@ namespace ZororoMemorialPark.Data.Models
         public double sys_amount { get; set; }
 
         public bool sys_isPaid { get; set; }
+
+        public int sys_bookingId { get; set; }
     }
 }

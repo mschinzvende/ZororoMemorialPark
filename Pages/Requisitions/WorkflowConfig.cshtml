@@ -1,0 +1,276 @@
+﻿@page "{id?}"
+@model ZororoMemorialPark.Pages.Requisitions.WorkflowConfigModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<div class="card shadow-sm mb-5">
+    <div class="card-header d-flex justify-content-between align-items-center"
+         style="background-color: var(--primary-green); color: var(--primary-white);">
+        <div>
+            <h5 class="mb-0">Requisition Workflow Configuration</h5>
+            <small class="d-block" style="font-size: 0.8rem;">
+                Define who reviews and approves requisitions based on requester role.
+            </small>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a asp-page="./Workflows" class="btn btn-light btn-sm">
+                Back to Workflows
+            </a>
+        </div>
+    </div>
+
+    <div class="card-body">
+
+        @if (!string.IsNullOrEmpty(Model.StatusMessage))
+        {
+            <div class="alert alert-info alert-dismissible fade show">
+                @Model.StatusMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @if (Model.IsLocked)
+        {
+            <div class="alert alert-warning">
+                ⚠ This workflow is already in use and cannot be modified.
+                Create a new workflow if changes are required.
+            </div>
+        }
+
+        <div class="card shadow border-0 mb-4">
+            <div class="card-header text-white" style="background-color:#006A46;">
+                <h5 class="mb-0">Workflow Details</h5>
+            </div>
+
+            <div class="card-body">
+                <form method="post" asp-page-handler="Save">
+                    <input type="hidden" asp-for="Workflow.Id" />
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Workflow Name</label>
+
+                            @if (Model.IsLocked)
+                            {
+                                <input asp-for="Workflow.Name" class="form-control" disabled />
+                            }
+                            else
+                            {
+                                <input asp-for="Workflow.Name" class="form-control" />
+                            }
+
+                            <span asp-validation-for="Workflow.Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Requester Role</label>
+
+                            @if (Model.IsLocked)
+                            {
+                                <select asp-for="Workflow.RequesterRole"
+                                        class="form-select"
+                                        asp-items="Model.RoleOptions"
+                                        disabled>
+                                    <option value="">-- Select role --</option>
+                                </select>
+                            }
+                            else
+                            {
+                                <select asp-for="Workflow.RequesterRole"
+                                        class="form-select"
+                                        asp-items="Model.RoleOptions">
+                                    <option value="">-- Select role --</option>
+                                </select>
+                            }
+
+                            <span asp-validation-for="Workflow.RequesterRole" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        @if (Model.IsLocked)
+                        {
+                            <input asp-for="Workflow.IsActive" class="form-check-input" disabled />
+                        }
+                        else
+                        {
+                            <input asp-for="Workflow.IsActive" class="form-check-input" />
+                        }
+                        <label class="form-check-label">Is Active</label>
+                    </div>
+
+                    <hr />
+
+                    <h5 class="mb-3">Workflow Steps</h5>
+
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width:20%">Type</th>
+                                <th style="width:35%">Assigned To</th>
+                                <th style="width:35%">Step Name</th>
+                                <th style="width:10%"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="stepsBody">
+                            @for (int i = 0; i < Model.Steps.Count; i++)
+                            {
+                                <tr>
+                                    <td>
+                                        @if (Model.IsLocked)
+                                        {
+                                            <select asp-for="Steps[@i].StepType" class="form-select" disabled>
+                                                <option value="1">Review</option>
+                                                <option value="2">Approval</option>
+                                            </select>
+                                        }
+                                        else
+                                        {
+                                            <select asp-for="Steps[@i].StepType" class="form-select">
+                                                <option value="1">Review</option>
+                                                <option value="2">Approval</option>
+                                            </select>
+                                        }
+                                    </td>
+
+                                    <td>
+                                        @if (Model.IsLocked)
+                                        {
+                                            <select asp-for="Steps[@i].AssignedToUserId"
+                                                    class="form-select"
+                                                    asp-items="Model.UserOptions"
+                                                    disabled>
+                                                <option value="">-- Select user --</option>
+                                            </select>
+                                        }
+                                        else
+                                        {
+                                            <select asp-for="Steps[@i].AssignedToUserId"
+                                                    class="form-select"
+                                                    asp-items="Model.UserOptions">
+                                                <option value="">-- Select user --</option>
+                                            </select>
+                                        }
+                                    </td>
+
+                                    <td>
+                                        @if (Model.IsLocked)
+                                        {
+                                            <input asp-for="Steps[@i].StepName"
+                                                   class="form-control"
+                                                   disabled />
+                                        }
+                                        else
+                                        {
+                                            <input asp-for="Steps[@i].StepName"
+                                                   class="form-control" />
+                                        }
+                                    </td>
+
+                                    <td class="text-end">
+                                        @if (!Model.IsLocked)
+                                        {
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    onclick="removeStep(this)">
+                                                Remove
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    @if (!Model.IsLocked)
+                    {
+                        <button type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                onclick="addStepRow()">
+                            + Add Step
+                        </button>
+                    }
+
+                    <div class="mt-4">
+                        @if (Model.IsLocked)
+                        {
+                            <button type="submit"
+                                    class="btn text-white"
+                                    style="background-color:#006A46;"
+                                    disabled>
+                                Save Workflow
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="submit"
+                                    class="btn text-white"
+                                    style="background-color:#006A46;">
+                                Save Workflow
+                            </button>
+                        }
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        let stepIndex = @Model.Steps.Count;
+
+        const userOptionsHtml = `
+        @foreach (var u in Model.UserOptions)
+        {
+                    <option value="@u.Value">@u.Text</option>
+        }
+        `;
+
+        function addStepRow() {
+
+            const tbody = document.getElementById('stepsBody');
+            const row = document.createElement('tr');
+
+            row.innerHTML = `
+                <td>
+                    <select name="Steps[${stepIndex}].StepType" class="form-select">
+                        <option value="1">Review</option>
+                        <option value="2">Approval</option>
+                    </select>
+                </td>
+                <td>
+                    <select name="Steps[${stepIndex}].AssignedToUserId" class="form-select">
+                        <option value="">-- Select user --</option>
+                        ${userOptionsHtml}
+                    </select>
+                </td>
+                <td>
+                    <input name="Steps[${stepIndex}].StepName"
+                           class="form-control"
+                           placeholder="e.g. Finance Review" />
+                </td>
+                <td class="text-end">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger"
+                            onclick="removeStep(this)">
+                        Remove
+                    </button>
+                </td>
+            `;
+
+            tbody.appendChild(row);
+            stepIndex++;
+        }
+
+        function removeStep(button) {
+            const row = button.closest('tr');
+            if (row) {
+                row.remove();
+            }
+        }
+    </script>
+}

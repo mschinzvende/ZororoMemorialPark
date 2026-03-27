@@ -45,7 +45,7 @@ namespace ZororoMemorialPark.Pages.Finance
             public string Name { get; set; }
             public double Price { get; set; }
             public int Qty { get; set; }
-
+            public double Discount { get; set; }
             public string Type { get; set; }
         }
 
@@ -78,92 +78,144 @@ namespace ZororoMemorialPark.Pages.Finance
         // ---------------------------
         public async Task<IActionResult> OnPostAsync()
         {
+            using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
-
-
-                // VALIDATION
-
-
                 if (Items == null || Items.Count == 0)
-                    return BadRequest("No invoice items selected.");
+                {
+                    TempData["ErrorMessage"] = "No invoice items selected.";
+                    return RedirectToPage();
+                }
 
-                // CREATE INVOICE NUMBER
-                //string invoiceNumber = "INV-" + DateTime.Now.ToString("yyyyMMddHHmmss");
+                if (string.IsNullOrWhiteSpace(customerName))
+                {
+                    TempData["ErrorMessage"] = "Customer name is required.";
+                    return RedirectToPage();
+                }
+
+                //-----------------------------------------
+                // CREATE CUSTOMER
+                //-----------------------------------------
 
                 var customer = new tbl_Customers
                 {
-                    sys_paymentMadeBy = customerName,
-                    sys_customerPhone = customerPhone
+                    sys_paymentMadeBy = customerName.Trim(),
+                    sys_customerPhone = customerPhone?.Trim()
                 };
-                await _context.tbl_Customers.AddAsync(customer);
+
+                _context.tbl_Customers.Add(customer);
                 await _context.SaveChangesAsync();
 
+
+                //-----------------------------------------
+                // CREATE INVOICE
+                //-----------------------------------------
 
                 var invoice = new tbl_Invoices
                 {
                     sys_customerId = customer.sys_customerId,
-
-                    sys_invoiceDate = DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
-                    sys_invoiceDueDate = DateOnly.Parse(DateTime.Now.AddDays(7).ToString("dd-MM-yyyy"))
-
+                    sys_invoiceDate = DateOnly.FromDateTime(DateTime.Now),
+                    sys_invoiceDueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7))
                 };
 
-                await _context.tbl_Invoices.AddAsync(invoice);
+                _context.tbl_Invoices.Add(invoice);
                 await _context.SaveChangesAsync();
 
-                // ---------------------------
-                // SAVE ITEMS + UPDATE STOCK
-                // ---------------------------
+
+                //-----------------------------------------
+                // CREATE INVOICE ITEMS
+                //-----------------------------------------
+
                 foreach (var item in Items)
                 {
-                    // Save invoice item
+                    double lineTotal = (item.Price * item.Qty) - item.Discount;
+
                     var ii = new tbl_InvoiceItems
                     {
                         sys_invoiceId = invoice.sys_invoiceId,
                         sys_itemName = item.Name,
-                        sys_itemCost = item.Price * item.Qty,
-
+                        sys_itemCost = lineTotal
                     };
-                    await _context.tbl_InvoiceItems.AddAsync(ii);
 
+                    _context.tbl_InvoiceItems.Add(ii);
+
+
+                    //-----------------------------------------
+                    // STOCK MANAGEMENT
+                    //-----------------------------------------
 
                     if (item.Type == "product")
                     {
-                        //create product transaction record.
+                        var product = await _context.tbl_ProductsAndServices
+                            .FirstOrDefaultAsync(p => p.sys_itemName == item.Name);
 
-                        var transaction = new tbl_StockTransactions
+                        if (product != null)
                         {
-                            sys_itemId = (await _context.tbl_ProductsAndServices
-                                .Where(p => p.sys_itemName == item.Name)
-                                .Select(p => p.sys_itemId)
-                                .FirstOrDefaultAsync()),
-                            sys_transactionDate = DateTime.Now,
-                            sys_transactionType = "Sale",
-                            sys_quantity = item.Qty,
-                            sys_unitCost = item.Price,
-                            sys_referenceNumber = $"INV-{invoice.sys_invoiceId}",
-                            
-                            sys_notes = $"Sold via Invoice {invoice.sys_invoiceId}"
-                        };
+                            product.sys_stockQuantity -= item.Qty;
 
-                        await _context.tbl_StockTransactions.AddAsync(transaction);
-                        await _context.SaveChangesAsync();
-                        // STOCK MANAGEMENT
-                        await DecreaseStockIfApplicable(item);
+                            if (product.sys_stockQuantity < 0)
+                                product.sys_stockQuantity = 0;
 
+                            if (product.sys_stockQuantity == 0)
+                                product.sys_status = "Out of Stock";
+                            else if (product.sys_stockQuantity <= 3)
+                                product.sys_status = "Low Stock";
+
+                            var transactionRecord = new tbl_StockTransactions
+                            {
+                                sys_itemId = product.sys_itemId,
+                                sys_transactionDate = DateTime.Now,
+                                sys_transactionType = "Sale",
+                                sys_quantity = item.Qty,
+                                sys_unitCost = item.Price,
+                                sys_referenceNumber = $"INV-{invoice.sys_invoiceId}",
+                                sys_notes = $"Sold via Invoice {invoice.sys_invoiceId}"
+                            };
+
+                            _context.tbl_StockTransactions.Add(transactionRecord);
+                        }
                     }
 
+                    //-----------------------------------------
+                    // TOMBSTONE STOCK
+                    //-----------------------------------------
+
+                    if (item.Type == "tombstone")
+                    {
+                        var tombstone = await _context.tbl_Tombstones
+                            .FirstOrDefaultAsync(t => t.sys_tombstoneName == item.Name);
+
+                        if (tombstone != null)
+                        {
+                            tombstone.sys_quantityAvailable -= item.Qty;
+                            tombstone.sys_status = "Sold";
+                        }
+                    }
                 }
 
-                await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = "Invoice created successfully!";
-                return RedirectToPage("InvoiceDetail", new { id = invoice.sys_invoiceId });
+                //-----------------------------------------
+                // SAVE EVERYTHING
+                //-----------------------------------------
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+
+                //-----------------------------------------
+                // REDIRECT TO INVOICE DETAIL
+                //-----------------------------------------
+
+                TempData["SuccessMessage"] = "Invoice created successfully.";
+
+                return RedirectToPage("/Finance/InvoiceDetail",
+                    new { id = invoice.sys_invoiceId });
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
+                await transaction.RollbackAsync();
+
                 TempData["ErrorMessage"] = "Error creating invoice: " + ex.Message;
                 return RedirectToPage();
             }

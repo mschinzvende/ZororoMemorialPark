@@ -7,6 +7,6 @@ namespace ZororoMemorialPark.Data.Models
         [Key]
         public int sys_GAInvoicesId { get; set; }
         public int sys_invoiceId { get; set; }
-        public int sys_allocationId { get; set; }
+        public int? sys_allocationId { get; set; }
     }
 }

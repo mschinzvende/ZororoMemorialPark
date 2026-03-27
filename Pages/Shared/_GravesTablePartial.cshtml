@@ -31,32 +31,28 @@
             <i class="bi bi-trash"></i> Delete Selected
         </button>
 
-        <form method="get" class="d-flex flex-wrap align-items-center gap-2">
+        <form method="get" class="d-flex gap-2">
             <input type="hidden" name="pageNumber" value="@pageNumber" />
+            <input type="hidden" name="activeTab" value="@Model.ActiveTab" />
 
-            <div>
-                <select name="pageSize" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="10" selected="@(pageSize == 10)">10</option>
-                    <option value="20" selected="@(pageSize == 20)">20</option>
-                    <option value="50" selected="@(pageSize == 50)">50</option>
-                    <option value="100" selected="@(pageSize == 100)">100</option>
-                </select>
-            </div>
+            <select name="pageSize" class="form-select form-select-sm"
+                    onchange="this.form.submit()">
+                <option value="10" selected="@(pageSize == 10)">10</option>
+                <option value="20" selected="@(pageSize == 20)">20</option>
+                <option value="50" selected="@(pageSize == 50)">50</option>
+            </select>
 
-            <div>
-                <input type="text"
-                       name="searchTerm"
-                       value="@searchTerm"
-                       placeholder="Search by plot or section"
-                       class="form-control form-control-sm" />
-            </div>
+            <input type="text"
+                   name="searchTerm"
+                   value="@searchTerm"
+                   class="form-control form-control-sm"
+                   placeholder="Search current tab" />
 
-            <div>
-                <button type="submit" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-search"></i>
-                </button>
-            </div>
+            <button class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-search"></i>
+            </button>
         </form>
+
     </div>
 
     <div>
@@ -151,7 +147,9 @@ else if (status == "Occupied" && occupiedGraves != null)
                     <th><input type="checkbox" id="selectAll-@status"></th>
                     <th>Plot Number</th>
                     <th>Section</th>
+                    <th>Deceased</th>
                     <th>Occupied On</th>
+
                     <th>Next of kin</th>
                     <th>Contact #</th>
                     <th>Tombstone Status</th>
@@ -185,6 +183,7 @@ else if (status == "Occupied" && occupiedGraves != null)
                         }
 
                         <td>@occupiedGrave.SectionName</td>
+                        <td>@occupiedGrave.sys_deceasedName</td>
                         <td>@occupiedGrave.sys_occupationDate</td>
                         <td>@occupiedGrave.sys_nextOfKinName</td>
                         <td>@occupiedGrave.sys_nextOfKinContact</td>

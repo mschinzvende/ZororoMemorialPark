@@ -114,7 +114,7 @@
 
                                             
                                             <dt class="col-sm-4">Price</dt>
-                                            <dd class="col-sm-8">$@Model.Grave.sys_price</dd>
+                                            <dd class="col-sm-8">$@Model.Section.sys_SecPrice</dd>
 
 
                                             <dt class="col-sm-4">Total Paid</dt> 
@@ -235,18 +235,7 @@
 
                                         </dl>
 
-                                        @if (Model.AllocationPaymentStatus=="Partially Paid" || Model.AllocationPaymentStatus=="Unpaid")
-                                        {
-                                            @if (Model.Reservation ==null)
-                                            {
-                                                <button class="btn btn-sm btn-success mt-2"
-                                                data-bs-toggle="modal"
-                                                    data-bs-target="#allocationPaymentModal"
-                                                    data-allocationid="@Model.Allocation.sys_allocationId">
-                                                💳 Capture Payment
-                                            </button>
-                                            }
-                                        }
+                                        
                                         
                                     }
                                     else
@@ -255,12 +244,10 @@
                                             <div class="alert alert-warning">Grave not ready for allocation. Current Stage: @Model.Stage?.sys_stageName</div>
                                         }
                                         else{
-                                            <div class="alert alert-info">No allocation found.</div>
-                                            <button class="btn btn-sm btn-primary"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#allocateModal">
-                                                ➕ Allocate Grave
-                                            </button>
+                                            <div class="alert alert-info">No allocation found.Create a booking</div>
+                                            <a asp-page="/Bookings/Create" class="btn btn-primary">
+                                                New Booking
+                                            </a>
 
                                         }
                                         
@@ -336,7 +323,7 @@
                                                         <dd class="col-sm-8">@Model.Customer.sys_paymentMadeBy</dd>
 
                                                         <dt class="col-sm-4">Price</dt>
-                                                        <dd class="col-sm-8">$@Model.Grave.sys_price</dd>
+                                                        <dd class="col-sm-8">$@Model.Section.sys_SecPrice</dd>
 
 
                                                         <dt class="col-sm-4">Total Paid</dt>
@@ -434,7 +421,7 @@
                                                 <tfoot class="table-light">
                                                     <tr>
                                                         <th colspan="2" class="text-end">Total Due</th>
-                                                        <th>$@Model.Grave.sys_price</th>
+                                                        <th>$@Model.Section.sys_SecPrice</th>
                                                         <th colspan="2"></th>
                                                     </tr>
                                                     <tr>
@@ -784,144 +771,6 @@
 </div>
 
 
-
-
-<!-- Allocate Grave Modal -->
-<div class="modal fade" id="allocateModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <!-- wider modal for 3 columns -->
-        <div class="modal-content">
-            <form method="post"  enctype="multipart/form-data" asp-page-handler="AllocateGrave">
-                <div class="modal-header">
-                    <h5 class="modal-title">Allocate Grave</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <!-- g-3 adds spacing -->
-
-                        <input type="hidden" name="graveId" value="@Model.Grave.sys_graveId" />
-
-                        <div class="col-md-12">
-                            <label>Deceased Name<span class="text-danger">*</span></label>
-                            <input type="text" name="deceasedFullName" class="form-control" required />
-                        </div>
-
-                        <div class="col-md-4">
-                            <label>DOB <span class="text-danger">*</span></label>
-                            <input type="date" id="dob" name="deceasedDOB" class="form-control" required />
-                            <small id="dobError" class="text-danger d-none"></small>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label>DOD <span class="text-danger">*</span></label>
-                            <input type="date" id="dod" name="deceasedDOD" class="form-control" required />
-                            <small id="dodError" class="text-danger d-none"></small>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label>Gender<span class="text-danger">*</span></label>
-                            <select name="deceasedGender" class="form-control" required>
-                                <option value="">-- Select --</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label>Nationality<span class="text-danger">*</span></label>
-                            <input type="text" name="nationality" class="form-control" required />
-                        </div>
-
-                        <div class="col-md-4">
-                            <label>Marital Status<span class="text-danger">*</span></label>
-                            <select name="maritalStatus" class="form-control" required>
-                                <option value="">-- Select --</option>
-                                <option value="Single">Single</option>
-                                <option value="Married">Married</option>
-                                <option value="Divorced">Divorced</option>
-                                <option value="Widowed">Widowed</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label>Name of Spouse</label>
-                            <input type="text" name="nameOfSpouse" class="form-control" />
-                        </div>
-
-                        <div class="col-md-4">
-                            <label>Next of Kin Full Name<span class="text-danger">*</span></label>
-                            <input type="text" name="nextOfKinFullName" class="form-control" required />
-                        </div>
-
-                        <div class="col-md-4">
-                            <label>Next of Kin Address<span class="text-danger">*</span></label>
-                            <input type="text" name="nextOfKinAddress" class="form-control" required />
-                        </div>
-
-                        <div class="col-md-4">
-                            <label>Next of Kin Email</label>
-                            <input type="email" name="nextOfKinEmail" class="form-control" />
-                        </div>
-
-                        <div class="col-md-4">
-                            <label>Next of Kin Phone<span class="text-danger">*</span></label>
-                            <input type="text" name="nextOfKinPhone" class="form-control" required />
-                        </div>
-
-                        @if(Model.Reservation != null){
-                            <div class="col-md-4">
-                                <label>Payment Made By<span class="text-danger">*</span></label>
-                                <input type="text" name="paymentBy" class="form-control" value="@Model.Customer.sys_paymentMadeBy" required />
-                            </div>
-                        }
-                        else{
-                            <div class="col-md-4">
-                                <label>Payment Made By<span class="text-danger">*</span></label>
-                                <input type="text" name="paymentBy" class="form-control" required />
-                            </div>
-                        }
-
-                        
-
-                        <div class="col-md-4">
-                            <label>Repatriation Source<span class="text-danger">*</span></label>
-                            <input type="text" name="repatriationSource" class="form-control" value="Local" required />
-                        </div>
-
-                        <div class="col-md-4">
-                            <label>Burial Date <span class="text-danger">*</span></label>
-                            <input type="date" id="burialDate" name="burialDate" class="form-control" required />
-                            <small id="burialError" class="text-danger d-none"></small>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label for="burialTime">Available Slots</label>
-                            <select id="burialTime" name="burialDateTime" class="form-control" required>
-                                <option value="">-- Select a slot --</option>
-                            </select>
-                            <div id="slotMessage" class="text-danger mt-1"></div>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label for="burialOder" class="form-label">Attach Burial Order</label>
-
-
-                            <input type="file" id="burialOrder" name="burialOrder" class="form-control" accept=".jpg,.jpeg,.png,.pdf" />
-                            
-                        </div>
-
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" id="allocateSubmitBtn" class="btn btn-primary" disabled>Allocate</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-
 <!-- Reserve Modal -->
 <div class="modal fade" id="reservationModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -1014,111 +863,6 @@
                 </div>
             </form>
             }
-        </div>
-    </div>
-</div>
-
-
-<!-- Allocation Payment Modal -->
-<div class="modal fade" id="allocationPaymentModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="post" asp-page-handler="AddAllocationPayment">
-                <div class="modal-header"><h5>Allocation Payment</h5></div>
-                <div class="modal-body">
-                    <input type="hidden" name="allocationId" id="allocationId" />
-
-                    <div class="row">
-                        <!-- Left Column -->
-                        <div class="col-md-6">
-
-                            <div class="mb-3">
-                                <label class="form-label">Current Balance</label>
-                                <input type="number" name="currentBalance" step="0.01"
-                                       class="form-control" value="@Model.AllocationBalance" readonly />
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Amount Paid</label>
-                                <input type="number" name="amountPaid" min="0" step="0.01"
-                                       class="form-control" max="@Model.AllocationBalance" required />
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Payment Method</label>
-                                <select name="paymentMethodId" class="form-select">
-                                    @foreach (var pm in Model.PaymentMethods)
-                                    {
-                                        <option value="@pm.sys_paymentMethodId">@pm.sys_paymentMethodName</option>
-                                    }
-                                </select>
-                            </div>
-
-                        </div>
-
-                        <!-- Right Column -->
-                        <div class="col-md-6">
-
-                            <div class="mb-3">
-                                <label class="form-label">Notes</label>
-                                <textarea name="notes" class="form-control"></textarea>
-                            </div>
-                            </div>
-                        <div class="col-md-12">
-                            <div class="mb-3">
-                                <label class="form-label">Receipt Number</label>
-
-                                @if (Model.AgentRecordExists)
-                                {
-                                    <!-- Agent with fixed book -->
-                                    <input type="hidden" id="receiptBookId" name="receiptBookId"
-                                           value="@Model.AgentReceiptBook.sys_receiptBookId" />
-
-                                    <input type="number" id="receiptNumber" name="receiptNumber"
-                                           class="form-control" required />
-
-                                    <small class="text-muted d-block mt-1">
-                                        Book @Model.AgentReceiptBook.sys_startNumber -
-                                        @Model.AgentReceiptBook.sys_endNumber
-                                    </small>
-
-                                    <div id="receiptValidationMsg" class="text-danger small mt-1"></div>
-                                }
-                                else
-                                {
-                                    <!-- Agent must choose a book -->
-                                    <select id="receiptBookId" name="receiptBookId"
-                                            class="form-select mb-2" required>
-                                        <option value="">-- Select Receipt Book --</option>
-                                        @foreach (var b in Model.AvailableBooks)
-                                        {
-                                            <option value="@b.sys_receiptBookId"
-                                                    data-start="@b.sys_startNumber"
-                                                    data-end="@b.sys_endNumber"
-                                                    data-current="@b.sys_currentNumber">
-                                                Book @b.sys_startNumber - @b.sys_endNumber
-                                                (Agent: @b.AgentName)
-                                            </option>
-                                        }
-                                    </select>
-
-                                    <input type="number" id="receiptNumber" name="receiptNumber"
-                                           class="form-control" required />
-
-                                    <div id="receiptValidationMsg" class="text-danger small mt-1"></div>
-                                }
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-success">Save Payment</button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
@@ -1339,16 +1083,7 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-
-        // --- Allocation Payment Modal ---
-        const allocationModal = document.getElementById("allocationPaymentModal");
-        if (allocationModal) {
-            allocationModal.addEventListener("show.bs.modal", function (event) {
-                const button = event.relatedTarget;
-                document.getElementById("allocationId").value = button.getAttribute("data-allocationid");
-            });
-        }
+  document.addEventListener("DOMContentLoaded", function () {
 
         // --- Edit Job Modal ---
         const editModal = document.getElementById("editModal");
@@ -1423,17 +1158,17 @@
         });
 
         // --- Evaluation Modal ---
-         window.openEvaluationModal = function (jobId) {
-        $('#evaluationJobId').val(jobId);
+    window.openEvaluationModal = function (jobId) {
+          $('#evaluationJobId').val(jobId);
 
-        $.getJSON('?handler=EvaluationParameters&jobId=' + jobId, function (data) {
+          $.getJSON('?handler=EvaluationParameters&jobId=' + jobId, function (data) {
             let container = $('#evaluationParametersContainer');
             container.empty();
 
             if (data && data.length > 0) {
                 data.forEach(param => {
 
-        let isReadOnly = false;
+              let isReadOnly = false;
 
         // Rule: If evaluation already exists → readonly
         if (param.sys_jobEvaluation && param.sys_jobEvaluation.trim() !== "") {
@@ -1508,267 +1243,20 @@
             </div>
         `);
 
-    });
+       });
             } else {
                 container.append(`<p class="text-muted">No evaluation parameters defined.</p>`);
             }
 
             $('#evaluationModal').modal('show');
-        });
-    };
 
-        // --- Burial Slots ---
-        const burialDateInput = document.getElementById("burialDate");
-        if (burialDateInput) {
-            burialDateInput.addEventListener("change", async function () {
-                const burialDate = this.value;
-                const timeSelect = document.getElementById("burialTime");
-                const messageEl = document.getElementById("slotMessage");
-                const submitBtn = document.getElementById("allocateSubmitBtn");
-
-                if (!burialDate) return;
-
-                try {
-                    const response = await fetch(`?handler=AvailableBurialSlots&burialDate=${encodeURIComponent(burialDate)}`);
-                    const result = await response.json();
-
-                    timeSelect.innerHTML = `<option value="">-- Select a slot --</option>`;
-
-                    if (result.slots.length === 0) {
-                        messageEl.textContent = result.message || "No slots available.";
-                        submitBtn.disabled = true;
-                    } else {
-                        messageEl.textContent = "";
-                        submitBtn.disabled = false;
-
-                        result.slots.forEach(slot => {
-                            const date = new Date(slot);
-                            const opt = document.createElement("option");
-                            opt.value = slot;
-                            opt.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                            timeSelect.appendChild(opt);
-                        });
-                    }
-                } catch (error) {
-                    console.error("Error fetching slots:", error);
-                    messageEl.textContent = "Could not load slots.";
-                    submitBtn.disabled = true;
-                }
-            });
-        }
-    });
-</script>
-
-<script>
-const receiptInput = document.getElementById("receiptNumber");
-const validationMsg = document.getElementById("receiptValidationMsg");
-
-// Case 1: Agent with record (hidden input, single book)
-const hiddenBook = document.getElementById("receiptBookId");
-// Case 2: Agent role only (select with data attributes)
-const bookSelect = document.getElementById("receiptBookId") && document.getElementById("receiptBookId").tagName === "SELECT"
-    ? document.getElementById("receiptBookId")
-    : null;
-
-function validateReceipt() {
-    if (!receiptInput) return;
-
-    const receiptNumber = parseInt(receiptInput.value);
-
-    // Clear message if empty
-    if (!receiptNumber) {
-        validationMsg.textContent = "";
-        return;
-    }
-
-    // Agent with record → book info comes from server model
-    if (hiddenBook && !bookSelect) {
-        const start = parseInt("@Model.AgentReceiptBook.sys_startNumber");
-        const end = parseInt("@Model.AgentReceiptBook.sys_endNumber");
-        const current = parseInt("@Model.AgentReceiptBook.sys_currentNumber");
-
-        if (receiptNumber < start || receiptNumber > end) {
-            validationMsg.textContent = "❌ Receipt number not in valid range.";
-        } else if (receiptNumber !== current + 1) {
-            validationMsg.textContent = `❌ Invalid sequence. Next expected is ${current + 1}.`;
-        } else {
-            validationMsg.textContent = "✅ Receipt number is valid.";
-            validationMsg.className = "text-success small mt-1";
-        }
-    }
-
-    // Agent role only → book selected from dropdown
-    if (bookSelect) {
-        const selectedOption = bookSelect.options[bookSelect.selectedIndex];
-        if (!selectedOption || !selectedOption.dataset.start) {
-            validationMsg.textContent = "";
-            return;
-        }
-
-        const start = parseInt(selectedOption.dataset.start);
-        const end = parseInt(selectedOption.dataset.end);
-        const current = parseInt(selectedOption.dataset.current);
-
-        if (receiptNumber < start || receiptNumber > end) {
-            validationMsg.textContent = "❌ Receipt number not in valid range.";
-        } else if (receiptNumber !== current + 1) {
-            validationMsg.textContent = `❌ Invalid sequence. Next expected is ${current + 1}.`;
-        } else {
-            validationMsg.textContent = "✅ Receipt number is valid.";
-            validationMsg.className = "text-success small mt-1";
-        }
-    }
-}
-
-// Bind events
-if (receiptInput) {
-    receiptInput.addEventListener("input", validateReceipt);
-}
-if (bookSelect) {
-    bookSelect.addEventListener("change", validateReceipt);
-}
-
-
-</script>
-
-<script>
-
-        document.addEventListener("DOMContentLoaded", function () {
-        const dob = document.getElementById("dob");
-        const dod = document.getElementById("dod");
-        const burial = document.getElementById("burialDate");
-
-        const dobError = document.getElementById("dobError");
-        const dodError = document.getElementById("dodError");
-        const burialError = document.getElementById("burialError");
-
-        const submitBtn = document.getElementById("allocateSubmitBtn");
-
-        function toDateOnly(dateString) {
-            const p = dateString.split("-");
-            return new Date(p[0], p[1] - 1, p[2]);
-        }
-
-        function validateForm() {
-            const anyError =
-                dobError.classList.contains("d-block") ||
-                dodError.classList.contains("d-block") ||
-                burialError.classList.contains("d-block");
-
-            const allFilled = dob.value && dod.value && burial.value;
-
-            submitBtn.disabled = anyError || !allFilled;
-        }
-
-        // --- DOB Validation ---
-        dob.addEventListener("change", function () {
-            dobError.classList.add("d-none");
-            if (!dob.value) { validateForm(); return; }
-
-            const dobDate = toDateOnly(dob.value);
-
-            const today = new Date(); today.setHours(0, 0, 0, 0);
-
-            // Future DOB not allowed
-            if (dobDate > today) {
-                dobError.textContent = "Date of Birth cannot be in the future.";
-                dobError.classList.replace("d-none", "d-block");
-                dob.value = ""; validateForm(); return;
-            }
-
-            // Max 120 years rule
-            const oldest = new Date();
-            oldest.setFullYear(oldest.getFullYear() - 120);
-            oldest.setHours(0, 0, 0, 0);
-
-            if (dobDate < oldest) {
-                dobError.textContent = "Date of Birth cannot be more than 120 years ago.";
-                dobError.classList.replace("d-none", "d-block");
-                dob.value = ""; validateForm(); return;
-            }
-
-            if (dod.value) dod.dispatchEvent(new Event("change"));
-            if (burial.value) burial.dispatchEvent(new Event("change"));
-
-            validateForm();
+            
         });
 
-        // --- DOD Validation ---
-        dod.addEventListener("change", function () {
-            dodError.classList.add("d-none");
-            if (!dod.value) { validateForm(); return; }
+        };
+      });
+    
 
-            const dobDate = dob.value ? toDateOnly(dob.value) : null;
-            const dodDate = toDateOnly(dod.value);
-
-            const today = new Date(); today.setHours(0, 0, 0, 0);
-
-            // Future DOD not allowed
-            if (dodDate > today) {
-                dodError.textContent = "Date of Death cannot be in the future.";
-                dodError.classList.replace("d-none", "d-block");
-                dod.value = ""; validateForm(); return;
-            }
-
-            // DOD before DOB not allowed (same-day allowed)
-            if (dobDate && dodDate < dobDate) {
-                dodError.textContent = "Date of Death cannot be before Date of Birth.";
-                dodError.classList.replace("d-none", "d-block");
-                dod.value = ""; validateForm(); return;
-            }
-
-            // Max age 120
-            if (dobDate) {
-                const age = dodDate.getFullYear() - dobDate.getFullYear();
-                if (age > 120) {
-                    dodError.textContent = "Age cannot exceed 120 years.";
-                    dodError.classList.replace("d-none", "d-block");
-                    dod.value = ""; validateForm(); return;
-                }
-            }
-
-            if (burial.value) burial.dispatchEvent(new Event("change"));
-
-            validateForm();
-        });
-
-        // --- Burial Date Validation ---
-        burial.addEventListener("change", function () {
-            burialError.classList.add("d-none");
-            if (!burial.value) { validateForm(); return; }
-
-            const dodDate = dod.value ? toDateOnly(dod.value) : null;
-            const burialDate = toDateOnly(burial.value);
-
-            const today = new Date(); today.setHours(0, 0, 0, 0);
-
-            /* Burial cannot be in the future
-            if (burialDate > today) {
-                burialError.textContent = "Burial Date cannot be in the future.";
-                burialError.classList.replace("d-none", "d-block");
-                burial.value = ""; validateForm(); return;
-            }*/
-
-            // Burial cannot be before DOD (same-day allowed)
-            if (dodDate && burialDate < dodDate) {
-                burialError.textContent = "Burial cannot be before the Date of Death.";
-                burialError.classList.replace("d-none", "d-block");
-                burial.value = ""; validateForm(); return;
-            }
-
-            // Burial must be within 30 days of DOD (legal/realistic)
-            if (dodDate) {
-                const daysDiff = (burialDate - dodDate) / (1000 * 60 * 60 * 24);
-                if (daysDiff > 30) {
-                    burialError.textContent = "Burial must be within 30 days of death.";
-                    burialError.classList.replace("d-none", "d-block");
-                    burial.value = ""; validateForm(); return;
-                }
-            }
-
-            validateForm();
-        });
-    });
-
-
+        
+   
 </script>

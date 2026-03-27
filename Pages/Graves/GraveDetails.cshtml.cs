@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using ZororoMemorialPark.Data;
 using ZororoMemorialPark.Data.Models;
 using ZororoMemorialPark.Pages.Jobs;
@@ -237,16 +238,16 @@ namespace ZororoMemorialPark.Pages.Graves
                     AllocationPayments = await (
                         from gai in _context.tbl_GraveAllocationInvoices
                         join inv in _context.tbl_Invoices on gai.sys_invoiceId equals inv.sys_invoiceId
-                        join pay in _context.tbl_IncomePayments on inv.sys_invoiceId equals pay.sys_invoiceId
+                        join pay in _context.tbl_BurialPayments on inv.sys_invoiceId equals pay.sys_invoiceId
                         where gai.sys_allocationId == Allocation.sys_allocationId
                         select new CustomerPaymentDto
                         {
-                            sys_incomeId = pay.sys_incomeId,
-                            sys_date = pay.sys_date,
+                            sys_incomeId = pay.sys_paymentId,
+                            sys_date = DateOnly.FromDateTime(pay.sys_paymentDate),
                             
-                            sys_amount = pay.sys_amount,
+                            sys_amount = pay.sys_amountPaid,
                             sys_paymentMethod = pay.sys_paymentMethod,
-                            sys_notes = pay.sys_notes,
+                            
                             sys_receiptNo = pay.sys_receiptNumber
                         }).ToListAsync();
 
@@ -255,7 +256,7 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 //Calculate totals for allocation
                 TotalPaidAllocation = AllocationPayments.Sum(CustomerPaymentDto => CustomerPaymentDto.sys_amount);
-                AllocationBalance = (Grave?.sys_price ?? 0) - TotalPaidAllocation;
+                AllocationBalance = (Section?.sys_SecPrice ?? 0) - TotalPaidAllocation;
 
                 if (AllocationBalance <= 0)
                 {
@@ -273,7 +274,7 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 //Calculate totals for reservations
                 TotalPaidReservation = ReservationPayments.Sum(CustomerPaymentDto => CustomerPaymentDto.sys_amount);
-                ReservationBalance = (Grave?.sys_price ?? 0) - TotalPaidReservation;
+                ReservationBalance = (Section?.sys_SecPrice ?? 0) - TotalPaidReservation;
 
                 if (ReservationBalance <= 0)
                 {
@@ -501,6 +502,8 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 Grave = await _context.tbl_Graves.FindAsync(graveId);
 
+                var theSection = await _context.tbl_Sections.FindAsync(Grave.sys_sectionId);
+
                 // Create Deceased
                 var deceased = new tbl_Deceased
                 {
@@ -552,7 +555,7 @@ namespace ZororoMemorialPark.Pages.Graves
                     {
                         sys_invoiceId = invoice.sys_invoiceId,
                         sys_itemName = $"Grave Allocation - Grave ID {Grave.sys_plotNumber}",
-                        sys_itemCost = Grave.sys_price
+                        sys_itemCost = theSection.sys_SecPrice
                     };
                     _context.tbl_InvoiceItems.Add(invoiceItem);
                     await _context.SaveChangesAsync();
@@ -730,7 +733,8 @@ namespace ZororoMemorialPark.Pages.Graves
             var reservation = new tbl_GraveReservations
             {
                 sys_graveId = graveId,
-                sys_customerId = customer.sys_customerId
+                sys_customerId = customer.sys_customerId,
+                sys_reservedOn = DateOnly.FromDateTime(DateTime.Now)
             };
             _context.tbl_GraveReservations.Add(reservation);
             await _context.SaveChangesAsync();
@@ -764,13 +768,15 @@ namespace ZororoMemorialPark.Pages.Graves
             //get the grave
 
             var grave = await _context.tbl_Graves.FindAsync(graveId);
+            var theSection = await _context.tbl_Sections.FindAsync(grave.sys_sectionId);
+
             // Create Invoice Item
 
             var invoiceItem = new tbl_InvoiceItems
             {
                 sys_invoiceId = invoice.sys_invoiceId,
                 sys_itemName = $"Grave Reservation - Grave ID {grave.sys_plotNumber}",
-                sys_itemCost = grave.sys_price
+                sys_itemCost = theSection.sys_SecPrice
             };
             _context.tbl_InvoiceItems.Add(invoiceItem);
             await _context.SaveChangesAsync();
@@ -788,6 +794,7 @@ namespace ZororoMemorialPark.Pages.Graves
 
             // Update Grave status
             grave.sys_graveSaleStatus = "Reserved";
+            
             _context.tbl_Graves.Update(grave);
             await _context.SaveChangesAsync();
 
@@ -1160,13 +1167,23 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 // Update job
 
+                var theStartDate = DateOnly.ParseExact(
+                                    Request.Form["sys_startDate"],
+                                    "yyyy-MM-dd",
+                                    CultureInfo.InvariantCulture
+                                );
 
+                var theEndDate = DateOnly.ParseExact(
+                                                    Request.Form["sys_endDate"],
+                                                    "yyyy-MM-dd",
+                                                    CultureInfo.InvariantCulture
+                                                );
 
                 job.sys_graveId = graveId;
                 job.sys_supplierId = supplierId;
                 job.sys_stageId = stageId;
-                job.sys_startDate = startDate;
-                job.sys_endDate = endDate;
+                job.sys_startDate = theStartDate;
+                job.sys_endDate = theEndDate;
                 job.sys_jobStatus = Request.Form["sys_status"];
 
 
@@ -1214,8 +1231,9 @@ namespace ZororoMemorialPark.Pages.Graves
                             sys_graveId = job.sys_graveId,
                             sys_supplierId = 11, //Default Supplier ID for system tasks
                             sys_stageId = nextStage.sys_stageId,
-                            sys_startDate = DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
-                            sys_endDate = DateOnly.Parse(DateTime.Now.ToString("dd-MM-yyyy")),
+                            sys_startDate = DateOnly.ParseExact(DateTime.Now.ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            sys_endDate = DateOnly.ParseExact(DateTime.Now.ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            
                             sys_jobStatus = "Pending"
                         };
                         _context.tbl_Jobs.Add(newJob);

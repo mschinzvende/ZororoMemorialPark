@@ -5,6 +5,7 @@
 }
 
 <div class="container-fluid py-4 mb-4">
+
     @if (TempData["SuccessMessage"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show">
@@ -21,11 +22,12 @@
         </div>
     }
 
+    <!-- PAGE HEADER -->
     <div class="row mb-3">
         <div class="col">
             <h3>Burial Schedule</h3>
             <p class="text-muted mb-0">
-                View all scheduled burials, reschedule and manage notifications for next of kin.
+                Burial bookings scheduled for today and upcoming dates, including payment status.
             </p>
         </div>
         <div class="col-auto">
@@ -35,15 +37,16 @@
         </div>
     </div>
 
-    <div class="row g-3">
+    <!-- SUMMARY PANELS -->
+    <div class="row g-3 mb-4">
 
-        <!-- Today's Burials -->
+        <!-- Today's Bookings -->
         <div class="col-lg-4">
             <div class="card shadow-sm h-100">
-                <div class="card-header" style="background-color: var(--primary-green); color: var(--primary-white);">
+                <div class="card-header bg-success text-white">
                     <h6 class="mb-0">Today's Burials (@Model.TodaysBurials.Count)</h6>
                 </div>
-                <div class="card-body p-2" style="max-height: 420px; overflow-y: auto;">
+                <div class="card-body p-2" style="max-height: 420px; overflow-y:auto;">
                     @if (!Model.TodaysBurials.Any())
                     {
                         <p class="text-muted small mb-0">No burials scheduled for today.</p>
@@ -58,22 +61,16 @@
                                         <div>
                                             <strong>@b.BurialDateTime.ToString("HH:mm")</strong><br />
                                             <span class="text-muted">
-                                                Grave: @b.PlotNumber (@b.SectionName)
+                                                @b.DeceasedFullName – @b.SectionName
                                             </span><br />
-                                            <span class="text-muted">
-                                                NOK: @b.NextOfKinName (@b.NextOfKinContact)
+                                            <span class="@(b.IsFullyPaid ? "text-success" : "text-danger")">
+                                                @(b.IsFullyPaid ? "PAID" : $"BALANCE: ${b.Balance}")
                                             </span>
                                         </div>
                                         <div class="text-end">
-                                            <a asp-page="/Burials/EditBurial" asp-route-id="@b.AllocationId"
-                                               class="btn btn-sm btn-outline-primary mb-1" title="Edit">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </a>
-                                            <form method="post" asp-page-handler="Notify" asp-route-id="@b.AllocationId" class="d-inline">
-                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Notify NOK">
-                                                    <i class="bi bi-bell"></i>
-                                                </button>
-                                            </form>
+                                            <span class="badge @(b.IsFullyPaid ? "bg-success" : "bg-warning text-dark")">
+                                                @b.BookingStatus
+                                            </span>
                                         </div>
                                     </div>
                                 </li>
@@ -84,16 +81,16 @@
             </div>
         </div>
 
-        <!-- Upcoming Burials List -->
+        <!-- Upcoming Bookings -->
         <div class="col-lg-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-light">
-                    <h6 class="mb-0">Upcoming Burials (Next 30 Days)</h6>
+                    <h6 class="mb-0">Upcoming Burials</h6>
                 </div>
-                <div class="card-body p-2" style="max-height: 420px; overflow-y: auto;">
+                <div class="card-body p-2" style="max-height: 420px; overflow-y:auto;">
                     @if (!Model.UpcomingBurials.Any())
                     {
-                        <p class="text-muted small mb-0">No upcoming burials scheduled.</p>
+                        <p class="text-muted small mb-0">No upcoming burials.</p>
                     }
                     else
                     {
@@ -101,28 +98,15 @@
                             @foreach (var b in Model.UpcomingBurials)
                             {
                                 <li class="list-group-item small">
-                                    <div class="d-flex justify-content-between">
-                                        <div>
-                                            <strong>@b.BurialDateTime.ToString("ddd dd MMM yyyy HH:mm")</strong><br />
-                                            <span class="text-muted">
-                                                Grave: @b.PlotNumber (@b.SectionName)
-                                            </span><br />
-                                            <span class="text-muted">
-                                                NOK: @b.NextOfKinName (@b.NextOfKinContact)
-                                            </span>
-                                        </div>
-                                        <div class="text-end">
-                                            <a asp-page="/Burials/EditBurial" asp-route-id="@b.AllocationId"
-                                               class="btn btn-sm btn-outline-primary mb-1" title="Edit">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </a>
-                                            <form method="post" asp-page-handler="Notify" asp-route-id="@b.AllocationId" class="d-inline">
-                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Notify NOK">
-                                                    <i class="bi bi-bell"></i>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </div>
+                                    <strong>
+                                        @b.BurialDateTime.ToString("ddd dd MMM yyyy HH:mm")
+                                    </strong><br />
+                                    <span class="text-muted">
+                                        @b.DeceasedFullName – @b.SectionName
+                                    </span><br />
+                                    <span class="@(b.IsFullyPaid ? "text-success" : "text-danger")">
+                                        @(b.IsFullyPaid ? "PAID" : $"BALANCE: ${b.Balance}")
+                                    </span>
                                 </li>
                             }
                         </ul>
@@ -131,137 +115,98 @@
             </div>
         </div>
 
-        <!-- Insights / Summary Panel -->
+        <!-- INSIGHTS -->
         <div class="col-lg-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-light">
                     <h6 class="mb-0">Burial Insights</h6>
                 </div>
                 <div class="card-body">
-
-                    <div class="mb-3">
-                        <h2 class="fw-bold text-success">@Model.TodaysBurials.Count</h2>
-                        <p class="text-muted mb-0">Scheduled for Today</p>
-                    </div>
+                    <h2 class="fw-bold text-success">@Model.TodaysBurials.Count</h2>
+                    <p class="text-muted mb-3">Scheduled Today</p>
 
                     <hr />
 
-                    <div class="mb-3">
-                        <h4 class="fw-bold">@Model.UpcomingBurials.Count</h4>
-                        <p class="text-muted mb-0">Upcoming Burials (next 30 days)</p>
-                    </div>
+                    <h4 class="fw-bold">@Model.UpcomingBurials.Count</h4>
+                    <p class="text-muted mb-3">Upcoming Burials</p>
 
                     <hr />
 
-                    <div class="mb-3">
-                        <h5 class="fw-bold">@Model.AllBurials.Count</h5>
-                        <p class="text-muted mb-0">Total Scheduled Burials Displayed</p>
-                    </div>
-
-                    <hr />
-
-                    <p class="small text-muted">
-                        This summary provides a quick overview of burial activity without opening the full table.
-                    </p>
+                    <h5 class="fw-bold">@Model.AllBurials.Count</h5>
+                    <p class="text-muted mb-0">Total Active Bookings</p>
                 </div>
             </div>
         </div>
-
     </div>
 
-    <!-- Full Table -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header d-flex justify-content-between align-items-center"
-                     style="background-color: var(--primary-green); color: var(--primary-white);">
+    <!-- FULL TABLE -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">All Scheduled Burials</h6>
 
-                    <h6 class="mb-0" style="color: var(--primary-white);">All Scheduled Burials</h6>
+            <form method="get" class="d-flex align-items-center gap-2">
+                <label class="small mb-0">Filter date:</label>
+                <input type="date"
+                       name="FilterDate"
+                       value="@(Model.FilterDate.HasValue ? Model.FilterDate.Value.ToString("yyyy-MM-dd") : "")"
+                       class="form-control form-control-sm"
+                       style="max-width:180px;">
+                <button type="submit" class="btn btn-sm btn-outline-light">
+                    <i class="bi bi-funnel"></i>
+                </button>
+            </form>
+        </div>
 
-                    <form method="get" class="d-flex align-items-center gap-2">
-
-                        <label class="small mb-0" style="color: var(--primary-white);">
-                            Filter by date:
-                        </label>
-
-                        <input type="date" name="filterDate"
-                               value="@(Model.FilterDate.HasValue ? Model.FilterDate.Value.ToString("yyyy-MM-dd") : "")"
-                               class="form-control form-control-sm"
-                               style="max-width: 180px;
-                      background-color: transparent;
-                      color: var(--primary-white);
-                      border-color: var(--primary-white);">
-
-                        <button type="submit" class="btn btn-sm"
-                                style="border:1px solid var(--primary-white); color: var(--primary-white);">
-                            <i class="bi bi-funnel"></i> Apply
-                        </button>
-
-                    </form>
-                </div>
-
-                <div class="card-body p-2 table-responsive">
-                    <table class="table table-bordered table-striped">
-                        <thead class="table-dark">
+        <div class="card-body p-2 table-responsive">
+            <table class="table table-bordered table-striped align-middle">
+                <thead class="table-dark small">
+                    <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Deceased</th>
+                        <th>Section</th>
+                        <th>Customer</th>
+                        <th>Invoice</th>
+                        <th>Paid</th>
+                        <th>Balance</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.AllBurials.Any())
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center text-muted small">
+                                No burial bookings found.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var b in Model.AllBurials)
+                        {
                             <tr class="small">
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>Grave</th>
-                                <th>Section</th>
-                                <th>Deceased</th>
-                                <th>Next of Kin</th>
-                                <th>Contact</th>
-                                <th>Customer</th>
-                                <th>Repatriation</th>
-                                <th style="width: 140px;">Actions</th>
+                                <td>@b.BurialDateTime.ToString("yyyy-MM-dd")</td>
+                                <td>@b.BurialDateTime.ToString("HH:mm")</td>
+                                <td>@b.DeceasedFullName</td>
+                                <td>@b.SectionName</td>
+                                <td>@b.CustomerName (@b.CustomerNumber)</td>
+                                <td>$@b.InvoiceTotal</td>
+                                <td class="text-success">$@b.AmountPaid</td>
+                                <td class="@(b.Balance > 0 ? "text-danger" : "text-success")">
+                                    $@b.Balance
+                                </td>
+                                <td>
+                                    <span class="badge @(b.IsFullyPaid ? "bg-success" : "bg-warning text-dark")">
+                                        @(b.IsFullyPaid ? "PAID" : "PENDING")
+                                    </span>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @if (!Model.AllBurials.Any())
-                            {
-                                <tr>
-                                    <td colspan="10" class="text-center small text-muted">
-                                        No burials found for the selected filter.
-                                    </td>
-                                </tr>
-                            }
-                            else
-                            {
-                                @foreach (var b in Model.AllBurials)
-                                {
-                                    <tr class="small">
-                                        <td>@b.BurialDateTime.ToString("yyyy-MM-dd")</td>
-                                        <td>@b.BurialDateTime.ToString("HH:mm")</td>
-                                        <td>@b.PlotNumber</td>
-                                        <td>@b.SectionName</td>
-                                        <td>@b.DeceasedName</td>
-                                        <td>@b.NextOfKinName</td>
-                                        <td>@b.NextOfKinContact</td>
-                                        <td>@b.CustomerName</td>
-                                        <td>@b.RepatriationSource</td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-                                                <a asp-page="/Burials/EditBurial" asp-route-id="@b.AllocationId"
-                                                   class="btn btn-outline-primary" title="Edit">
-                                                    <i class="bi bi-pencil-square"></i>
-                                                </a>
-                                                <form method="post" asp-page-handler="Notify" asp-route-id="@b.AllocationId">
-                                                    <button type="submit" class="btn btn-outline-success" title="Notify NOK">
-                                                        <i class="bi bi-bell"></i>
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                }
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                        }
+                    }
+                </tbody>
+            </table>
         </div>
     </div>
 
 </div>
-
-

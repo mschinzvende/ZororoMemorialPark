@@ -1,0 +1,806 @@
+﻿@page "{id:int}"
+@model ZororoMemorialPark.Pages.Bookings.DetailsModel
+
+
+<div class="container-fluid py-4 mb-4">
+    <div class="card shadow-sm mb-5">
+        <div class="card-header d-flex justify-content-between align-items-center"
+             style="background-color: var(--primary-green); color: var(--primary-white);">
+            <div>
+                <h5 class="mb-0">Booking Details</h5>
+                <small class="d-block" style="font-size: 0.8rem;">
+                    Booking #@Model.Booking?.sys_bookingId
+                </small>
+            </div>
+
+            <div class="d-flex gap-2">
+                <a class="btn btn-sm btn-light btn-outline-secondary" asp-page="Index">Back</a>
+
+            </div>
+        </div>
+
+        <div class="card-body">
+
+
+
+
+<div class="py-3">
+    
+
+    @if (TempData["Err"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Err"]</div>
+    }
+    @if (TempData["Ok"] != null)
+    {
+        <div class="alert alert-success">@TempData["Ok"]</div>
+    }
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="mb-3">Booking Summary</h5>
+
+                    <div><strong>Deceased:</strong> @Model.Booking.sys_deceasedFirstName @Model.Booking.sys_deceasedLastName</div>
+                    <div><strong>Burial:</strong> @Model.Booking.sys_requestedBurialDateTime.ToString("yyyy-MM-dd HH:mm")</div>
+                    <div><strong>Status:</strong> <span class="badge bg-secondary">@Model.Booking.sys_bookingStatus</span></div>
+
+                    <div class="mt-2">
+                        <strong>Section:</strong> @Model.Section?.sys_sectionName
+                        @if (Model.SectionLocked)
+                        {
+                            <span class="badge bg-warning text-dark ms-2">Locked</span>
+                        }
+                    </div>
+
+                    <div class="mt-2">
+                        <strong>Section Price:</strong>
+                        <span class="badge bg-success fs-6">$@Model.SectionPrice</span>
+                    </div>
+
+                    <div class="mt-2">
+                        <strong>Invoice:</strong> @(Model.Booking.sys_invoiceId?.ToString() ?? "Not Raised")
+                    </div>
+
+                    @if (!Model.SectionLocked)
+                    {
+                        <hr />
+                        <form method="post" asp-page-handler="ChangeDateTime" class="row g-2">
+                            <div class="col-md-4">
+                                <label class="form-label">Burial Date <span class="text-danger">*</span></label>
+                                <input type="date"
+                                id="burialDate"
+                                name="burialDate"
+                                class="form-control"
+                                required />
+                                <small id="burialError" class="text-danger d-none"></small>
+
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Available Slots <span class="text-danger">*</span></label>
+                                <select id="burialTime" name="burialDateTime" class="form-select" required>
+                                    <option value="">-- Select a slot --</option>
+                                </select>
+                                <div id="slotMessage" class="text-danger mt-1"></div>
+                            </div>
+                            <div class="col-md-4 d-grid align-items-end">
+                                <button class="btn btn-outline-primary mt-4">Update</button>
+                            </div>
+                        </form>
+
+
+
+
+                        <hr />
+                        <form method="post" asp-page-handler="ChangeSection" class="row g-2">
+                            <div class="col-md-8">
+                                <label class="form-label">Section <span class="text-danger">*</span></label>
+                                <select class="form-select" name="newSectionId" required>
+                                    <option value="">-- Select Section --</option>
+                                    @foreach (var s in Model.Sections)
+                                    {
+                                        <option value="@s.sys_sectionId">
+                                            @s.sys_sectionName ($@s.sys_SecPrice)
+                                        </option>
+                                    }
+                                </select>
+
+                            </div>
+                            <div class="col-md-4 d-grid align-items-end">
+                                <button class="btn btn-outline-primary mt-4">Update</button>
+                            </div>
+                        </form>
+                    }
+                </div>
+
+                <div class="card-footer bg-white d-flex gap-2 justify-content-end">
+                    <form method="post" asp-page-handler="RaiseInvoice">
+                        <button class="btn btn-sm btn-primary" @(Model.Booking.sys_invoiceId.HasValue ? "disabled" : "")>
+                            Raise Invoice
+                        </button>
+                    </form>
+
+
+                    @if (Model.Booking.sys_invoiceId.HasValue)
+                    {
+                        <a class="btn btn-sm btn-outline-primary"
+                        asp-page-handler="DownloadInvoice">
+                            <i class="bi bi-download me-1"></i> Download Invoice
+                        </a>
+                    }
+
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mt-3">
+                <div class="card-body">
+                    @if (Model.Booking.sys_invoiceId.HasValue && !Model.IsPaidInFull)
+
+                    {
+                    <h5 class="mb-3">Payments</h5>
+
+                    <div class="mb-2"><strong>Invoice Total:</strong> $@Model.InvoiceTotal</div>
+                    <div class="mb-2"><strong>Paid Total:</strong> $@Model.PaidTotal</div>
+                    <div class="mb-3">
+                        <strong>Balance:</strong>
+                        <span class="@(Model.IsPaidInFull ? "text-success fw-bold" : "")">
+                            $@Model.Balance
+                        </span>
+                    </div>
+
+                   
+                        <!-- ========================= -->
+                        <!-- PAYMENT CAPTURE FORM -->
+                        <!-- ========================= -->
+                        <form method="post" asp-page-handler="CapturePayment" class="row g-2">
+
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Receipt Number</label>
+
+                                    @if (Model.AgentRecordExists)
+                                    {
+                                        <!-- Agent with fixed book -->
+                                        <input type="hidden" id="receiptBookId" name="receiptBookId"
+                                               value="@Model.AgentReceiptBook.sys_receiptBookId" />
+
+                                        <input type="number" id="receiptNumber" name="receiptNumber"
+                                               class="form-control" placeholder="Enter Receipt #"required />
+
+                                        <small class="text-muted d-block mt-1">
+                                            Book @Model.AgentReceiptBook.sys_startNumber -
+                                            @Model.AgentReceiptBook.sys_endNumber
+                                        </small>
+
+                                        <div id="receiptValidationMsg" class="text-danger small mt-1"></div>
+                                    }
+                                    else
+                                    {
+                                        <!-- Agent must choose a book -->
+                                        <select id="receiptBookId" name="receiptBookId"
+                                                class="form-select mb-2" required>
+                                            <option value="">Select Receipt Book</option>
+                                            @foreach (var b in Model.AvailableBooks)
+                                            {
+                                                <option value="@b.sys_receiptBookId"
+                                                        data-start="@b.sys_startNumber"
+                                                        data-end="@b.sys_endNumber"
+                                                        data-current="@b.sys_currentNumber">
+                                                    Book @b.sys_startNumber - @b.sys_endNumber
+                                                    (Agent: @b.AgentName)
+                                                </option>
+                                            }
+                                        </select>
+
+                                        <input type="number" id="receiptNumber" name="receiptNumber"
+                                               class="form-control" placeholder="Enter Receipt #" required />
+
+                                        <div id="receiptValidationMsg" class="text-danger small mt-1"></div>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label">Amount</label>
+                                <input class="form-control"
+                                type="number"
+                                step="0.01"
+                                asp-for="Amount"
+                                max="@Model.Balance"
+                                required />
+                            </div>
+
+                            <div class="col-md-3">
+
+                                            <label class="form-label">Method <span class="text-danger">*</span></label>
+                                            <select class="form-select" asp-for="Method" required>
+                                                
+                                                @foreach (var mt in Model.PaymentMethods)
+                                                {
+                                                    <option value="@mt.sys_paymentMethodName">
+                                                        @mt.sys_paymentMethodName
+                                                    </option>
+                                                }
+                                            </select>
+
+
+                                
+                            </div>
+
+                            <div class="col-12 d-flex justify-content-end">
+                                <button class="btn btn-sm btn-success">
+                                    Capture Payment
+                                </button>
+                            </div>
+
+                            <small class="text-muted mt-2">
+                                Payment cannot exceed the outstanding balance.
+                            </small>
+                        </form>
+                    }
+                    else if (Model.Booking.sys_invoiceId.HasValue && Model.IsPaidInFull)
+                            
+                    {
+                        <!-- ========================= -->
+                        <!-- PAYMENT HISTORY (READ-ONLY) -->
+                        <!-- ========================= -->
+                        <div class="alert alert-success mb-3">
+                            <i class="bi bi-check-circle me-1"></i>
+                            Invoice is fully paid.
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered align-middle">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Receipt Book</th>
+                                        <th>Receipt No</th>
+                                        <th>Agent</th>
+                                        <th>Method</th>
+                                        <th class="text-end">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var p in Model.PaymentRows)
+                                    {
+                                        <tr>
+                                            <td>@p.Date.ToString("yyyy-MM-dd")</td>
+                                            <td>@p.ReceiptBookNumber</td>
+                                            <td>@p.ReceiptNumber</td>
+                                            <td>@p.AgentName</td>
+                                            <td>@p.Method</td>
+                                            <td class="text-end">$@p.Amount</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr class="fw-bold">
+                                        <td colspan="5" class="text-end">Total Paid</td>
+                                        <td class="text-end">$@Model.PaidTotal</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                    }
+
+
+                    @if (Model.Booking.sys_invoiceId.HasValue && !Model.IsPaidInFull)
+                    {
+                        <hr />
+                        <form method="post" asp-page-handler="ApplyDiscount" class="row g-2">
+                            <div class="col-md-3">
+                                <label class="form-label">Discount Amount</label>
+                                <input class="form-control"
+                                       type="number"
+                                       step="0.01"
+                                       asp-for="DiscountAmount"
+                                       required />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Discount Reason</label>
+                                <input class="form-control"
+                                       asp-for="DiscountReason"
+                                       required />
+                            </div>
+
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button class="btn btn-warning w-100">
+                                    Apply 
+                                </button>
+                            </div>
+                        </form>
+                    }
+
+
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="mb-3">Allocate Grave (creates Deceased)</h5>
+
+
+                    @if (!Model.IsPaidInFull && !Model.CanOverride)
+                    {
+                        <div class="alert alert-warning">
+                            Invoice must be fully paid before allocation.
+                        </div>
+                    }
+
+                    @if(!Model.IsAlreadyAllocated){
+                        <form method="post"
+                              asp-page-handler="AllocateGrave"
+                              enctype="multipart/form-data"
+                              class="row g-2 @(Model.IsPaidInFull || Model.CanOverride ? "" : "opacity-0 pointer-events-none")">
+
+
+                            <!-- ========================= -->
+                            <!-- GRAVE SELECTION -->
+                            <!-- ========================= -->
+
+                            <div class="col-md-6">
+
+
+
+                                <label class="form-label">Search Grave (Plot Number)</label>
+                                <input type="search"
+                                       id="graveSearch"
+                                       class="form-control mb-2"
+                                       placeholder="Type to search plot number…" />
+
+                                <select class="form-select"
+                                        asp-for="GraveId"
+                                        id="graveSelect"
+                                        size="6"
+                                        required>
+                                    @foreach (var g in Model.AvailableGraves)
+                                    {
+                                        <option value="@g.sys_graveId">
+                                            Plot @g.sys_plotNumber
+                                        </option>
+                                    }
+                                </select>
+
+                                <small class="text-muted">
+                                    Only available graves from the booked section are listed.
+                                </small>
+                            </div>
+
+                            <!-- ========================= -->
+                            <!-- DECEASED DETAILS -->
+                            <!-- ========================= -->
+
+                            <div class="col-12">
+                                <label class="form-label">Deceased Full Name <span class="text-danger">*</span></label>
+                                <input class="form-control"
+                                       asp-for="DeceasedFullName"
+                                       value="@($"{Model.Booking.sys_deceasedFirstName} {Model.Booking.sys_deceasedLastName}")"
+                                       required />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">DOB <span class="text-danger">*</span></label>
+                                <input class="form-control" type="date" asp-for="DeceasedDOB" id="dob" required />
+                                <small id="dobError" class="text-danger d-none"></small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">DOD <span class="text-danger">*</span></label>
+                                <input class="form-control" type="date" asp-for="DeceasedDOD" id="dod" required />
+                                <small id="dodError" class="text-danger d-none"></small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Gender <span class="text-danger">*</span></label>
+                                <select class="form-control" asp-for="Gender" required>
+                                    <option value="">-- Select --</option>
+                                    <option>Male</option>
+                                    <option>Female</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Nationality <span class="text-danger">*</span></label>
+                                <input class="form-control" asp-for="Nationality" required />
+                            </div>
+
+                            
+                            <div class="col-md-6">
+                                <label>Marital Status<span class="text-danger">*</span></label>
+                                <select name="maritalStatus" class="form-control"  asp-for="MaritalStatus" required>
+                                    <option value="">-- Select --</option>
+                                    <option value="Single">Single</option>
+                                    <option value="Married">Married</option>
+                                    <option value="Divorced">Divorced</option>
+                                    <option value="Widowed">Widowed</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Name of Spouse</label>
+                                <input class="form-control" asp-for="NameOfSpouse" />
+                            </div>
+
+                            <!-- ========================= -->
+                            <!-- NEXT OF KIN -->
+                            <!-- ========================= -->
+
+                            <div class="col-md-6">
+                                <label class="form-label">Next of Kin Name <span class="text-danger">*</span></label>
+                                <input class="form-control" asp-for="NextOfKinName" required />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Next of Kin Phone <span class="text-danger">*</span></label>
+                                <input class="form-control" asp-for="NextOfKinPhone" required />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Next of Kin Email</label>
+                                <input class="form-control" asp-for="NextOfKinEmail" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Next of Kin Address <span class="text-danger">*</span></label>
+                                <input class="form-control" asp-for="NextOfKinAddress" required />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Repatriation Source <span class="text-danger">*</span></label>
+                                <input class="form-control" asp-for="sys_repatriationSource" required />
+                            </div>
+
+
+                            <!-- ========================= -->
+                            <!-- BURIAL ORDER -->
+                            <!-- ========================= -->
+
+                            <div class="col-md-6">
+                                <label class="form-label">Attach Burial Order <span class="text-danger">*</span></label>
+                                <input type="file"
+                                       name="BurialOrder"
+                                       class="form-control"
+                                       accept=".jpg,.jpeg,.png,.pdf" required/>
+                            </div>
+
+                            <!-- ========================= -->
+                            <!-- OVERRIDE -->
+                            <!-- ========================= -->
+
+                            <div class="col-12 mt-2">
+                                @if (Model.CanOverride)
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               asp-for="OverridePartialPayment" />
+                                        <label class="form-check-label">
+                                            Override payment requirement
+                                        </label>
+                                    </div>
+
+
+                                    <input class="form-control mt-2"
+                                           asp-for="OverrideReason"
+                                           placeholder="Override reason (required if overriding)" />
+                                }
+                            </div>
+
+
+                            <div class="col-12 d-flex justify-content-end mt-2">
+
+
+
+                                <button class="btn btn-danger"
+                                        id="allocateSubmitBtn"
+                                @(Model.IsPaidInFull || Model.CanOverride ? "" : "disabled")>
+                                    Allocate Grave
+                                </button>
+
+                            </div>
+
+
+                        </form>
+                    }
+
+                    else{
+                        <div class="alert alert-warning">
+                            A Grave is Already Allocated
+                        </div>
+                    }
+
+                    
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        // -------- Grave Search --------
+        const graveSearch = document.getElementById("graveSearch");
+        const graveSelect = document.getElementById("graveSelect");
+
+        if (graveSearch && graveSelect) {
+            const opts = Array.from(graveSelect.options);
+            graveSearch.addEventListener("input", () => {
+                const term = graveSearch.value.toLowerCase();
+                opts.forEach(o => o.hidden = !o.text.toLowerCase().includes(term));
+            });
+        }
+
+        
+
+    });
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const burialDateInput = document.getElementById("burialDate");
+        const timeSelect = document.getElementById("burialTime");
+        const messageEl = document.getElementById("slotMessage");
+        const burialError = document.getElementById("burialError");
+        
+
+        // ---------- DATE LIMITS ----------
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const maxDate = new Date(today);
+        maxDate.setDate(today.getDate() + 7);
+
+        burialDateInput.min = today.toISOString().split("T")[0];
+        burialDateInput.max = maxDate.toISOString().split("T")[0];
+
+       
+
+        // ---------- DATE CHANGE ----------
+        burialDateInput.addEventListener("change", async function () {
+            burialError.classList.add("d-none");
+            timeSelect.innerHTML = `<option value="">-- Select a slot --</option>`;
+           
+
+            if (!this.value) return;
+
+            const selectedDate = new Date(this.value);
+            selectedDate.setHours(0, 0, 0, 0);
+
+            if (selectedDate < today || selectedDate > maxDate) {
+                burialError.textContent = "Burial date must be between today and the next 7 days.";
+                burialError.classList.remove("d-none");
+                this.value = "";
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `?handler=AvailableBurialSlots&burialDate=${encodeURIComponent(this.value)}`
+                );
+
+                const result = await response.json();
+
+                if (!result.slots || result.slots.length === 0) {
+                    messageEl.textContent = "No slots available for this date.";
+                    return;
+                }
+
+                messageEl.textContent = "";
+
+                const now = new Date();
+
+                result.slots.forEach(slot => {
+                    const slotDateTime = new Date(slot);
+
+                    // 🚫 If today, block past times
+                    if (selectedDate.getTime() === today.getTime() && slotDateTime <= now) {
+                        return;
+                    }
+
+                    const opt = document.createElement("option");
+                    opt.value = slot;
+                    opt.textContent = slotDateTime.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    });
+
+                    timeSelect.appendChild(opt);
+                });
+
+                if (timeSelect.options.length === 1) {
+                    messageEl.textContent = "No future time slots available today.";
+                    
+                }
+
+            } catch (err) {
+                console.error(err);
+                messageEl.textContent = "Failed to load burial slots.";
+            }
+        });
+
+        
+
+    });
+</script>
+
+
+<script>
+    const receiptInput = document.getElementById("receiptNumber");
+    const validationMsg = document.getElementById("receiptValidationMsg");
+
+    // Case 1: Agent with record (hidden input, single book)
+    const hiddenBook = document.getElementById("receiptBookId");
+    // Case 2: Agent role only (select with data attributes)
+    const bookSelect = document.getElementById("receiptBookId") && document.getElementById("receiptBookId").tagName === "SELECT"
+        ? document.getElementById("receiptBookId")
+        : null;
+
+    function validateReceipt() {
+        if (!receiptInput) return;
+
+        const receiptNumber = parseInt(receiptInput.value);
+
+        // Clear message if empty
+        if (!receiptNumber) {
+            validationMsg.textContent = "";
+            return;
+        }
+
+        // Agent with record → book info comes from server model
+        if (hiddenBook && !bookSelect) {
+            const start = parseInt("@Model.AgentReceiptBook.sys_startNumber");
+            const end = parseInt("@Model.AgentReceiptBook.sys_endNumber");
+            const current = parseInt("@Model.AgentReceiptBook.sys_currentNumber");
+
+            if (receiptNumber < start || receiptNumber > end) {
+                validationMsg.textContent = "❌ Receipt number not in valid range.";
+            } else if (receiptNumber !== current + 1) {
+                validationMsg.textContent = `❌ Invalid sequence. Next expected is ${current + 1}.`;
+            } else {
+                validationMsg.textContent = "✅ Receipt number is valid.";
+                validationMsg.className = "text-success small mt-1";
+            }
+        }
+
+        // Agent role only → book selected from dropdown
+        if (bookSelect) {
+            const selectedOption = bookSelect.options[bookSelect.selectedIndex];
+            if (!selectedOption || !selectedOption.dataset.start) {
+                validationMsg.textContent = "";
+                return;
+            }
+
+            const start = parseInt(selectedOption.dataset.start);
+            const end = parseInt(selectedOption.dataset.end);
+            const current = parseInt(selectedOption.dataset.current);
+
+            if (receiptNumber < start || receiptNumber > end) {
+                validationMsg.textContent = "❌ Receipt number not in valid range.";
+            } else if (receiptNumber !== current + 1) {
+                validationMsg.textContent = `❌ Invalid sequence. Next expected is ${current + 1}.`;
+            } else {
+                validationMsg.textContent = "✅ Receipt number is valid.";
+                validationMsg.className = "text-success small mt-1";
+            }
+        }
+    }
+
+    // Bind events
+    if (receiptInput) {
+        receiptInput.addEventListener("input", validateReceipt);
+    }
+    if (bookSelect) {
+        bookSelect.addEventListener("change", validateReceipt);
+    }
+
+
+</script>
+
+
+<script>
+
+        document.addEventListener("DOMContentLoaded", function () {
+        const dob = document.getElementById("dob");
+        const dod = document.getElementById("dod");
+        
+
+        const dobError = document.getElementById("dobError");
+        const dodError = document.getElementById("dodError");
+       
+
+        
+
+        function toDateOnly(dateString) {
+            const p = dateString.split("-");
+            return new Date(p[0], p[1] - 1, p[2]);
+        }
+
+        
+
+        // --- DOB Validation ---
+        dob.addEventListener("change", function () {
+            dobError.classList.add("d-none");
+            if (!dob.value) { validateForm(); return; }
+
+            const dobDate = toDateOnly(dob.value);
+
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+
+            // Future DOB not allowed
+            if (dobDate > today) {
+                dobError.textContent = "Date of Birth cannot be in the future.";
+                dobError.classList.replace("d-none", "d-block");
+                 return;
+            }
+
+            // Max 120 years rule
+            const oldest = new Date();
+            oldest.setFullYear(oldest.getFullYear() - 120);
+            oldest.setHours(0, 0, 0, 0);
+
+            if (dobDate < oldest) {
+                dobError.textContent = "Date of Birth cannot be more than 120 years ago.";
+                dobError.classList.replace("d-none", "d-block");
+                 return;
+            }
+
+            if (dod.value) dod.dispatchEvent(new Event("change"));
+            
+        });
+
+        // --- DOD Validation ---
+        dod.addEventListener("change", function () {
+            dodError.classList.add("d-none");
+            if (!dod.value) { validateForm(); return; }
+
+            const dobDate = dob.value ? toDateOnly(dob.value) : null;
+            const dodDate = toDateOnly(dod.value);
+
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+
+            // Future DOD not allowed
+            if (dodDate > today) {
+                dodError.textContent = "Date of Death cannot be in the future.";
+                dodError.classList.replace("d-none", "d-block");
+                 return;
+            }
+
+            // DOD before DOB not allowed (same-day allowed)
+            if (dobDate && dodDate < dobDate) {
+                dodError.textContent = "Date of Death cannot be before Date of Birth.";
+                dodError.classList.replace("d-none", "d-block");
+                 return;
+            }
+
+            // Max age 120
+            if (dobDate) {
+                const age = dodDate.getFullYear() - dobDate.getFullYear();
+                if (age > 120) {
+                    dodError.textContent = "Age cannot exceed 120 years.";
+                    dodError.classList.replace("d-none", "d-block");
+                     return;
+                }
+            }
+
+            
+        });
+  
+       
+    });
+
+</script>

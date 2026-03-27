@@ -173,6 +173,21 @@
                                                     data-status="@job.JobStatus">
                                                 @job.GravePlot
                                             </a>
+
+                                            
+                                            <br>
+                                            @if (job.GraveProgressStatus == "Fully Developed")
+                                            {
+                                                <span class="badge bg-success ms-1">Grave Complete</span>
+                                            }
+                                            else if (job.GraveProgressStatus == "In Progress")
+                                            {
+                                                <span class="badge bg-warning text-dark ms-1">Grave In Progress</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary ms-1">Not Started</span>
+                                            }
                                         </td>
                                         <td>@job.SupplierName</td>
                                         <td>@job.StageName</td>

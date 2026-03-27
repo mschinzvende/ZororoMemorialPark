@@ -66,9 +66,23 @@ namespace ZororoMemorialPark.Data
         public DbSet<tbl_InventoryAuditTrail> tbl_InventoryAuditTrail { get; set; }
 
         public DbSet<SystemSettings> SystemSettings { get; set; }
-        public DbSet<tbl_Requisitions> tbl_Requisitions { get; set; }
-        public DbSet<tbl_RequisitionItems> tbl_RequisitionItems { get; set; }
+        public DbSet<tbl_Requisition> tbl_Requisitions { get; set; }
+        public DbSet<tbl_RequisitionLine> tbl_RequisitionLines { get; set; }
+        public DbSet<tbl_RequisitionWorkflowDefinition> tbl_RequisitionWorkflowDefinitions { get; set; }
+        public DbSet<tbl_RequisitionWorkflowStep> tbl_RequisitionWorkflowSteps { get; set; }
+        public DbSet<tbl_RequisitionLineChangeLog> tbl_RequisitionLineChangeLogs { get; set; }
+        public DbSet<tbl_RequisitionLineComment> tbl_RequisitionLineComments { get; set; }
+        public DbSet<tbl_RequisitionHistory> tbl_RequisitionHistories { get; set; }
 
+        public DbSet<tbl_PasswordResetCode> tbl_PasswordResetCodes { get; set; }
+
+        public DbSet<tbl_BurialBookings> tbl_BurialBookings { get; set; }
+        public DbSet<tbl_BurialPayments> tbl_BurialPayments { get; set; }
+
+        public DbSet<tbl_WhatsAppSession> tbl_WhatsAppSessions { get; set; }
+        public DbSet<tbl_WhatsAppOtp> tbl_WhatsAppOtps { get; set; }
+
+        public DbSet<tbl_RequisitionActionToken> tbl_RequisitionActionToken { get; set; }
 
     }
 }

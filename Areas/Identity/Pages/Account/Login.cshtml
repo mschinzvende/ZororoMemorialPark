@@ -45,6 +45,14 @@
             <div class="col-md-6 bg-white rounded-end p-5">
                 <h3 class="mb-4 text-center" style="color:#006A46;">Sign In</h3>
 
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert" id="successMessage">
+                        @TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+
                 <form method="post" class="d-flex flex-column gap-3">
                     <div class="mb-2">
                         <label asp-for="Input.Email">Email</label>
@@ -68,6 +76,7 @@
                     <div asp-validation-summary="All" class="text-danger"></div>
                 }
 
+                
                 
             </div>
 

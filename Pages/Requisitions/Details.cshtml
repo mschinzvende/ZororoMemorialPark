@@ -1,0 +1,190 @@
+﻿@page "{id:int}"
+@model ZororoMemorialPark.Pages.Requisitions.DetailsModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+
+<div class="container-fluid py-4 mb-4">
+
+@if (Model.Requisition == null)
+{
+    <div class="alert alert-danger">Requisition not found.</div>
+    return;
+}
+
+
+<!-- HEADER CARD -->
+<div class="card shadow border-0 mb-4">
+    <div class="card-header text-white" style="background-color:#006A46;">
+        <h5 class="mb-0">Requisition @Model.Requisition.RequestNumber</h5>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <strong>Requester:</strong> @Model.RequesterName
+                <br />
+                <strong>Created:</strong> @Model.Requisition.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+                <br />
+                <strong>Status:</strong>
+                <span class="badge bg-@(Model.Requisition.Status == RequisitionStatus.Approved ? "success" :
+                                       Model.Requisition.Status == RequisitionStatus.Rejected ? "danger" :
+                                       "warning text-dark")">
+                    @Model.Requisition.Status
+                </span>
+            </div>
+            <div class="col-md-6">
+                <strong>Workflow:</strong> @Model.Requisition.WorkflowDefinition.Name
+                <br />
+                <strong>Current Stage:</strong> @(Model.Requisition.CurrentStep?.StepName ?? "Completed")
+            </div>
+        </div>
+
+        <div>
+            <strong>Justification:</strong>
+            <div class="border rounded p-2 bg-light mt-1">
+                @Model.Requisition.Justification
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- WORKFLOW STAGES -->
+<div class="card border-0 shadow mb-4">
+    <div class="card-header bg-light">
+        <h6 class="mb-0">Workflow Progress</h6>
+    </div>
+    <div class="card-body">
+        <div class="d-flex flex-wrap">
+            @foreach (var s in Model.Steps)
+            {
+                <div class="card me-2 mb-2 @(s.IsCurrent ? "border-primary" : s.IsCompleted ? "border-success" : "border-secondary")"
+                     style="min-width: 180px;">
+                    <div class="card-body p-2">
+                        <strong>@s.StepName</strong><br />
+                        <small class="text-muted">@s.Type</small><br />
+
+                        @if (s.IsCurrent)
+                        {
+                            <span class="badge bg-primary mt-1">Current</span>
+                        }
+                        else if (s.IsCompleted)
+                        {
+                            <span class="badge bg-success mt-1">Completed</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary mt-1">Pending</span>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- LINE ITEMS -->
+<div class="card border-0 shadow mb-4">
+    <div class="card-header bg-light">
+        <h6 class="mb-0">Line Items</h6>
+    </div>
+    <div class="card-body">
+
+        @foreach (var item in Model.Lines)
+        {
+            <div class="border rounded p-3 mb-3">
+                <h6>@item.Line.Description</h6>
+
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Original Qty</th>
+                            <th>Original Cost</th>
+                            <th>Current Qty</th>
+                            <th>Current Cost</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>@item.Line.OriginalQuantity</td>
+                            <td>$@item.Line.OriginalUnitCost.ToString("N2")</td>
+                            <td>@item.Line.CurrentQuantity</td>
+                            <td>$@item.Line.CurrentUnitCost.ToString("N2")</td>
+                            <td>
+                                $@(item.Line.CurrentQuantity * item.Line.CurrentUnitCost)
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- CHANGE LOG -->
+                <details class="mb-2">
+                    <summary class="text-primary" style="cursor:pointer;">View Change Log</summary>
+                    @if (!item.Changes.Any())
+                    {
+                        <p class="text-muted ms-3">No changes recorded.</p>
+                    }
+                    else
+                    {
+                        <ul class="ms-3">
+                            @foreach (var c in item.Changes)
+                            {
+                                <li>
+                                    <strong>@c.ChangedAt.ToString("yyyy-MM-dd HH:mm")</strong> —
+                                    Qty: @c.OldQuantity → @c.NewQuantity,
+                                    Cost: $@c.OldUnitCost → $@c.NewUnitCost
+                                </li>
+                            }
+                        </ul>
+                    }
+                </details>
+
+                <!-- COMMENTS -->
+                <details>
+                    <summary class="text-primary" style="cursor:pointer;">View Comments</summary>
+                    @if (!item.Comments.Any())
+                    {
+                        <p class="text-muted ms-3">No comments added.</p>
+                    }
+                    else
+                    {
+                        <ul class="ms-3">
+                            @foreach (var c in item.Comments)
+                            {
+                                <li>
+                                    <strong>@c.CreatedAt.ToString("yyyy-MM-dd HH:mm")</strong>:
+                                    @c.CommentText
+                                </li>
+                            }
+                        </ul>
+                    }
+                </details>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- HISTORY TIMELINE -->
+<div class="card border-0 shadow">
+    <div class="card-header bg-light">
+        <h6 class="mb-0">Requisition Timeline</h6>
+    </div>
+    <div class="card-body">
+
+        @foreach (var h in Model.History)
+        {
+            <div class="mb-3">
+                <strong>@h.Action</strong> <small class="text-muted">(@h.StageName)</small>
+                <br />
+                <small class="text-muted">@h.Date.ToString("yyyy-MM-dd HH:mm")</small>
+                <br />
+                @if (!string.IsNullOrWhiteSpace(h.Notes))
+                {
+                    <div class="ms-3 mt-1 border-start ps-2">
+                        @h.Notes
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+</div>

@@ -1,0 +1,149 @@
+﻿@page "{decision}/{token}"
+@model ZororoMemorialPark.Pages.Requisitions.ActionModel
+
+@{
+    Layout = null;
+    ViewData["Title"] = "Confirm Requisition Action";
+}
+
+@inject ZororoMemorialPark.Services.SystemSettingsService SettingsService
+
+@{
+    var settings = await SettingsService.GetSettingsAsync();
+    string logo = settings?.LogoPath ?? "/images/default-logo.png";
+    string companyName = settings?.CompanyName ?? "Zororo Memorial";
+
+    var total = Model.Requisition?.Lines.Sum(l => l.CurrentQuantity * l.CurrentUnitCost) ?? 0;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Requisition Approval</title>
+
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+</head>
+
+<body style="background:#f4f6f8; font-family:Arial;">
+
+    <div class="container mt-5 mb-5">
+
+        <div class="card shadow-lg border-0">
+
+            <!-- HEADER -->
+            <div class="text-center p-4" style="background-color:#006A46;">
+                <img src="@logo" style="max-height:70px;" />
+                <h4 class="text-white mt-3 mb-0">@companyName</h4>
+            </div>
+
+            <!-- BODY -->
+            <div class="p-4">
+
+                <h5 class="mb-3">
+                    Requisition: <strong>@Model.Requisition?.RequestNumber</strong>
+                </h5>
+
+                <p class="mb-4">
+                    You are about to
+                    <strong class="@(Model.Decision == "approve" ? "text-success" : "text-danger")">
+                        @Model.Decision.ToUpper()
+                    </strong>
+                    this requisition.
+                </p>
+
+                <!-- LINE ITEMS TABLE -->
+                <div class="table-responsive mb-4">
+
+                    <table class="table table-sm table-bordered align-middle">
+
+                        <thead class="table-light">
+                            <tr>
+                                <th>Description</th>
+                                <th class="text-end">Qty</th>
+                                <th class="text-end">Unit Cost</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            @if (Model.Requisition?.Lines != null)
+                            {
+                                foreach (var line in Model.Requisition.Lines)
+                                {
+                                    var lineTotal = line.CurrentQuantity * line.CurrentUnitCost;
+
+                                    <tr>
+                                        <td>@line.Description</td>
+
+                                        <td class="text-end">
+                                            @line.CurrentQuantity
+                                        </td>
+
+                                        <td class="text-end">
+                                            @line.CurrentUnitCost.ToString("C")
+                                        </td>
+
+                                        <td class="text-end">
+                                            @lineTotal.ToString("C")
+                                        </td>
+                                    </tr>
+                                }
+                            }
+
+                        </tbody>
+
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="3" class="text-end">Total</th>
+                                <th class="text-end">@total.ToString("C")</th>
+                            </tr>
+                        </tfoot>
+
+                    </table>
+
+                </div>
+
+                <!-- WARNING -->
+                <div class="alert alert-warning">
+                    Please confirm your action. This cannot be undone.
+                </div>
+
+                <!-- CONFIRM FORM -->
+                <form method="post" asp-page-handler="Confirm">
+
+                    <input type="hidden" name="decision" value="@Model.Decision" />
+                    <input type="hidden" name="token" value="@Model.Token" />
+
+                    <div class="d-flex justify-content-center gap-3 mt-4">
+
+                        <button type="submit"
+                                class="btn @(Model.Decision == "approve" ? "btn-success" : "btn-danger") px-4">
+
+                            Confirm @Model.Decision
+
+                        </button>
+
+                        <a href="/" class="btn btn-secondary px-4">
+                            Cancel
+                        </a>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+            <!-- FOOTER -->
+            <div class="text-center py-3 bg-light small text-muted">
+                © @DateTime.UtcNow.Year @companyName
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+</html>

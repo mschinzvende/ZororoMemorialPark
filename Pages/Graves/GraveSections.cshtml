@@ -5,7 +5,7 @@
     ViewData["Title"] = "Grave Sections";
 }
 
-
+<div class="container-fluid py-4 mb-4">
     <div class="row">
         <div class="col-lg-12 mx-auto">
             <div class="card shadow-sm">
@@ -41,8 +41,10 @@
                             <thead>
                                 <tr>
                                     <th>Section Name</th>
+                                    <th>Price</th>
                                     <th>Reminder</th>
                                     <th>Period</th>
+                                    <th>Last Grave No.</th>
                                     <th style="width:150px;">Actions</th>
                                 </tr>
                             </thead>
@@ -51,14 +53,20 @@
                                 {
                                     <tr id="row-@grave_section.sys_sectionId">
                                         <td>@grave_section.sys_sectionName</td>
+                                        <td>$@grave_section.sys_SecPrice</td>
                                         <td> @grave_section.sys_jobReminder</td>
                                         <td>@grave_section.sys_reminderPeriod Year(s)</td>
+                                        <td>@grave_section.sys_lastGraveNo</td>
                                         <td>
                                             <button class="btn btn-sm btn-outline-secondary"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#editSectionModal"
                                                     data-id="@grave_section.sys_sectionId"
-                                                    data-name="@grave_section.sys_sectionName">
+                                                    data-name="@grave_section.sys_sectionName"
+                                                    data-price="@grave_section.sys_SecPrice"
+                                                    data-reminder="@grave_section.sys_jobReminder"
+                                                    data-period="@grave_section.sys_reminderPeriod"
+                                                    data-lastNo="@grave_section.sys_lastGraveNo">
                                                 Edit
                                             </button>
 
@@ -105,7 +113,7 @@
         </div>
     </div>
 
-
+</div>
 
 <!-- Create Modal -->
 <div class="modal fade" id="createSectionModal" tabindex="-1">
@@ -119,24 +127,39 @@
                 <form method="post" asp-page-handler="Create" id="createSectionForm">
                     
                     <div class="row">
-                        <div class="col-sm-3">
+                        <div class="col-sm-6">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Section Name</label>
                                 <input name="sectionName" class="form-control border" style="border-color: var(--primary-green);" />
                             </div>
                         </div>
 
-                        <div class="col-sm-3">
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Price $</label>
+                                <input type="number" step="1" name="sectionPrice" class="form-control border" style="border-color: var(--primary-green);" required/>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Job Reminder</label>
                                 <input value="N/A" name="jobReminder" class="form-control border" style="border-color: var(--primary-green);" />
                             </div>
                         </div>
 
-                        <div class="col-sm-3">
+                        <div class="col-sm-6">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Period (years)</label>
                                 <input value="0" type="number" min="0" step="1" name="reminderPeriod" class="form-control border" style="border-color: var(--primary-green);" />
+                            </div>
+                        </div>
+
+
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Last Grave No.</label>
+                                <input value="0" type="number" min="0" step="1" name="sys_lastGraveNo" class="form-control border" style="border-color: var(--primary-green);" />
                             </div>
                         </div>
                     </div>
@@ -165,26 +188,40 @@
                     <input type="hidden" name="sys_sectionId" />
                     
                     <div class="row">
-                    <div class="col-sm-3">
+                    <div class="col-sm-6">
                         <div class="mb-3">
                             <label class="form-label fw-bold">Section Name</label>
                             <input name="sys_sectionName" class="form-control border" style="border-color: var(--primary-green);" />
                         </div>
                     </div>
 
-                    <div class="col-sm-3">
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Price $</label>
+                                <input name="sys_sectionPrice" class="form-control border" style="border-color: var(--primary-green);" />
+                            </div>
+                        </div>
+
+                    <div class="col-sm-6">
                         <div class="mb-3">
                             <label class="form-label fw-bold">Job Reminder</label>
                             <input   name="sys_jobReminder" class="form-control border" style="border-color: var(--primary-green);" />
                         </div>
                     </div>
 
-                    <div class="col-sm-3">
+                    <div class="col-sm-6">
                         <div class="mb-3">
                             <label class="form-label fw-bold">Period (years)</label>
                             <input name="sys_reminderPeriod" class="form-control border" style="border-color: var(--primary-green);" />
                         </div>
                     </div>
+
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Last Grave No.</label>
+                                <input name="sys_lastGraveNo" class="form-control border" style="border-color: var(--primary-green);" />
+                            </div>
+                        </div>
             </div>
                     <div class="text-end">
                         <button type="submit" class="btn btn-primary">Update</button>
@@ -230,11 +267,18 @@
 
         var id = button.getAttribute('data-id');
         var name = button.getAttribute('data-name');
-
+        var price = button.getAttribute('data-price');
+        var reminder = button.getAttribute('data-reminder')
+        var period = button.getAttribute('data-period')
+         var lastNo = button.getAttribute('data-lastNo')
         // Fill form fields
         var modal = this;
         modal.querySelector('input[name="sys_sectionId"]').value = id;
         modal.querySelector('input[name="sys_sectionName"]').value = name;
+        modal.querySelector('input[name="sys_sectionPrice"]').value = price;
+        modal.querySelector('input[name="sys_jobReminder"]').value = reminder;
+        modal.querySelector('input[name="sys_reminderPeriod"]').value = period;
+        modal.querySelector('input[name="sys_lastGraveNo"]').value = lastNo;
     });
 
     // When Delete modal is about to show
