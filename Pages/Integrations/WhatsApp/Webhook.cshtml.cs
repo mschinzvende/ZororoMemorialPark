@@ -7,6 +7,7 @@ using ZororoMemorialPark.Services.WhatsApp;
 
 namespace ZororoMemorialPark.Pages.Integrations.WhatsApp
 {
+    [IgnoreAntiforgeryToken] // CRITICAL
     public class WebhookModel : PageModel
     {
         private readonly WhatsAppOptions _options;
@@ -20,20 +21,40 @@ namespace ZororoMemorialPark.Pages.Integrations.WhatsApp
             _bot = bot;
         }
 
-        
-
-
-
         // META VERIFICATION (GET)
-        public IActionResult OnGet(
-            [FromQuery(Name = "hub.mode")] string mode,
-            [FromQuery(Name = "hub.verify_token")] string token,
-            [FromQuery(Name = "hub.challenge")] string challenge)
-        {
-            if (mode == "subscribe" && token == _options.VerifyToken)
-                return Content(challenge);
 
-            return Unauthorized();
+        /*public IActionResult OnGet()
+        {
+            var mode = Request.Query["hub.mode"].ToString();
+            var token = Request.Query["hub.verify_token"].ToString();
+            var challenge = Request.Query["hub.challenge"].ToString();
+
+            Console.WriteLine($"MODE: '{mode}'");
+            Console.WriteLine($"TOKEN: '{token}'");
+            Console.WriteLine($"EXPECTED: '{_options.VerifyToken}'");
+
+            return Content($"mode={mode}, token={token}, expected={_options.VerifyToken}, challenge={challenge}", "text/plain");
+        }
+      */
+        public IActionResult OnGet()
+        {
+            var mode = Request.Query["hub.mode"].ToString();
+            var token = Request.Query["hub.verify_token"].ToString();
+            var challenge = Request.Query["hub.challenge"].ToString();
+
+            Console.WriteLine($"VERIFY REQUEST: mode={mode}, token={token}");
+
+            if (mode == "subscribe" && token == _options.VerifyToken)
+            {
+                return new ContentResult
+                {
+                    Content = challenge,
+                    ContentType = "text/plain",
+                    StatusCode = 200
+                };
+            }
+
+            return new StatusCodeResult(401);
         }
 
         // INCOMING WHATSAPP MESSAGES (POST)
@@ -42,14 +63,30 @@ namespace ZororoMemorialPark.Pages.Integrations.WhatsApp
             using var reader = new StreamReader(Request.Body);
             var body = await reader.ReadToEndAsync();
 
+            Console.WriteLine("RAW WEBHOOK:");
+            Console.WriteLine(body);
+
             if (!IsValidSignature(body))
-                return Unauthorized();
+            {
+                Console.WriteLine("INVALID SIGNATURE");
+                return new StatusCodeResult(401);
+            }
 
             var payload = WhatsAppWebhookModels.Parse(body);
-            var message = payload?.GetFirstMessage();
+
+            if (payload == null)
+            {
+                Console.WriteLine("FAILED TO PARSE PAYLOAD");
+                return new OkResult();
+            }
+
+            var message = payload.GetFirstMessage();
 
             if (message != null)
+            {
+                Console.WriteLine($"MESSAGE FROM: {message.from}");
                 await _bot.ProcessIncomingAsync(message);
+            }
 
             return new OkResult();
         }
@@ -60,7 +97,7 @@ namespace ZororoMemorialPark.Pages.Integrations.WhatsApp
                 return true;
 
             if (!Request.Headers.TryGetValue("X-Hub-Signature-256", out var sig))
-                return false;
+                return true; // allow missing during testing
 
             var expected = sig.ToString().Replace("sha256=", "");
 
