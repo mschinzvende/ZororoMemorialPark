@@ -12,16 +12,6 @@
     "https": {
       "commandName": "Project",
       "launchBrowser": true,
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "SMTP_SERVER": "mail.zororomemorial.co.zw",
-        "SMTP_PORT": "465",
-        "SMTP_SENDER_EMAIL": "noreply@zororomemorial.co.zw",
-        "SMTP_SENDER_PASSWORD": "Zimbotech@123",
-        "USE_SSL": "true",
-        "SMTP_SENDER_NAME": "Zororo Memorial Park",
-        "DB_CONNECTION_STRING": "\"Server=DESKTOP-B34DOTS\\\\SQLEXPRESS;Database=ZororoMemorial;Encrypt=False;TrustServerCertificate=True;Trusted_Connection=True;MultipleActiveResultSets=true\""
-      },
       "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:7246;http://localhost:5014"
     },

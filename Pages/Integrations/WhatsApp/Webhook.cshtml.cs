@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Options;
@@ -7,7 +8,8 @@ using ZororoMemorialPark.Services.WhatsApp;
 
 namespace ZororoMemorialPark.Pages.Integrations.WhatsApp
 {
-    [IgnoreAntiforgeryToken] // CRITICAL
+    [AllowAnonymous]
+    [IgnoreAntiforgeryToken]
     public class WebhookModel : PageModel
     {
         private readonly WhatsAppOptions _options;
@@ -42,19 +44,12 @@ namespace ZororoMemorialPark.Pages.Integrations.WhatsApp
             var token = Request.Query["hub.verify_token"].ToString();
             var challenge = Request.Query["hub.challenge"].ToString();
 
-            Console.WriteLine($"VERIFY REQUEST: mode={mode}, token={token}");
-
             if (mode == "subscribe" && token == _options.VerifyToken)
             {
-                return new ContentResult
-                {
-                    Content = challenge,
-                    ContentType = "text/plain",
-                    StatusCode = 200
-                };
+                return Content(challenge, "text/plain");
             }
 
-            return new StatusCodeResult(401);
+            return Content("INVALID", "text/plain"); // avoid HTML fallback
         }
 
         // INCOMING WHATSAPP MESSAGES (POST)
