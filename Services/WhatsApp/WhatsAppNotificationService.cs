@@ -175,39 +175,60 @@ namespace ZororoMemorialPark.Services.WhatsApp
         }
 
 
-public async Task<HttpResponseMessage> SendBurialSchedule(
-      string to,
-      string documentUrl,   // PUBLIC URL of PDF
-      string fileName = "BurialSchedule.pdf"
-  )
+        public async Task<HttpResponseMessage> SendPdfMessage(string to, string fileUrl, string templateName, string filename, string parameter1, string parameter2)
         {
             await EnsureInitializedAsync();
-
             var messageData = new
             {
                 messaging_product = "whatsapp",
                 to = to,
-                type = "document",
-                document = new
+                type = "template",
+                template = new
                 {
-                    link = documentUrl,
-                    filename = fileName,
-                    caption = "Burial Schedule"
+                    name = templateName,
+                    language = new { code = "en" },
+                    components = new object[]
+                {
+                    new
+                    {
+                        type = "header",
+                        parameters = new object[]
+                        {
+                            new
+                            {
+                                type = "document",
+                                document = new
+                                {
+                                    link =fileUrl,
+                                    filename = filename
+                                }
+                            }
+                        }
+                    },
+                    new
+                    {
+                        type = "body",
+                        parameters = new[]
+                        {
+                            new { type = "text", text = parameter1 },
+                            new { type = "text", text = parameter2 }
+                        }
+                    }
+                }
                 }
             };
 
             var content = new StringContent(
                 JsonConvert.SerializeObject(messageData),
                 Encoding.UTF8,
-                "application/json"
-            );
+                "application/json");
 
             var response = await _httpClient.PostAsync("", content);
+
 
             var responseContent = await response.Content.ReadAsStringAsync();
             Console.WriteLine($"Response Status: {response.StatusCode}");
             Console.WriteLine($"Response Content: {responseContent}");
-
             return response;
         }
 

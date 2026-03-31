@@ -207,11 +207,11 @@ namespace ZororoMemorialPark.Pages.Burials
                 await System.IO.File.WriteAllBytesAsync(fullPath, pdfBytes);
 
                 var publicUrl = $"{Request.Scheme}://{Request.Host}{relativePath}";
-
+                //var tempurl = "https://zororomemorial.azurewebsites.net/documents/invoice_1097.pdf";
                 // SEND WHATSAPP (reuse your NotificationService)
-                await _whatsApp.SendBurialSchedule(
+                await _whatsApp.SendPdfMessage(
                     phoneNumber,
-                    publicUrl
+                    publicUrl,"send_document",$"BurialSchedule-{DateTime.Now}","Good day","Burial Schedule"
                 );
 
                 TempData["SuccessMessage"] = "Schedule sent successfully via WhatsApp.";

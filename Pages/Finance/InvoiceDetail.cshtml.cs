@@ -107,9 +107,12 @@ namespace ZororoMemorialPark.Pages.Finance
 
             await System.IO.File.WriteAllBytesAsync(path, pdfBytes);
 
+            
             var url = $"{Request.Scheme}://{Request.Host}/documents/{fileName}";
 
-            var result = await _whatsApp.SendBurialSchedule(phoneNumber, url);
+            
+
+            var result = await _whatsApp.SendPdfMessage(phoneNumber,url,"send_document",fileName,customerName,"Invoice");
 
             if (result.IsSuccessStatusCode)
             {

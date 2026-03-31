@@ -7,6 +7,7 @@ using QuestPDF.Infrastructure;
 using ZororoMemorialPark.Data.Models;
 using ZororoMemorialPark.Services.WhatsApp;
 using ZororoMemorialPark.Services.Bookings;
+using Microsoft.AspNetCore.StaticFiles;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -87,7 +88,13 @@ else
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+var provider = new FileExtensionContentTypeProvider();
+provider.Mappings[".pdf"] = "application/pdf";
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = provider
+});
 
 app.UseRouting();
 
