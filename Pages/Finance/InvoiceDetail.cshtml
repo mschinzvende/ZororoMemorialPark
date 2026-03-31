@@ -23,6 +23,11 @@
         <h5 class="mb-0">Invoice @Model.Invoice?.sys_invoiceId</h5>
         <div>
             <a asp-page="./InvoicesList" class="btn btn-light btn-sm">Back</a>
+                <button class="btn btn-success btn-sm"
+                        data-bs-toggle="modal"
+                        data-bs-target="#sendInvoiceModal">
+                    <i class="bi bi-whatsapp"></i> Send
+                </button>
             <a asp-page-handler="Pdf"
             asp-route-id="@Model.Invoice.sys_invoiceId"
             class="btn btn-outline-white btn-sm"
@@ -242,7 +247,32 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="sendInvoiceModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
 
+            <form method="post" asp-page-handler="SendInvoice">
+
+                <div class="modal-header" style="background:#006A46;color:white;">
+                    <h5 class="modal-title">Send Invoice</h5>
+                    <button class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <label>Phone Number</label>
+                    <input type="text" name="phoneNumber" class="form-control"
+                           placeholder="e.g. 2637XXXXXXXX" required />
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-success">Send</button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
 
 <script>
     const paymentModal = document.getElementById("paymentModal");

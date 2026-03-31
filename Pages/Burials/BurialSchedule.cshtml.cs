@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 using ZororoMemorialPark.Data;
 using ZororoMemorialPark.Data.Models;
 using ZororoMemorialPark.Services;
+using ZororoMemorialPark.Services.WhatsApp;
+using Microsoft.AspNetCore.Hosting;
 
 namespace ZororoMemorialPark.Pages.Burials
 {
@@ -19,17 +21,24 @@ namespace ZororoMemorialPark.Pages.Burials
         private readonly SystemSettingsService _settingsService;
         private readonly IAppLogger _appLogger;
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly BurialSchedulePdfService _pdfService;
+        private readonly WhatsAppNotificationService _whatsApp;
+        private readonly IWebHostEnvironment _env;
 
         public BurialScheduleModel(
             ApplicationDbContext context,
             NotificationService notificationService,
-            SystemSettingsService settingsService, IAppLogger appLogger, UserManager<IdentityUser> userManager)
+            SystemSettingsService settingsService, IAppLogger appLogger, UserManager<IdentityUser> userManager,
+            BurialSchedulePdfService pdfService, WhatsAppNotificationService whatsApp, IWebHostEnvironment env)
         {
             _context = context;
             _notificationService = notificationService;
             _settingsService = settingsService;
             _appLogger = appLogger;
             _userManager = userManager;
+            _pdfService = pdfService;
+            _whatsApp = whatsApp;
+            _env = env;
         }
 
         // Filter
@@ -178,8 +187,67 @@ namespace ZororoMemorialPark.Pages.Burials
         }
 
 
+        public async Task<IActionResult> OnPostSendScheduleAsync(string phoneNumber)
+        {
+            try
+            {
+                // reload data (reuse your logic)
+                await OnGetAsync();
+
+                var settings = await _settingsService.GetSettingsAsync();
+
+                var logoPath = Path.Combine(_env.ContentRootPath, "wwwroot", settings.LogoPath.TrimStart('/'));
+
+                var pdfBytes = _pdfService.GenerateSchedulePdf(AllBurials, settings, logoPath);
+
+                var fileName = $"BurialSchedule_{DateTime.Now:yyyyMMddHHmm}.pdf";
+                var relativePath = $"/documents/{fileName}";
+                var fullPath = Path.Combine(_env.WebRootPath, "documents", fileName);
+
+                await System.IO.File.WriteAllBytesAsync(fullPath, pdfBytes);
+
+                var publicUrl = $"{Request.Scheme}://{Request.Host}{relativePath}";
+
+                // SEND WHATSAPP (reuse your NotificationService)
+                await _whatsApp.SendBurialSchedule(
+                    phoneNumber,
+                    publicUrl
+                );
+
+                TempData["SuccessMessage"] = "Schedule sent successfully via WhatsApp.";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Failed to send schedule.";
+            }
+
+            return RedirectToPage();
+        }
 
 
+        public async Task<IActionResult> OnGetDownloadScheduleAsync()
+        {
+            try
+            {
+                // reload data
+                await OnGetAsync();
+
+                var settings = await _settingsService.GetSettingsAsync();
+
+                var logoPath = Path.Combine(_env.ContentRootPath, "wwwroot", settings.LogoPath.TrimStart('/'));
+
+                var pdfBytes = _pdfService.GenerateSchedulePdf(AllBurials, settings, logoPath);
+
+                var fileName = $"BurialSchedule_{DateTime.Now:yyyyMMddHHmm}.pdf";
+
+                return File(pdfBytes, "application/pdf", fileName);
+            }
+            catch (Exception)
+            {
+                TempData["ErrorMessage"] = "Failed to generate schedule PDF.";
+                return RedirectToPage();
+            }
+        }
         // ---------------------------------------------------------
         // SEND NOK NOTIFICATION
         // ---------------------------------------------------------

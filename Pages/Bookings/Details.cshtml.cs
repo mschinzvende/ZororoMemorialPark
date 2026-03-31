@@ -12,6 +12,7 @@ using ZororoMemorialPark.Services;
 using System.Globalization;
 using static ZororoMemorialPark.Pages.Graves.GraveDetailsModel;
 using Microsoft.AspNetCore.Identity;
+using ZororoMemorialPark.Services.WhatsApp;
 
 namespace ZororoMemorialPark.Pages.Bookings
 {
@@ -23,11 +24,14 @@ namespace ZororoMemorialPark.Pages.Bookings
 
         private readonly IAppLogger _appLogger;
 
-        public DetailsModel(ApplicationDbContext db, UserManager<IdentityUser> userManager, IAppLogger appLogger)
+        private readonly WhatsAppNotificationService _whatsApp;
+
+        public DetailsModel(ApplicationDbContext db, UserManager<IdentityUser> userManager, IAppLogger appLogger, WhatsAppNotificationService whatsApp)
         {
             _db = db;
             _userManager = userManager;
             _appLogger = appLogger;
+            _whatsApp = whatsApp;
         }
 
 
@@ -46,9 +50,16 @@ namespace ZororoMemorialPark.Pages.Bookings
         public bool IsAlreadyAllocated { get; set; } = new();
 
 
+        //customer fields
 
+        [BindProperty] public string DeceasedFirstName { get; set; }
+        [BindProperty] public string DeceasedLastName { get; set; }
+
+        [BindProperty] public string PaymentMadeBy { get; set; }
+        [BindProperty] public string CustomerPhone { get; set; }
 
         public tbl_BurialBookings Booking { get; set; }
+        public tbl_Customers Customers { get; set; }
         public tbl_Sections Section { get; set; }
         public double SectionPrice => Section?.sys_SecPrice ?? 0;
 
@@ -283,6 +294,153 @@ namespace ZororoMemorialPark.Pages.Bookings
             return RedirectToPage(new { id });
         }
 
+
+        public async Task<IActionResult> OnPostUpdateBookingDetailsAsync()
+        {
+            try
+            {
+                await LoadAsync();
+                if (Booking == null) return RedirectToPage("Index");
+
+                if (string.IsNullOrWhiteSpace(DeceasedFirstName) ||
+                    string.IsNullOrWhiteSpace(DeceasedLastName))
+                {
+                    TempData["Err"] = "Deceased name is required.";
+                    return RedirectToPage(new { id });
+                }
+
+                // Update booking (deceased names)
+                Booking.sys_deceasedFirstName = DeceasedFirstName.Trim();
+                Booking.sys_deceasedLastName = DeceasedLastName.Trim();
+
+                
+
+                // Update customer
+                var customer = await _db.tbl_Customers
+                    .FirstOrDefaultAsync(c => c.sys_customerId == Booking.sys_customerId);
+
+                if (customer != null)
+                {
+                    customer.sys_paymentMadeBy = string.IsNullOrWhiteSpace(PaymentMadeBy)
+                        ? "n/a"
+                        : PaymentMadeBy.Trim();
+
+                    customer.sys_customerPhone = string.IsNullOrWhiteSpace(CustomerPhone)
+                        ? "n/a"
+                        : CustomerPhone.Trim();
+                }
+
+                await _db.SaveChangesAsync();
+
+                
+                TempData["Ok"] = "Booking details updated successfully.";
+
+                var bookedSection = await _db.tbl_Sections.AsNoTracking().FirstOrDefaultAsync(s => s.sys_sectionId == Booking.sys_sectionId);
+
+
+                var response = await _whatsApp.SendBookingNotification(customer.sys_customerPhone, "burial_booking_modification",
+                $"{Booking.sys_deceasedFirstName} {Booking.sys_deceasedLastName}", Booking.sys_requestedBurialDateTime.ToString("f"),
+                bookedSection.sys_sectionName, customer.sys_paymentMadeBy);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["Ok"] = "Booking Notification Sent to Customer";
+                }
+
+
+                return RedirectToPage(new { id });
+            }
+            catch (Exception ex)
+            {
+
+                TempData["Err"] = $"Unexpected Error: {ex.Message}";
+                return RedirectToPage(new { id });
+            }
+        }
+
+
+        public async Task<IActionResult> OnPostReverseInvoiceAsync()
+        {
+            await LoadAsync();
+
+            if (Booking == null || !Booking.sys_invoiceId.HasValue)
+                return RedirectToPage("Index");
+
+            // -----------------------------
+            // PERMISSION CHECK
+            // -----------------------------
+            if (!User.IsInRole("Manager"))
+            {
+                TempData["Err"] = "You are not authorized to reverse invoices.";
+                return RedirectToPage(new { id });
+            }
+
+            // -----------------------------
+            // CHECK PAYMENTS
+            // -----------------------------
+            var hasPayments = await _db.tbl_BurialPayments
+                .AnyAsync(p => p.sys_invoiceId == Booking.sys_invoiceId.Value);
+
+            if (hasPayments)
+            {
+                TempData["Err"] = "Cannot reverse invoice with existing payments.";
+                return RedirectToPage(new { id });
+            }
+
+            // -----------------------------
+            // CHECK ALLOCATION
+            // -----------------------------
+            var isAllocated = await _db.tbl_GraveAllocations
+                .AnyAsync(a => a.sys_bookingId == Booking.sys_bookingId);
+
+            if (isAllocated)
+            {
+                TempData["Err"] = "Cannot reverse invoice after grave allocation.";
+                return RedirectToPage(new { id });
+            }
+
+            using var tx = await _db.Database.BeginTransactionAsync();
+
+            // -----------------------------
+            // DELETE INVOICE ITEMS
+            // -----------------------------
+            var items = await _db.tbl_InvoiceItems
+                .Where(i => i.sys_invoiceId == Booking.sys_invoiceId.Value)
+                .ToListAsync();
+
+            _db.tbl_InvoiceItems.RemoveRange(items);
+
+            // -----------------------------
+            // DELETE LINKER
+            // -----------------------------
+            var linkers = await _db.tbl_GraveAllocationInvoices
+                .Where(l => l.sys_invoiceId == Booking.sys_invoiceId.Value)
+                .ToListAsync();
+
+            _db.tbl_GraveAllocationInvoices.RemoveRange(linkers);
+
+            // -----------------------------
+            // DELETE INVOICE
+            // -----------------------------
+            var invoice = await _db.tbl_Invoices
+                .FirstOrDefaultAsync(i => i.sys_invoiceId == Booking.sys_invoiceId.Value);
+
+            if (invoice != null)
+                _db.tbl_Invoices.Remove(invoice);
+
+            // -----------------------------
+            // RESET BOOKING
+            // -----------------------------
+            Booking.sys_invoiceId = null;
+            Booking.sys_bookingStatus = "PendingPayment";
+
+            await _db.SaveChangesAsync();
+            await tx.CommitAsync();
+
+            TempData["Ok"] = "Invoice reversed successfully.";
+
+            return RedirectToPage(new { id });
+        }
         public async Task<IActionResult> OnGetAsync()
         {
             await LoadAsync();
@@ -297,6 +455,12 @@ namespace ZororoMemorialPark.Pages.Bookings
 
             Booking = await _db.tbl_BurialBookings.FirstOrDefaultAsync(b => b.sys_bookingId == id);
             if (Booking == null) return;
+
+            Customers = await _db.tbl_Customers
+                .FirstOrDefaultAsync(c => c.sys_customerId == Booking.sys_customerId);
+
+            if (Customers == null) return;
+            
 
 
             IsAlreadyAllocated = await _db.tbl_GraveAllocations
@@ -489,6 +653,20 @@ namespace ZororoMemorialPark.Pages.Bookings
             await _db.SaveChangesAsync();
 
             TempData["Ok"] = "Burial date and time updated.";
+
+
+            var bookedSection = await _db.tbl_Sections.AsNoTracking().FirstOrDefaultAsync(s => s.sys_sectionId == Booking.sys_sectionId);
+            var customer = await _db.tbl_Customers.AsNoTracking().FirstOrDefaultAsync(c => c.sys_customerId == Booking.sys_customerId);
+
+
+            var response = await _whatsApp.SendBookingNotification(customer.sys_customerPhone, "burial_booking_modification",
+            $"{Booking.sys_deceasedFirstName} {Booking.sys_deceasedLastName}", Booking.sys_requestedBurialDateTime.ToString("f"),
+            bookedSection.sys_sectionName, customer.sys_paymentMadeBy);
+
+            if (response.IsSuccessStatusCode)
+            {
+                TempData["Ok"] = "Booking Notification Sent to Customer";
+            }
             return RedirectToPage(new { id });
         }
 
@@ -521,6 +699,20 @@ namespace ZororoMemorialPark.Pages.Bookings
             await _db.SaveChangesAsync();
 
             TempData["Ok"] = "Section updated.";
+
+
+            var bookedSection = await _db.tbl_Sections.AsNoTracking().FirstOrDefaultAsync(s => s.sys_sectionId == Booking.sys_sectionId);
+            var customer = await _db.tbl_Customers.AsNoTracking().FirstOrDefaultAsync(c => c.sys_customerId == Booking.sys_customerId);
+
+
+            var response = await _whatsApp.SendBookingNotification(customer.sys_customerPhone, "burial_booking_modification",
+            $"{Booking.sys_deceasedFirstName} {Booking.sys_deceasedLastName}", Booking.sys_requestedBurialDateTime.ToString("f"),
+            bookedSection.sys_sectionName, customer.sys_paymentMadeBy);
+
+            if (response.IsSuccessStatusCode)
+            {
+                TempData["Ok"] = "Booking Notification Sent to Customer";
+            }
             return RedirectToPage(new { id });
         }
 

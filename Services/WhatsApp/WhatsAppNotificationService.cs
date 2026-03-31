@@ -121,11 +121,95 @@ namespace ZororoMemorialPark.Services.WhatsApp
 
 
 
+        public async Task<HttpResponseMessage> SendBookingNotification(
+    string to,
+    string templateName,
+    string deceasedName,
+    string burialDate,
+    string burialSection,
+    string customerName)
+        {
+            await EnsureInitializedAsync();
+
+            var messageData = new
+            {
+                messaging_product = "whatsapp",
+                to = to,
+                type = "template",
+                template = new
+                {
+                    name = templateName,
+                    language = new { code = "en" },
+                    components = new object[]
+                    {
+                // BODY
+                new
+                {
+                    type = "body",
+                    parameters = new object[]
+                    {
+                        new { type = "text", text=customerName },
+                        new { type = "text", text = deceasedName },
+                        new { type = "text", text = burialDate },
+                        new { type = "text", text=burialSection }
+                        
+                    }
+                },
+
+                    }
+                }
+            };
+
+            var content = new StringContent(
+                JsonConvert.SerializeObject(messageData),
+                Encoding.UTF8,
+                "application/json");
+
+            var response = await _httpClient.PostAsync("", content);
 
 
+            var responseContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Response Status: {response.StatusCode}");
+            Console.WriteLine($"Response Content: {responseContent}");
+            return response;
+        }
 
 
+public async Task<HttpResponseMessage> SendBurialSchedule(
+      string to,
+      string documentUrl,   // PUBLIC URL of PDF
+      string fileName = "BurialSchedule.pdf"
+  )
+        {
+            await EnsureInitializedAsync();
 
+            var messageData = new
+            {
+                messaging_product = "whatsapp",
+                to = to,
+                type = "document",
+                document = new
+                {
+                    link = documentUrl,
+                    filename = fileName,
+                    caption = "Burial Schedule"
+                }
+            };
+
+            var content = new StringContent(
+                JsonConvert.SerializeObject(messageData),
+                Encoding.UTF8,
+                "application/json"
+            );
+
+            var response = await _httpClient.PostAsync("", content);
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Response Status: {response.StatusCode}");
+            Console.WriteLine($"Response Content: {responseContent}");
+
+            return response;
+        }
 
 
 

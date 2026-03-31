@@ -9,16 +9,20 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using ZororoMemorialPark.Data.Models;
 using ZororoMemorialPark.Data;
+using ZororoMemorialPark.Services.WhatsApp;
+using static System.Collections.Specialized.BitVector32;
 
 namespace ZororoMemorialPark.Pages.Bookings
 {
     public class CreateModel : PageModel
     {
         private readonly ApplicationDbContext _db;
+        private readonly WhatsAppNotificationService _whatsApp;
 
-        public CreateModel(ApplicationDbContext db)
+        public CreateModel(ApplicationDbContext db, WhatsAppNotificationService whatsApp)
         {
             _db = db;
+            _whatsApp = whatsApp;
         }
 
         public List<tbl_Sections> Sections { get; set; } = new();
@@ -296,6 +300,25 @@ namespace ZororoMemorialPark.Pages.Bookings
 
             _db.tbl_BurialBookings.Add(booking);
             await _db.SaveChangesAsync();
+
+            //send whatsapp notification
+
+            var bookedSection  = await _db.tbl_Sections.AsNoTracking().FirstOrDefaultAsync(s => s.sys_sectionId == booking.sys_sectionId);
+           // var customer = await _db.tbl_Customers.AsNoTracking().FirstOrDefaultAsync(c => c.sys_customerId == booking.sys_customerId);
+            
+            var response = await _whatsApp.SendBookingNotification(customer.sys_customerPhone, "booking_notification",
+                $"{booking.sys_deceasedFirstName} {booking.sys_deceasedLastName}", booking.sys_requestedBurialDateTime.ToString("f"),
+                bookedSection.sys_sectionName, customer.sys_paymentMadeBy);
+
+            if (response.IsSuccessStatusCode)
+            {
+                TempData["Ok"] = "Booking Notification Sent to Customer";
+            }
+
+            else
+            {
+                TempData["Err"] = $"Notification Failed to Send: {response.ReasonPhrase}";
+            }
 
             return RedirectToPage("Details", new { id = booking.sys_bookingId });
         }

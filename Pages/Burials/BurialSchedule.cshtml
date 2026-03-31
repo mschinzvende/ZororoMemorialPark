@@ -31,9 +31,23 @@
             </p>
         </div>
         <div class="col-auto">
-            <a asp-page="/Index" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-arrow-left"></i> Back to Dashboard
-            </a>
+            
+
+            <div class="d-flex gap-2">
+                <a asp-page="/Index" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back to Dashboard
+                </a>
+                <a asp-page-handler="DownloadSchedule"
+                   class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-download"></i> Download
+                </a>
+
+                <button class="btn btn-success btn-sm"
+                        data-bs-toggle="modal"
+                        data-bs-target="#sendScheduleModal">
+                    <i class="bi bi-whatsapp"></i> Send
+                </button>
+            </div>
         </div>
     </div>
 
@@ -209,4 +223,33 @@
         </div>
     </div>
 
+</div>
+
+<div class="modal fade" id="sendScheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <form method="post" asp-page-handler="SendSchedule">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Send Burial Schedule</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <label class="form-label">Phone Number</label>
+                    <input type="text" name="phoneNumber" class="form-control"
+                           placeholder="e.g. 2637XXXXXXXX" required />
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">
+                        Send via WhatsApp
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
 </div>

@@ -69,6 +69,7 @@ builder.Services.AddHttpClient<WhatsAppClient>();
 
 builder.Services.AddScoped<BurialBookingEngine>();
 builder.Services.AddScoped<WhatsAppBookingBotService>();
+builder.Services.AddScoped<BurialSchedulePdfService>();
 
 
 var app = builder.Build();

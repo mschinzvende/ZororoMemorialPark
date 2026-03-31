@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using ZororoMemorialPark.Services;
 using Humanizer;
+using ZororoMemorialPark.Services.WhatsApp;
 
 namespace ZororoMemorialPark.Pages.Finance
 {
@@ -16,11 +17,19 @@ namespace ZororoMemorialPark.Pages.Finance
     {
         private readonly ApplicationDbContext _context;
        private readonly InvoicePdfService _pdfService;
+        private readonly SystemSettingsService _settingsService;
+        private readonly IWebHostEnvironment _env;
+
+        private readonly WhatsAppNotificationService _whatsApp;
         public List<tbl_PaymentMethods> PaymentMethods { get; set; }
-        public InvoiceDetailModel(ApplicationDbContext context, InvoicePdfService pdfService)
+        public InvoiceDetailModel(ApplicationDbContext context, InvoicePdfService pdfService, 
+            WhatsAppNotificationService whatsApp, SystemSettingsService settingsService, IWebHostEnvironment env)
         {
             _context = context;
             _pdfService = pdfService;
+            _whatsApp = whatsApp;
+            _settingsService = settingsService;
+            _env = env;
         }
 
         public tbl_Invoices Invoice { get; set; }
@@ -64,6 +73,57 @@ namespace ZororoMemorialPark.Pages.Finance
             return Page();
         }
 
+
+        public async Task<IActionResult> OnPostSendInvoiceAsync(int id, string phoneNumber)
+        {
+            var invoice = await _context.tbl_Invoices.FindAsync(id);
+            if (invoice == null) return NotFound();
+
+            var items = await _context.tbl_InvoiceItems.Where(i => i.sys_invoiceId == id).ToListAsync();
+            var payments = await _context.tbl_IncomePayments.Where(p => p.sys_invoiceId == id).ToListAsync();
+
+            var customerName = await _context.tbl_Customers
+                .Where(c => c.sys_customerId == invoice.sys_customerId)
+                .Select(c => c.sys_paymentMadeBy)
+                .FirstOrDefaultAsync();
+
+            var settings = await _settingsService.GetSettingsAsync();
+
+            var logoPath = Path.Combine(_env.ContentRootPath, "wwwroot", settings.LogoPath.TrimStart('/'));
+
+            var pdfBytes = _pdfService.GenerateInvoicePdf(
+                invoice,
+                "Zororo Memorial Park",
+                "Harare, Zimbabwe",
+                "+263...",
+                "info@...",
+                logoPath,
+                customerName,
+                items,
+                payments);
+
+            var fileName = $"invoice_{id}.pdf";
+            var path = Path.Combine("wwwroot/documents", fileName);
+
+            await System.IO.File.WriteAllBytesAsync(path, pdfBytes);
+
+            var url = $"{Request.Scheme}://{Request.Host}/documents/{fileName}";
+
+            var result = await _whatsApp.SendBurialSchedule(phoneNumber, url);
+
+            if (result.IsSuccessStatusCode)
+            {
+                TempData["SuccessMessage"] = "Invoice sent via WhatsApp";
+            }
+
+            else
+            {
+                TempData["ErrorMessage"] = "Invoice sending failed";
+            }
+
+            
+            return RedirectToPage(new { id });
+        }
         // GET handler to return PDF
         public async Task<IActionResult> OnGetPdfAsync(int id)
         {
@@ -82,7 +142,10 @@ namespace ZororoMemorialPark.Pages.Finance
             string companyAddress = "40 Livingstone Avenue, Harare, Zimbabwe";
             string companyPhone = "+263 782 352 083";
             string companyEmail = "info@zororomemorial.co.zw";
-            string logoPath = null; // optional absolute or relative path to logo file on server
+            var settings = await _settingsService.GetSettingsAsync();
+
+            var logoPath = Path.Combine(_env.ContentRootPath, "wwwroot", settings.LogoPath.TrimStart('/'));
+
 
             var pdfBytes = _pdfService.GenerateInvoicePdf(invoice,
                 companyName,

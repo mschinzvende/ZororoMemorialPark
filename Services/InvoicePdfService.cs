@@ -196,18 +196,20 @@ namespace ZororoMemorialPark.Services
         }
 
 
-        public byte[] GenerateInvoicePdf(tbl_Invoices invoice,
-            string companyName,
-            string companyAddress,
-            string companyPhone,
-            string companyEmail,
-            string logoPath, // path on server or null
-            string customerName,
-            List<tbl_InvoiceItems> items,
-            List<tbl_IncomePayments> payments)
+        public byte[] GenerateInvoicePdf(
+     tbl_Invoices invoice,
+     string companyName,
+     string companyAddress,
+     string companyPhone,
+     string companyEmail,
+     string logoPath,
+     string customerName,
+     List<tbl_InvoiceItems> items,
+     List<tbl_IncomePayments> payments)
         {
+            QuestPDF.Settings.License = LicenseType.Community;
+
             var themeGreen = "#006A46";
-            var themeGrey = Colors.Grey.Lighten3;
 
             var total = items.Sum(i => i.sys_itemCost);
             var paid = payments.Sum(p => p.sys_amount);
@@ -218,85 +220,103 @@ namespace ZororoMemorialPark.Services
                 document.Page(page =>
                 {
                     page.Size(PageSizes.A4);
-                    page.Margin(30);
-                    page.DefaultTextStyle(x => x.FontSize(11).FontColor(Colors.Black));
-                    page.PageColor(Colors.White);
+                    page.Margin(20);
+                    page.PageColor("#F5F5F5");
 
-                    // ---------- HEADER ----------
+                    page.DefaultTextStyle(x => x.FontSize(9));
+
+                    // ================= HEADER =================
                     page.Header().Background(themeGreen).Padding(15).Row(row =>
                     {
-                        // Logo Section
-                        row.ConstantItem(80).Column(col =>
+                        // LEFT
+                        row.RelativeItem().Column(col =>
+                        {
+                            col.Item().Text(companyName).Bold().FontSize(13).FontColor(Colors.White);
+                            col.Item().Text(companyAddress).FontSize(9).FontColor(Colors.White);
+                            col.Item().Text($"{companyPhone} | {companyEmail}")
+                                .FontSize(9).FontColor(Colors.White);
+                        });
+
+                        // CENTER LOGO
+                        row.ConstantItem(100).AlignCenter().AlignMiddle().Element(container =>
                         {
                             if (!string.IsNullOrEmpty(logoPath) && File.Exists(logoPath))
                             {
-                                col.Item().Height(50).Image(logoPath, ImageScaling.FitArea);
+                                container.Height(55).Image(logoPath, ImageScaling.FitHeight);
                             }
                         });
 
-                        // Company Info
+                        // RIGHT
                         row.RelativeItem().AlignRight().Column(col =>
                         {
-                            col.Item().Text(companyName).FontColor(Colors.White).Bold().FontSize(16);
-                            col.Item().Text(companyAddress).FontColor(Colors.White).FontSize(10);
-                            col.Item().Text($"{companyPhone} | {companyEmail}").FontColor(Colors.White).FontSize(10);
+                            col.Item().AlignRight().Text("INVOICE")
+                                .Bold().FontSize(14).FontColor(Colors.White);
+
+                            col.Item().AlignRight().Text($"Date: {invoice.sys_invoiceDate:dd MMM yyyy}")
+                                .FontSize(9).FontColor(Colors.White);
                         });
                     });
 
-                    // ---------- BODY ----------
-                    page.Content().PaddingVertical(15).Column(content =>
+                    // ================= BODY =================
+                    page.Content().PaddingTop(15).Column(content =>
                     {
-                        // Invoice Info + Customer
-                        content.Item().Background(themeGrey).Padding(10).Row(r =>
+                        content.Item().Background(Colors.White).Padding(12).Column(card =>
                         {
-                            r.RelativeItem().Column(c =>
+                            // CUSTOMER + META
+                            card.Item().Row(r =>
                             {
-                                c.Item().Text($"Invoice No: {invoice.sys_invoiceId}").Bold();
-                                c.Item().Text($"Date: {invoice.sys_invoiceDate:dd-MM-yyyy}");
-                                c.Item().Text($"Due Date: {invoice.sys_invoiceDueDate:dd-MM-yyyy}");
-                            });
-
-                            r.RelativeItem().AlignRight().Column(c =>
-                            {
-                                c.Item().Text("Bill To:").SemiBold();
-                                c.Item().Text(customerName ?? "Customer");
-                            });
-                        });
-
-                        // Items Table
-                        content.Item().PaddingTop(15).Element(c => ComposeItemsTable(c, items, themeGreen));
-
-                        // Totals Box
-                        content.Item().PaddingTop(10).AlignRight().Column(c =>
-                        {
-                            c.Item().Background(themeGrey).Padding(8).Column(inner =>
-                            {
-                                inner.Item().Row(r =>
+                                r.RelativeItem().Column(c =>
                                 {
-                                    r.RelativeItem().Text("Subtotal:");
-                                    r.ConstantItem(80).AlignRight().Text($"${total:N2}");
+                                    c.Item().Text("Bill To").SemiBold();
+                                    c.Item().Text(customerName);
                                 });
-                                inner.Item().Row(r =>
+
+                                r.RelativeItem().AlignRight().Column(c =>
                                 {
-                                    r.RelativeItem().Text("Paid:");
-                                    r.ConstantItem(80).AlignRight().Text($"${paid:N2}");
-                                });
-                                inner.Item().Row(r =>
-                                {
-                                    r.RelativeItem().Text("Balance:").Bold();
-                                    r.ConstantItem(80).AlignRight().Text($"${balance:N2}").Bold().FontColor(themeGreen);
+                                    c.Item().Text($"Invoice #: {invoice.sys_invoiceId}");
+                                    c.Item().Text($"Due: {invoice.sys_invoiceDueDate:dd MMM yyyy}");
                                 });
                             });
-                        });
 
-                        // Payments Section
-                        content.Item().PaddingTop(20).Column(c =>
-                        {
-                            c.Item().Text("Payments").FontColor(themeGreen).Bold().FontSize(13);
-
-                            if (payments != null && payments.Any())
+                            // ITEMS TABLE
+                            card.Item().PaddingTop(10).Table(table =>
                             {
-                                c.Item().Table(table =>
+                                table.ColumnsDefinition(cd =>
+                                {
+                                    cd.RelativeColumn(4);
+                                    cd.RelativeColumn(1);
+                                });
+
+                                table.Header(header =>
+                                {
+                                    header.Cell().Element(HeaderCell).Text("Item");
+                                    header.Cell().Element(HeaderCell).AlignRight().Text("Amount");
+                                });
+
+                                foreach (var it in items)
+                                {
+                                    table.Cell().Element(Cell).Text(it.sys_itemName);
+                                    table.Cell().Element(Cell).AlignRight().Text($"${it.sys_itemCost:N2}");
+                                }
+                            });
+
+                            // TOTALS
+                            card.Item().PaddingTop(10).AlignRight().Column(c =>
+                            {
+                                c.Item().Text($"Total: ${total:N2}");
+                                c.Item().Text($"Paid: ${paid:N2}");
+
+                                c.Item().Text($"Balance: ${balance:N2}")
+                                    .Bold()
+                                    .FontColor(balance > 0 ? Colors.Red.Darken2 : Colors.Green.Darken2);
+                            });
+
+                            // PAYMENTS
+                            if (payments.Any())
+                            {
+                                card.Item().PaddingTop(15).Text("Payments").SemiBold();
+
+                                card.Item().Table(table =>
                                 {
                                     table.ColumnsDefinition(cd =>
                                     {
@@ -304,40 +324,42 @@ namespace ZororoMemorialPark.Services
                                         cd.RelativeColumn();
                                     });
 
-                                    table.Header(header =>
+                                    table.Header(h =>
                                     {
-                                        header.Cell().Element(CellHeaderStyle(themeGreen)).Text("Date").SemiBold().FontColor(Colors.White);
-                                        header.Cell().Element(CellHeaderStyle(themeGreen)).AlignRight().Text("Amount").SemiBold().FontColor(Colors.White);
+                                        h.Cell().Element(HeaderCell).Text("Date");
+                                        h.Cell().Element(HeaderCell).AlignRight().Text("Amount");
                                     });
 
                                     foreach (var p in payments)
                                     {
-                                        table.Cell().Element(CellStyle).Text(p.sys_date.ToString("dd-MM-yyyy"));
-                                        table.Cell().Element(CellStyle).AlignRight().Text($"${p.sys_amount:N2}");
+                                        table.Cell().Element(Cell).Text(p.sys_date.ToString("dd MMM yyyy"));
+                                        table.Cell().Element(Cell).AlignRight().Text($"${p.sys_amount:N2}");
                                     }
                                 });
-                            }
-                            else
-                            {
-                                c.Item().Text("No payments recorded").Italic().FontColor(Colors.Grey.Darken1);
                             }
                         });
                     });
 
-                    // ---------- FOOTER ----------
-                    page.Footer().AlignCenter().PaddingTop(10).Text(txt =>
+                    // ================= FOOTER =================
+                    page.Footer().AlignCenter().Text(txt =>
                     {
-                        txt.Span(companyName).SemiBold().FontColor(themeGreen);
-                        txt.Span("  •  Page ");
+                        txt.Span(companyName).FontSize(8);
+                        txt.Span(" • Page ");
                         txt.CurrentPageNumber();
-                        txt.Span(" of ");
-                        txt.TotalPages();
                     });
                 });
             });
 
             return doc.GeneratePdf();
         }
+
+
+        // STYLES
+        private static IContainer Cell(IContainer c) =>
+            c.PaddingVertical(4).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2);
+
+        private static IContainer HeaderCell(IContainer c) =>
+            c.BorderBottom(1).BorderColor("#006A46").PaddingVertical(4).DefaultTextStyle(x => x.SemiBold());
 
         // ---------- ITEMS TABLE ----------
         private static void ComposeItemsTable(IContainer container, List<tbl_InvoiceItems> items, string themeGreen)

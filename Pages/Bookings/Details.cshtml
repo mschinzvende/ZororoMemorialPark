@@ -113,6 +113,47 @@
                                 <button class="btn btn-outline-primary mt-4">Update</button>
                             </div>
                         </form>
+
+                        <hr />
+<form method="post" asp-page-handler="UpdateBookingDetails" class="row g-2">
+
+    <div class="col-md-6">
+        <label class="form-label">Deceased First Name</label>
+        <input class="form-control"
+               name="DeceasedFirstName"
+               value="@Model.Booking.sys_deceasedFirstName"
+               required />
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">Deceased Last Name</label>
+        <input class="form-control"
+               name="DeceasedLastName"
+               value="@Model.Booking.sys_deceasedLastName"
+               required />
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">Payment Made By</label>
+        <input class="form-control"
+               name="PaymentMadeby"
+               value="@Model.Customers.sys_paymentMadeBy" />
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">Mobile Number</label>
+        <input class="form-control"
+               name="Customerphone"
+               value="@Model.Customers.sys_customerPhone" />
+    </div>
+
+    <div class="col-12 d-flex justify-content-end">
+        <button class="btn btn-outline-primary">
+            Update Details
+        </button>
+    </div>
+
+</form>
                     }
                 </div>
 
@@ -122,6 +163,14 @@
                             Raise Invoice
                         </button>
                     </form>
+
+                                <form method="post" asp-page-handler="ReverseInvoice"
+                                      onsubmit="return confirm('Are you sure you want to reverse this invoice?');">
+                                    <button class="btn btn-sm btn-danger"
+                                    @(Model.Booking.sys_invoiceId.HasValue ? "" : "disabled")>
+                                        Reverse Invoice
+                                    </button>
+                                </form>
 
 
                     @if (Model.Booking.sys_invoiceId.HasValue)
