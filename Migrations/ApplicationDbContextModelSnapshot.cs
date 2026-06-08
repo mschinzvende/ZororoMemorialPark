@@ -284,6 +284,18 @@ namespace ZororoMemorialPark.Migrations
                     b.Property<bool>("UseSSL")
                         .HasColumnType("bit");
 
+                    b.Property<string>("systemUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("waAccessToken")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("waApiUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.ToTable("SystemSettings");
@@ -324,7 +336,16 @@ namespace ZororoMemorialPark.Migrations
                     b.Property<int>("sys_commission")
                         .HasColumnType("int");
 
+                    b.Property<bool>("sys_isActive")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("sys_isPercentage")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("sys_whatsAppPinHash")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("sys_whatsAppPinSet")
                         .HasColumnType("bit");
 
                     b.HasKey("sys_agentId");
@@ -1044,6 +1065,38 @@ namespace ZororoMemorialPark.Migrations
                     b.ToTable("tbl_ReceiptBooks");
                 });
 
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_RequisitionActionToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ExpiryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("RequisitionId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("Token")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("WorkflowStepId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("tbl_RequisitionActionToken");
+                });
+
             modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Sections", b =>
                 {
                     b.Property<int>("sys_sectionId")
@@ -1058,6 +1111,9 @@ namespace ZororoMemorialPark.Migrations
                     b.Property<string>("sys_jobReminder")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("sys_lastGraveNo")
+                        .HasColumnType("int");
 
                     b.Property<int>("sys_reminderPeriod")
                         .HasColumnType("int");
@@ -1302,7 +1358,13 @@ namespace ZororoMemorialPark.Migrations
                     b.Property<int?>("sys_agentId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("sys_authenticatedUntil")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("sys_isActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("sys_isAuthenticated")
                         .HasColumnType("bit");
 
                     b.Property<DateTime>("sys_lastUpdated")
@@ -1402,6 +1464,9 @@ namespace ZororoMemorialPark.Migrations
 
                     b.Property<int?>("sys_invoiceId")
                         .HasColumnType("int");
+
+                    b.Property<bool>("sys_paymentReceived")
+                        .HasColumnType("bit");
 
                     b.Property<string>("sys_receiptPath")
                         .HasColumnType("nvarchar(max)");
@@ -1890,13 +1955,13 @@ namespace ZororoMemorialPark.Migrations
                     b.HasOne("tbl_RequisitionLine", "RequisitionLine")
                         .WithMany()
                         .HasForeignKey("RequisitionLineId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("tbl_RequisitionWorkflowStep", "WorkflowStep")
                         .WithMany()
                         .HasForeignKey("WorkflowStepId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("RequisitionLine");
@@ -1909,13 +1974,13 @@ namespace ZororoMemorialPark.Migrations
                     b.HasOne("tbl_RequisitionLine", "RequisitionLine")
                         .WithMany()
                         .HasForeignKey("RequisitionLineId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("tbl_RequisitionWorkflowStep", "WorkflowStep")
                         .WithMany()
                         .HasForeignKey("WorkflowStepId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("RequisitionLine");

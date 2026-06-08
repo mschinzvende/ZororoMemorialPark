@@ -9,6 +9,7 @@ using ZororoMemorialPark.Services;
 using System.Data;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System.Globalization;
+using ZororoMemorialPark.Services.WhatsApp;
 
 public class AgentManagementModel : PageModel
 {
@@ -17,19 +18,22 @@ public class AgentManagementModel : PageModel
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly NotificationService _notify;
     private readonly IAppLogger _appLogger;
+    private readonly WhatsAppNotificationService _wa;
+
     [TempData]
     public string StatusMessage { get; set; }
 
     [TempData]
     public string ErrorMessage { get; set; }
     public AgentManagementModel(ApplicationDbContext context, UserManager<IdentityUser> userManager, 
-        RoleManager<IdentityRole> roleManager, IAppLogger logger, NotificationService notify)
+        RoleManager<IdentityRole> roleManager, IAppLogger logger, NotificationService notify, WhatsAppNotificationService wa)
     {
         _context = context;
         _userManager = userManager;
         _roleManager = roleManager;
         _appLogger = logger;
         _notify = notify;
+        _wa = wa;
     }
 
     public IList<tbl_Agents> Agents { get; set; } = new List<tbl_Agents>();
@@ -95,6 +99,23 @@ public class AgentManagementModel : PageModel
                 _context.tbl_Agents.Add(Agent);
                 await _context.SaveChangesAsync();
 
+                await _wa
+    .SendTextMessage(
+        Agent.sys_agentPhone,
+$"""
+Welcome to Zororo Memorial Park.
+
+Your agent account has been created.
+
+To activate WhatsApp booking:
+
+1. Send any message to our WhatsApp number.
+2. Create your PIN.
+3. Login and start booking graves.
+
+Thank you.
+""");
+
                 _appLogger.LogActivityAsync(_userManager.GetUserId(User), $"User Created Agent {Agent.sys_agentName}", $"Agent User-{Agent.sys_agentEmail} created successfully.");
 
                 return RedirectToPage();
@@ -141,6 +162,55 @@ public class AgentManagementModel : PageModel
         }
     }
 
+
+    public async Task<IActionResult> OnPostToggleStatusAsync(
+    int AgentId,
+    string Action)
+    {
+        try
+        {
+            var agent = await _context.tbl_Agents
+                .FirstOrDefaultAsync(x =>
+                    x.sys_agentId == AgentId);
+
+            if (agent == null)
+            {
+                TempData["ErrorMessage"] =
+                    "Agent not found.";
+
+                return RedirectToPage();
+            }
+
+            agent.sys_isActive =
+                Action.ToLower() == "enable";
+
+            await _context.SaveChangesAsync();
+
+            await _wa.SendTextMessage(
+    agent.sys_agentPhone,
+    agent.sys_isActive
+        ? "Your Zororo agent account has been enabled."
+        : "Your Zororo agent account has been disabled. You can no longer access the WhatsApp booking service.");
+
+            await _appLogger.LogActivityAsync(
+                _userManager.GetUserId(User),
+                $"{Action} Agent",
+                $"{agent.sys_agentName}");
+
+            TempData["SuccessMessage"] =
+                $"Agent {(agent.sys_isActive ? "enabled" : "disabled")} successfully.";
+
+            return RedirectToPage();
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+
+            return RedirectToPage();
+        }
+    }
+
+
     public async Task<IActionResult> OnPostDeleteAgentAsync(int id)
     {
 
@@ -153,15 +223,15 @@ public class AgentManagementModel : PageModel
                 var user = await _userManager.FindByIdAsync(agent.UserId);
                 if (user != null)
                 {
-                    _context.tbl_Agents.Remove(agent);
+                    agent.sys_isActive = false;
+
                     await _context.SaveChangesAsync();
-                    await _userManager.DeleteAsync(user);
 
                 }
 
             }
-            TempData["Success Message"] = "Agent deleted successfully!";
-           await  _appLogger.LogActivityAsync(_userManager.GetUserId(User), $"User Deleted Agent {agent?.sys_agentName}", $"Agent User-{agent?.sys_agentEmail} deleted successfully.");
+            TempData["Success Message"] = "Agent disabled successfully!";
+           await  _appLogger.LogActivityAsync(_userManager.GetUserId(User), $"User Disabled Agent {agent?.sys_agentName}", $"Agent User-{agent?.sys_agentEmail} deleted successfully.");
             return RedirectToPage();
         }
         catch (Exception ex)
@@ -236,8 +306,32 @@ public class AgentManagementModel : PageModel
                 .Where(p => commissions.Select(c => c.sys_commissionId).Contains(p.sys_commissionId))
                 .ToListAsync();
 
+            var totalCommission =
+    commissions.Sum(x => x.sys_amount);
+
+            var totalPaid =
+                payments.Sum(x => x.sys_amountPaid);
+
+            var outstanding =
+                totalCommission - totalPaid;
+
+            var bookingCount =
+    await _context.tbl_BurialBookings
+        .CountAsync(x =>
+            x.sys_agentId == id);
+
             await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Viewed Agent Details", $"Viewed details for Agent ID {id}.");
-            return new JsonResult(new { agent, result, payments });
+            return new JsonResult(new
+            {
+                agent,
+                result,
+                payments,
+
+                totalCommission,
+                totalPaid,
+                outstanding,
+                bookingCount
+            });
         }
         catch (Exception)
         {
@@ -346,6 +440,7 @@ public class AgentManagementModel : PageModel
 
 
 
+
     public static string GenerateRandomPassword(PasswordOptions opts = null)
     {
         if (opts == null) opts = new PasswordOptions();
@@ -385,5 +480,37 @@ public class AgentManagementModel : PageModel
         }
 
         return new string(chars.ToArray());
+    }
+
+
+    public async Task<IActionResult> OnPostResetPinAsync(
+    int AgentId)
+    {
+        var agent =
+            await _context.tbl_Agents
+                .FirstOrDefaultAsync(x =>
+                    x.sys_agentId == AgentId);
+
+        if (agent == null)
+            return RedirectToPage();
+
+        agent.sys_whatsAppPinHash = null;
+
+        agent.sys_whatsAppPinSet = false;
+
+        await _context.SaveChangesAsync();
+
+        await _wa.SendTextMessage(
+    agent.sys_agentPhone,
+"""
+Your WhatsApp PIN has been reset.
+
+Reply with any message you will be prompted to create a new PIN.
+""");
+
+        TempData["SuccessMessage"] =
+            "WhatsApp PIN reset successfully.";
+
+        return RedirectToPage();
     }
 }

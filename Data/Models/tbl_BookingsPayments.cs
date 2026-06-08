@@ -28,6 +28,8 @@ public class tbl_BurialBookings
 
     public string? sys_receiptPath { get; set; }
 
+    public bool sys_paymentReceived { get; set; } = false;
+
 }
 
 

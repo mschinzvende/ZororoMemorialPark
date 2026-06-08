@@ -342,7 +342,7 @@ namespace ZororoMemorialPark.Pages.Graves
                     sys_jobStatus = "Pending",
                     sys_startDate = DateOnly.FromDateTime(DateTime.Now),
                     sys_endDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7)),
-                    sys_supplierId = 11
+                    sys_supplierId = 1
                 });
 
                 await _context.SaveChangesAsync();

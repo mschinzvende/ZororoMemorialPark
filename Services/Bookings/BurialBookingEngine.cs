@@ -110,7 +110,8 @@ namespace ZororoMemorialPark.Services.Bookings
                 string paymentMadeBy,
                 string customerPhone,
                 int? agentId,
-                string? receiptPath)
+                string? receiptPath,
+                bool paymentReceived)
         {
             if (!DateTime.TryParseExact(
                 slotIso,
@@ -152,7 +153,9 @@ namespace ZororoMemorialPark.Services.Bookings
                 sys_bookingStatus = "PendingPayment",
                 sys_createdOn = DateTime.Now,
                 sys_expiresOn = selected.AddDays(1),
-                sys_receiptPath = receiptPath
+                sys_receiptPath = receiptPath,
+                sys_paymentReceived = paymentReceived
+                
             };
 
             _db.tbl_BurialBookings.Add(booking);

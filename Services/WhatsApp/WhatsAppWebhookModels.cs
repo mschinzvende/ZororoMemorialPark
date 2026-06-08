@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using Microsoft.VisualBasic;
+using System.Text.Json;
 
 namespace ZororoMemorialPark.Services.WhatsApp
 {
@@ -42,6 +43,7 @@ namespace ZororoMemorialPark.Services.WhatsApp
             public Text? text { get; set; }
             public Media? document { get; set; }
             public Media? image { get; set; }
+            public Interactive? interactive { get; set; }
         }
 
         public class Text
@@ -52,6 +54,17 @@ namespace ZororoMemorialPark.Services.WhatsApp
         public class Media
         {
             public string id { get; set; } = "";
+        }
+
+        public class Interactive
+        {
+            public ButtonReply? button_reply { get; set; }
+        }
+
+        public class ButtonReply
+        {
+            public string id { get; set; } = "";
+            public string title { get; set; } = "";
         }
     }
 }

@@ -370,6 +370,72 @@
                 </div>
             </div>
 
+                        <div class="card shadow-sm mb-3">
+                            <div class="card-header bg-info text-white">
+                                Booking Information
+                            </div>
+
+                            <div class="card-body">
+
+                                @if (@Model.BookingAgent != null)
+                                {
+                                    <p>
+                                        <strong>Booked By:</strong>
+                                        @Model.BookingAgent.sys_agentContactPerson
+                                        of
+                                        @Model.BookingAgent.sys_agentName
+                                    </p>
+
+                                    <p>
+                                        <strong>Agency Contact:</strong>
+                                        @Model.BookingAgent.sys_agentPhone
+                                    </p>
+                                }
+                                else
+                                {
+                                    <p>
+                                        <strong>Booked By:</strong>
+                                        System / Office
+                                    </p>
+                                }
+
+                                <p>
+                                    <strong>Payment Received:</strong>
+
+                                    @if (@Model.PaymentReceived)
+                                    {
+                                        <span class="badge bg-success">
+                                            Yes
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">
+                                            No
+                                        </span>
+                                    }
+                                </p>
+
+                                @if (@Model.PaymentReceived &&
+                                !string.IsNullOrWhiteSpace(
+                                @Model.ReceiptImageUrl))
+                                {
+                                    <hr />
+
+                                    <h6>Payment Receipt</h6>
+
+                                    <a href="@Model.ReceiptImageUrl"
+                                       target="_blank">
+
+                                        <img src="@Model.ReceiptImageUrl"
+                                             class="img-fluid rounded border"
+                                             style="max-height:400px;" />
+                                    </a>
+                                }
+
+                            </div>
+                        </div>
+
         </div>
 
         <div class="col-lg-6">

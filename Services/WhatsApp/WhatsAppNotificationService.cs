@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using Newtonsoft.Json;
 using System.Text;
+using System.Text.Json;
 
 
 namespace ZororoMemorialPark.Services.WhatsApp
@@ -175,6 +176,39 @@ namespace ZororoMemorialPark.Services.WhatsApp
         }
 
 
+        public async Task<HttpResponseMessage> SendTextMessage(
+    string to,
+    string message)
+        {
+            await EnsureInitializedAsync();
+
+            var messageData = new
+            {
+                messaging_product = "whatsapp",
+                to = to,
+                type = "text",
+                text = new
+                {
+                    preview_url = false,
+                    body = message
+                }
+            };
+
+            var content = new StringContent(
+                JsonConvert.SerializeObject(messageData),
+                Encoding.UTF8,
+                "application/json");
+
+            var response = await _httpClient.PostAsync("", content);
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            Console.WriteLine($"Response Status: {response.StatusCode}");
+            Console.WriteLine($"Response Content: {responseContent}");
+
+            return response;
+        }
+
         public async Task<HttpResponseMessage> SendPdfMessage(string to, string fileUrl, string templateName, string filename, string parameter1, string parameter2)
         {
             await EnsureInitializedAsync();
@@ -237,9 +271,77 @@ namespace ZororoMemorialPark.Services.WhatsApp
 
 
 
+        public async Task<HttpResponseMessage> SendButtonsMessage(
+    string to,
+    string body,
+    params (string Id, string Title)[] buttons)
+        {
+            await EnsureInitializedAsync();
+
+            var messageData = new
+            {
+                messaging_product = "whatsapp",
+                to = to,
+                type = "interactive",
+                interactive = new
+                {
+                    type = "button",
+                    body = new
+                    {
+                        text = body
+                    },
+                    action = new
+                    {
+                        buttons = buttons.Select(x => new
+                        {
+                            type = "reply",
+                            reply = new
+                            {
+                                id = x.Id,
+                                title = x.Title
+                            }
+                        })
+                    }
+                }
+            };
+
+            var content = new StringContent(
+                JsonConvert.SerializeObject(messageData),
+                Encoding.UTF8,
+                "application/json");
+
+            return await _httpClient.PostAsync("", content);
+        }
 
 
+        public async Task<byte[]> DownloadMediaAsync(
+    string mediaId)
+        {
+            await EnsureInitializedAsync();
 
+            var metaResponse =
+                await _httpClient.GetAsync(
+                    $"https://graph.facebook.com/v23.0/{mediaId}");
+
+            var metaJson =
+                await metaResponse.Content.ReadAsStringAsync();
+
+            Console.WriteLine(metaJson);
+
+            using var doc =
+                JsonDocument.Parse(metaJson);
+
+            var mediaUrl =
+                doc.RootElement
+                    .GetProperty("url")
+                    .GetString();
+
+            var mediaResponse =
+                await _httpClient.GetAsync(mediaUrl);
+
+            return await mediaResponse.Content
+                .ReadAsByteArrayAsync();
+        }
 
 
         public async Task<HttpResponseMessage> SendCalendarRemider(string to, string message, string fullName, string schoolName, string templateName)

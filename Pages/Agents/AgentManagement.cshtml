@@ -42,8 +42,9 @@
             <tr>
                 <th>Name</th>
                 <th>Contact Person</th>
-                <th>Phone</th>
+                <th>Phone (263...)</th>
                 <th>Email</th>
+                            <th>Status</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -55,6 +56,20 @@
                     <td>@a.sys_agentContactPerson</td>
                     <td>@a.sys_agentPhone</td>
                     <td>@a.sys_agentEmail</td>
+                                <td>
+                                    @if (a.sys_isActive)
+                                    {
+                                        <span class="badge bg-success">
+                                            Active
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">
+                                            Disabled
+                                        </span>
+                                    }
+                                </td>
                     <td>
                                     <button class="btn btn-info btn-sm viewBtn" data-id="@a.sys_agentId">View</button>
                         <button class="btn btn-warning btn-sm editBtn"
@@ -69,7 +84,27 @@
                                 data-sys_isPercentage="@a.sys_isPercentage">
                             Edit
                         </button>
-                        <button class="btn btn-danger btn-sm deleteBtn" data-id="@a.sys_agentId">Delete</button>
+                                    @if (a.sys_isActive)
+                                    {
+                                        <button class="btn btn-secondary btn-sm toggleStatusBtn"
+                                                data-id="@a.sys_agentId"
+                                                data-action="disable">
+                                            Disable
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-success btn-sm toggleStatusBtn"
+                                                data-id="@a.sys_agentId"
+                                                data-action="enable">
+                                            Enable
+                                        </button>
+                                    }
+
+                                    <button class="btn btn-secondary btn-sm resetPinBtn"
+                                            data-id="@a.sys_agentId">
+                                        Reset PIN
+                                    </button>
                     </td>
                 </tr>
             }
@@ -88,20 +123,51 @@
             <form method="post" asp-page-handler="AddAgent">
                 <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);"><h5>Add Agent</h5></div>
                 <div class="modal-body">
-                    <div class="mb-2"><label>Name</label><input asp-for="Agent.sys_agentName" class="form-control" required /></div>
-                    <div class="mb-2"><label>Contact Person</label><input asp-for="Agent.sys_agentContactPerson" class="form-control" /></div>
-                    <div class="mb-2"><label>Phone</label><input asp-for="Agent.sys_agentPhone" class="form-control" /></div>
-                    <div class="mb-2"><label>Email</label><input asp-for="Agent.sys_agentEmail" class="form-control" /></div>
-                    <div class="mb-2"><label>Address</label><input asp-for="Agent.sys_agentAddress" class="form-control" /></div>
-                    <div class="mb-2"><label>Commission</label><input asp-for="Agent.sys_commission" class="form-control" /></div>
-                    <div class="mb-2">
-                        <label>Type</label>
-                        <select  class="form-control" asp-for="Agent.sys_isPercentage">
-                            <option value="true">Percentage</option>
-                            <option value="false">Fixed Amount</option>
-                        </select>
+
+                    <div class="row">
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Agent Name</label>
+                            <input asp-for="Agent.sys_agentName" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Contact Person</label>
+                            <input asp-for="Agent.sys_agentContactPerson" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone (263...)</label>
+                            <input asp-for="Agent.sys_agentPhone" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email Address</label>
+                            <input asp-for="Agent.sys_agentEmail" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Commission</label>
+                            <input asp-for="Agent.sys_commission" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Commission Type</label>
+                            <select asp-for="Agent.sys_isPercentage" class="form-control">
+                                <option value="true">Percentage</option>
+                                <option value="false">Fixed Amount</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Address</label>
+                            <textarea asp-for="Agent.sys_agentAddress"
+                                      class="form-control"
+                                      rows="3"></textarea>
+                        </div>
 
                     </div>
+
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -119,20 +185,67 @@
             <form method="post" asp-page-handler="EditAgent">
                 <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);"><h5>Edit Agent</h5></div>
                 <div class="modal-body">
+
                     <input type="hidden" asp-for="Agent.sys_agentId" id="editAgentId" />
                     <input type="hidden" asp-for="Agent.UserId" id="editAgentUserId" />
-                    <div class="mb-2"><label>Name</label><input asp-for="Agent.sys_agentName" id="editAgentName" class="form-control" required /></div>
-                    <div class="mb-2"><label>Contact Person</label><input asp-for="Agent.sys_agentContactPerson" id="editContact" class="form-control" /></div>
-                    <div class="mb-2"><label>Phone</label><input asp-for="Agent.sys_agentPhone" id="editPhone" class="form-control" /></div>
-                    <div class="mb-2"><label>Email</label><input asp-for="Agent.sys_agentEmail" id="editEmail" class="form-control" /></div>
-                    <div class="mb-2"><label>Address</label><input asp-for="Agent.sys_agentAddress" id="editAddress" class="form-control" /></div>
-                    <div class="mb-2"><label>Commission</label><input asp-for="Agent.sys_commission" id="editCommission" class="form-control" /></div>
-                    <div class="mb-2">
-                        <label>Type</label>
-                        <select id="editIsPercentage" class="form-control" asp-for="Agent.sys_isPercentage" asp-items="Model.IsPercentageOptions"></select>
 
-                        
+                    <div class="row">
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Agent Name</label>
+                            <input asp-for="Agent.sys_agentName"
+                                   id="editAgentName"
+                                   class="form-control"
+                                   required />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Contact Person</label>
+                            <input asp-for="Agent.sys_agentContactPerson"
+                                   id="editContact"
+                                   class="form-control" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone</label>
+                            <input asp-for="Agent.sys_agentPhone"
+                                   id="editPhone"
+                                   class="form-control" placeholder="Include country code" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email Address</label>
+                            <input asp-for="Agent.sys_agentEmail"
+                                   id="editEmail"
+                                   class="form-control" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Commission</label>
+                            <input asp-for="Agent.sys_commission"
+                                   id="editCommission"
+                                   class="form-control" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Commission Type</label>
+                            <select id="editIsPercentage"
+                                    class="form-control"
+                                    asp-for="Agent.sys_isPercentage"
+                                    asp-items="Model.IsPercentageOptions">
+                            </select>
+                        </div>
+
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Address</label>
+                            <textarea asp-for="Agent.sys_agentAddress"
+                                      id="editAddress"
+                                      class="form-control"
+                                      rows="3"></textarea>
+                        </div>
+
                     </div>
+
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -143,52 +256,203 @@
     </div>
 </div>
 
-<!-- Delete Agent Modal -->
-<div class="modal fade" id="deleteAgentModal" tabindex="-1">
+<!--DISABLE AGENT MODAL-->
+<div class="modal fade" id="toggleStatusModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post" asp-page-handler="DeleteAgent">
-                <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);"><h5>Delete Agent</h5></div>
+
+            <form method="post" asp-page-handler="ToggleStatus">
+
+                <div class="modal-header">
+                    <h5 id="toggleStatusTitle">Change Agent Status</h5>
+                </div>
+
                 <div class="modal-body">
-                    <p>Are you sure you want to delete this agent?</p>
-                    <input type="hidden" name="id" id="deleteAgentId" />
+
+                    <input type="hidden"
+                           id="toggleAgentId"
+                           name="AgentId" />
+
+                    <input type="hidden"
+                           id="toggleAction"
+                           name="Action" />
+
+                    <p id="toggleStatusMessage"></p>
+
                 </div>
+
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button class="btn btn-danger">Delete</button>
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button class="btn btn-primary">
+                        Confirm
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
     </div>
 </div>
 
+<!--DISABLE AGENT-->
+
+
+
+
+
 <!-- View Agent Modal -->
 <div class="modal fade" id="viewAgentModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);">
-                <h5 class="modal-title">Agent Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <h6>Agent Info</h6>
-                <p><strong>Name:</strong> <span id="agentName"></span></p>
-                <p><strong>Email:</strong> <span id="agentEmail"></span></p>
-                <p><strong>Phone:</strong> <span id="agentPhone"></span></p>
-                <p><strong>Address:</strong> <span id="agentAddress"></span></p>
+    <div class="modal-dialog modal-xl">
+        <div class="modal-body">
 
-                <h6>Commissions Due</h6>
-                <table class="table table-sm table-bordered">
-                    <thead><tr><th>Grave</th><th>Amount</th><th>Paid</th><th>Remaining</th><th></th></tr></thead>
-                    <tbody id="commissionsTableBody"></tbody>
-                </table>
+            <!-- Agent Summary -->
+            <div class="row mb-4">
 
-                <h6>Payments Made</h6>
-                <table class="table table-sm table-bordered">
-                    <thead><tr><th>Date</th><th>Amount</th></tr></thead>
-                    <tbody id="paymentsTableBody"></tbody>
-                </table>
+                <div class="col-md-4">
+                    <div class="card border-primary">
+                        <div class="card-body">
+                            <h6 class="text-muted">Agent Name</h6>
+                            <h5 id="agentName"></h5>
+
+                            <hr />
+
+                            <p>
+                                <strong>Contact Person:</strong><br />
+                                <span id="agentContact"></span>
+                            </p>
+
+                            <p>
+                                <strong>Email:</strong><br />
+                                <span id="agentEmail"></span>
+                            </p>
+
+                            <p>
+                                <strong>Phone:</strong><br />
+                                <span id="agentPhone"></span>
+                            </p>
+
+                            <p>
+                                <strong>Address:</strong><br />
+                                <span id="agentAddress"></span>
+                            </p>
+
+                            <p>
+                                <strong>Status:</strong>
+                                <span id="agentStatus"></span>
+                            </p>
+
+                            <p>
+                                <strong>WhatsApp PIN:</strong>
+                                <span id="agentPinStatus"></span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="col-md-8">
+
+                    <div class="row">
+
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h6>Total Bookings</h6>
+                                    <h3 id="totalBookings">0</h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h6>Commission Due</h6>
+                                    <h3 id="commissionDue">$0</h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h6>Paid</h6>
+                                    <h3 id="commissionPaid">$0</h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-dark">
+                                <div class="card-body text-center">
+                                    <h6>Outstanding</h6>
+                                    <h3 id="commissionOutstanding">$0</h3>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Commission Table -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            Commissions Due
+                        </div>
+                        <div class="card-body p-0">
+
+                            <table class="table table-sm table-bordered mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Grave</th>
+                                        <th>Amount</th>
+                                        <th>Paid</th>
+                                        <th>Remaining</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+
+                                <tbody id="commissionsTableBody"></tbody>
+                            </table>
+
+                        </div>
+                    </div>
+
+                </div>
+
             </div>
+
+            <!-- Payments -->
+            <div class="card">
+
+                <div class="card-header">
+                    Payment History
+                </div>
+
+                <div class="card-body p-0">
+
+                    <table class="table table-sm table-bordered mb-0">
+
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="paymentsTableBody"></tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
         </div>
     </div>
 </div>
@@ -218,6 +482,48 @@
                     <button type="submit" class="btn btn-primary">Save Payment</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="resetPinModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <form method="post" asp-page-handler="ResetPin">
+
+                <div class="modal-header">
+                    <h5>Reset WhatsApp PIN</h5>
+                </div>
+
+                <div class="modal-body">
+
+                    <input type="hidden"
+                           id="resetPinAgentId"
+                           name="AgentId" />
+
+                    <p>
+                        Reset this agent's WhatsApp PIN?
+                    </p>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button class="btn btn-warning">
+                        Reset PIN
+                    </button>
+
+                </div>
+
+            </form>
+
         </div>
     </div>
 </div>
@@ -260,6 +566,9 @@
             });
         });
             function loadAgentDetails(id) {
+
+                        
+
             fetch(`?handler=AgentDetails&id=${id}`)
                 .then(r => r.json())
                 .then(data => {
@@ -268,6 +577,31 @@
                     document.getElementById("agentPhone").innerText = data.agent.sys_agentPhone;
                     document.getElementById("agentAddress").innerText = data.agent.sys_agentAddress;
 
+
+                            document.getElementById("agentContact").innerText =
+            data.agent.sys_agentContactPerson;
+
+        document.getElementById("agentStatus").innerHTML =
+            data.agent.sys_isActive
+                ? '<span class="badge bg-success">Active</span>'
+                : '<span class="badge bg-danger">Disabled</span>';
+
+        document.getElementById("agentPinStatus").innerHTML =
+            data.agent.sys_whatsAppPinSet
+                ? '<span class="badge bg-success">Set</span>'
+                : '<span class="badge bg-warning">Not Set</span>';
+
+        document.getElementById("totalBookings").innerText =
+            data.bookingCount;
+
+        document.getElementById("commissionDue").innerText =
+            "$" + data.totalCommission.toFixed(2);
+
+        document.getElementById("commissionPaid").innerText =
+            "$" + data.totalPaid.toFixed(2);
+
+        document.getElementById("commissionOutstanding").innerText =
+            "$" + data.outstanding.toFixed(2);
                     // Commissions
                     let commHtml = "";
                     data.result.forEach(c => {
@@ -335,5 +669,59 @@
     
 
         });
+
+
+     document.querySelectorAll(".resetPinBtn")
+        .forEach(btn => {
+
+            btn.addEventListener("click", function () {
+
+                document.getElementById(
+                    "resetPinAgentId").value =
+                    this.dataset.id;
+
+                new bootstrap.Modal(
+                    document.getElementById(
+                        "resetPinModal"))
+                    .show();
+            });
+
+        });
+
+
+                document.querySelectorAll(".toggleStatusBtn")
+        .forEach(btn => {
+
+            btn.addEventListener("click", function () {
+
+                const id = this.dataset.id;
+                const action = this.dataset.action;
+
+                document.getElementById("toggleAgentId").value = id;
+                document.getElementById("toggleAction").value = action;
+
+                if (action === "disable") {
+                    document.getElementById("toggleStatusTitle").innerText =
+                        "Disable Agent";
+
+                    document.getElementById("toggleStatusMessage").innerText =
+                        "Are you sure you want to disable this agent?";
+                }
+                else {
+                    document.getElementById("toggleStatusTitle").innerText =
+                        "Enable Agent";
+
+                    document.getElementById("toggleStatusMessage").innerText =
+                        "Are you sure you want to enable this agent?";
+                }
+
+                new bootstrap.Modal(
+                    document.getElementById("toggleStatusModal")
+                ).show();
+            });
+
+        });
+
+
     </script>
 }

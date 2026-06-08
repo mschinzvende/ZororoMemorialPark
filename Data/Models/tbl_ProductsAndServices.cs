@@ -28,7 +28,7 @@ namespace ZororoMemorialPark.Data.Models
         public string sys_unitOfMeasure { get; set; } // e.g., "Bag", "Piece", "Service"
 
         
-        public string sys_status { get; set; }
+        public string sys_status { get; set; } //InStock, Low, Out
         public bool sys_isActive { get; set; } = true;
     }
 }

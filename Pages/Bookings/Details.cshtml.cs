@@ -44,6 +44,14 @@ namespace ZororoMemorialPark.Pages.Bookings
         [BindProperty] public double DiscountAmount { get; set; }
         [BindProperty] public string DiscountReason { get; set; }
 
+        //Get information from the agent bot
+        public tbl_Agents? BookingAgent { get; set; }
+
+        public string? ReceiptImageUrl { get; set; }
+
+        public bool PaymentReceived { get; set; }
+
+
         // Permissions
         public bool CanOverride => User.IsInRole("Manager");
 
@@ -455,6 +463,28 @@ namespace ZororoMemorialPark.Pages.Bookings
 
             Booking = await _db.tbl_BurialBookings.FirstOrDefaultAsync(b => b.sys_bookingId == id);
             if (Booking == null) return;
+
+
+            // WhatsApp Booking Information
+            if (Booking.sys_agentId > 0)
+            {
+                BookingAgent = await _db.tbl_Agents
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(a =>
+                        a.sys_agentId == Booking.sys_agentId);
+            }
+
+            PaymentReceived = Booking.sys_paymentReceived;
+
+            if (!string.IsNullOrWhiteSpace(
+                    Booking.sys_receiptPath))
+            {
+                ReceiptImageUrl =
+                    $"/receipts/{Booking.sys_receiptPath}";
+            }
+
+
+
 
             Customers = await _db.tbl_Customers
                 .FirstOrDefaultAsync(c => c.sys_customerId == Booking.sys_customerId);

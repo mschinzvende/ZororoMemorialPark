@@ -62,5 +62,71 @@ namespace ZororoMemorialPark.Services.WhatsApp
             var fileResp = await _http.SendAsync(fileReq);
             return await fileResp.Content.ReadAsByteArrayAsync();
         }
+
+        public async Task SendButtonsAsync(
+    string phone,
+    string body,
+    params (string Id, string Title)[] buttons)
+        {
+            var url =
+                $"{_opt.GraphApiBase}/{_opt.PhoneNumberId}/messages";
+
+            var payload = new
+            {
+                messaging_product = "whatsapp",
+                recipient_type = "individual",
+                to = phone,
+                type = "interactive",
+                interactive = new
+                {
+                    type = "button",
+                    body = new
+                    {
+                        text = body
+                    },
+                    action = new
+                    {
+                        buttons = buttons.Select(x => new
+                        {
+                            type = "reply",
+                            reply = new
+                            {
+                                id = x.Id,
+                                title = x.Title
+                            }
+                        })
+                    }
+                }
+            };
+
+            var req = new HttpRequestMessage(
+                HttpMethod.Post,
+                url);
+
+            req.Headers.Authorization =
+                new AuthenticationHeaderValue(
+                    "Bearer",
+                    _opt.AccessToken);
+
+            req.Content =
+                new StringContent(
+                    JsonSerializer.Serialize(payload),
+                    Encoding.UTF8,
+                    "application/json");
+
+            var response = await _http.SendAsync(req);
+
+            var responseBody =
+                await response.Content.ReadAsStringAsync();
+
+            Console.WriteLine("BUTTON RESPONSE:");
+            Console.WriteLine(responseBody);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("BUTTON SEND FAILED");
+            }
+        }
+
     }
 }

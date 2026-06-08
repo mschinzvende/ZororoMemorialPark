@@ -20,5 +20,11 @@ namespace ZororoMemorialPark.Data.Models
         public bool sys_isActive { get; set; } = true;
 
         public DateTime sys_lastUpdated { get; set; } = DateTime.UtcNow;
+
+        public bool sys_isAuthenticated { get; set; }
+
+        
+
+        public DateTime? sys_authenticatedUntil { get; set; }
     }
 }

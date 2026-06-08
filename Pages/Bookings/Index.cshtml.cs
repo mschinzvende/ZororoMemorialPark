@@ -11,6 +11,14 @@ namespace ZororoMemorialPark.Pages.Bookings
 {
     public class IndexModel : PageModel
     {
+
+        [BindProperty(SupportsGet = true)]
+        public int PageNumber { get; set; } = 1;
+
+        public int TotalPages { get; set; }
+
+        public const int PageSize = 20;
+
         private readonly ApplicationDbContext _db;
 
         public IndexModel(ApplicationDbContext db)
@@ -58,9 +66,15 @@ namespace ZororoMemorialPark.Pages.Bookings
                 query = query.Where(b => b.sys_requestedBurialDateTime >= start && b.sys_requestedBurialDateTime < end);
             }
 
+            var totalRecords = await query.CountAsync();
+
+            TotalPages = (int)Math.Ceiling(
+                totalRecords / (double)PageSize);
+
             var bookings = await query
                 .OrderByDescending(b => b.sys_createdOn)
-                .Take(500)
+                .Skip((PageNumber - 1) * PageSize)
+                .Take(PageSize)
                 .ToListAsync();
 
             var sectionIds = bookings.Select(b => b.sys_sectionId).Distinct().ToList();
@@ -78,6 +92,50 @@ namespace ZororoMemorialPark.Pages.Bookings
                     SectionPrice = sec?.sys_SecPrice ?? 0
                 };
             }).ToList();
+        }
+
+        public async Task<IActionResult> OnPostDeleteAsync(int id)
+        {
+            var booking = await _db.tbl_BurialBookings
+                .FirstOrDefaultAsync(x =>
+                    x.sys_bookingId == id);
+
+            if (booking == null)
+            {
+                TempData["ErrorMessage"] =
+                    "Booking not found.";
+
+                return RedirectToPage();
+            }
+
+            // Prevent deletion if already invoiced
+            if (booking.sys_invoiceId.HasValue)
+            {
+                TempData["ErrorMessage"] =
+                    $"Booking for {booking.sys_deceasedFirstName} {booking.sys_deceasedLastName} has already been invoiced and cannot be deleted.";
+
+                return RedirectToPage();
+            }
+
+            var isAllocated = await _db.tbl_GraveAllocations
+    .AnyAsync(x => x.sys_bookingId == id);
+
+            if (isAllocated)
+            {
+                TempData["ErrorMessage"] =
+                    $"Booking for {booking.sys_deceasedFirstName} {booking.sys_deceasedLastName} has already been allocated and cannot be deleted.";
+
+                return RedirectToPage();
+            }
+
+            _db.tbl_BurialBookings.Remove(booking);
+
+            await _db.SaveChangesAsync();
+
+            TempData["SuccessMessage"] =
+                "Booking deleted successfully.";
+
+            return RedirectToPage();
         }
     }
 }

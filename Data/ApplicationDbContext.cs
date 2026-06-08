@@ -11,6 +11,35 @@ namespace ZororoMemorialPark.Data
         {
         }
 
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<tbl_RequisitionLineChangeLog>()
+                .HasOne(x => x.WorkflowStep)
+                .WithMany()
+                .HasForeignKey(x => x.WorkflowStepId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<tbl_RequisitionLineChangeLog>()
+                .HasOne(x => x.RequisitionLine)
+                .WithMany()
+                .HasForeignKey(x => x.RequisitionLineId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<tbl_RequisitionLineComment>()
+                .HasOne(x => x.WorkflowStep)
+                .WithMany()
+                .HasForeignKey(x => x.WorkflowStepId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<tbl_RequisitionLineComment>()
+                .HasOne(x => x.RequisitionLine)
+                .WithMany()
+                .HasForeignKey(x => x.RequisitionLineId)
+                .OnDelete(DeleteBehavior.NoAction);
+        }
+
         // Define DbSets for your entities here
 
         public DbSet<tbl_AuditLogs> tbl_AuditLogs { get; set; }

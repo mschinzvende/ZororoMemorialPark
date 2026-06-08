@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using ZororoMemorialPark.Data;
 using ZororoMemorialPark.Data.Models;
+using ZororoMemorialPark.Services;
 
 namespace ZororoMemorialPark.Pages.Inventory
 {
@@ -30,11 +31,40 @@ namespace ZororoMemorialPark.Pages.Inventory
 
         public async Task<IActionResult> OnGetAsync()
         {
-            Products = await _context.tbl_ProductsAndServices
+            var allProducts = await _context.tbl_ProductsAndServices
                 .Where(p => p.sys_itemType == "Product")
                 .OrderBy(p => p.sys_itemName)
                 .ToListAsync();
 
+            bool changesMade = false;
+
+            foreach (var product in allProducts)
+            {
+                string newStatus;
+
+                
+
+                UpdateStockLevel updateStock = new();
+                newStatus = updateStock.GetStockStatus(product.sys_stockQuantity);
+                
+
+                if (product.sys_status != newStatus)
+                {
+                    product.sys_status = newStatus;
+                    changesMade = true;
+                }
+            }
+
+            if (changesMade)
+            {
+                await _context.SaveChangesAsync();
+            }
+
+            Products = allProducts
+                .OrderBy(p => p.sys_itemName)
+                .ToList();
+
+            
             await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Access", "Accessed Products page");
             return Page();
         }
@@ -43,16 +73,38 @@ namespace ZororoMemorialPark.Pages.Inventory
         {
             try
             {
+                var costPrice = 0.0;
+                var sellingPrice = 0.0;
+                var status = "Out";
+
+                if (Request.Form["sys_category"] == "Sellable")
+                {
+                    sellingPrice = double.Parse(Request.Form["sys_unitPrice"]);
+                }
+                else if(Request.Form["sys_category"] =="Consumable")
+                {
+                    costPrice = double.Parse(Request.Form["sys_unitPrice"]);
+                }
+
+               
+                UpdateStockLevel updateStock = new();
+                status = updateStock.GetStockStatus(double.Parse(Request.Form["sys_stockQuantity"]));
+
+                
+                
                 var product = new tbl_ProductsAndServices
                 {
+
                     sys_itemName = Request.Form["sys_itemName"],
                     sys_description = Request.Form["sys_description"],
                     sys_category = Request.Form["sys_category"],
-                    sys_sellingPrice = double.Parse(Request.Form["sys_unitPrice"]),
+                    sys_sellingPrice = sellingPrice,
                     sys_stockQuantity = Int32.Parse(Request.Form["sys_stockQuantity"]),
                     sys_unitOfMeasure = Request.Form["sys_measurementUnit"],
                     sys_isActive = true,
-                    sys_itemType = "Product"
+                    sys_itemType = "Product",
+                    sys_status = status,
+                    sys_unitCost = costPrice
                 };
 
                 _context.tbl_ProductsAndServices.Add(product);
@@ -75,6 +127,37 @@ namespace ZororoMemorialPark.Pages.Inventory
         {
             try
             {
+                var costPrice = 0.0;
+                var sellingPrice = 0.0;
+                var status = "Out";
+
+                if (Request.Form["sys_category"] == "Sellable")
+                {
+                    sellingPrice = double.Parse(Request.Form["sys_unitPrice"]);
+                }
+                else if (Request.Form["sys_category"] == "Consumable")
+                {
+                    costPrice = double.Parse(Request.Form["sys_unitPrice"]);
+                }
+
+                if (Int32.Parse(Request.Form["sys_stockQuantity"]) <= 0)
+                {
+                    status = "Out";
+                }
+
+
+
+                else if (Int32.Parse(Request.Form["sys_stockQuantity"]) > 10)
+                {
+                    status = "InStock";
+                }
+
+                else
+                {
+                    status = "Low";
+                }
+
+
                 int id = int.Parse(Request.Form["sys_itemId"]);
                 var product = await _context.tbl_ProductsAndServices.FindAsync(id);
 
@@ -87,9 +170,11 @@ namespace ZororoMemorialPark.Pages.Inventory
                 product.sys_itemName = Request.Form["sys_itemName"];
                 product.sys_description = Request.Form["sys_description"];
                 product.sys_category = Request.Form["sys_category"];
-                product.sys_sellingPrice = double.Parse(Request.Form["sys_unitPrice"]);
+                product.sys_sellingPrice = sellingPrice;
                 product.sys_stockQuantity = Int32.Parse(Request.Form["sys_stockQuantity"]);
                 product.sys_unitOfMeasure = Request.Form["sys_measurementUnit"];
+                product.sys_unitCost = costPrice;
+                product.sys_status = status;
 
                 _context.tbl_ProductsAndServices.Update(product);
                 await _context.SaveChangesAsync();

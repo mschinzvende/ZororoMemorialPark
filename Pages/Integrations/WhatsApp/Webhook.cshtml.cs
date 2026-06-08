@@ -25,19 +25,7 @@ namespace ZororoMemorialPark.Pages.Integrations.WhatsApp
 
         // META VERIFICATION (GET)
 
-        /*public IActionResult OnGet()
-        {
-            var mode = Request.Query["hub.mode"].ToString();
-            var token = Request.Query["hub.verify_token"].ToString();
-            var challenge = Request.Query["hub.challenge"].ToString();
-
-            Console.WriteLine($"MODE: '{mode}'");
-            Console.WriteLine($"TOKEN: '{token}'");
-            Console.WriteLine($"EXPECTED: '{_options.VerifyToken}'");
-
-            return Content($"mode={mode}, token={token}, expected={_options.VerifyToken}, challenge={challenge}", "text/plain");
-        }
-      */
+        
         public IActionResult OnGet()
         {
             var mode = Request.Query["hub.mode"].ToString();

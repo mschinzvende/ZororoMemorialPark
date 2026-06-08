@@ -91,6 +91,7 @@
                                 <th>Stock</th>
                                 <th>Unit</th>
                                 <th>Price ($)</th>
+                                <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -102,7 +103,29 @@
                                     <td>@product.sys_category</td>
                                     <td>@product.sys_stockQuantity</td>
                                     <td>@product.sys_unitOfMeasure</td>
-                                    <td>@product.sys_sellingPrice.ToString("N2")</td>
+                                            <td>
+                                                @(product.sys_category == "Sellable"
+                                                    ? product.sys_sellingPrice.ToString("N2")
+                                                    : product.sys_unitCost.ToString("N2"))
+                                            </td>
+                                            <td>
+                                                @if (product.sys_status == "InStock")
+                                                {
+                                                    <span class="badge bg-success">In Stock</span>
+                                                }
+                                                else if (product.sys_status == "Low")
+                                                {
+                                                    <span class="badge bg-warning text-dark">Low Stock</span>
+                                                }
+                                                else if (product.sys_status == "Out")
+                                                {
+                                                    <span class="badge bg-danger">Out of Stock</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">@product.sys_status</span>
+                                                }
+                                            </td>
                                     <td>
                                             <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal_@product.sys_itemId">Edit</button>
                                             <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal_@product.sys_itemId">Delete</button>
@@ -140,7 +163,9 @@
                                                     <div class="row mt-3">
                                                         <div class="col-sm-6">
                                                             <label>Unit Price</label>
-                                                            <input type="number" name="sys_unitPrice" step="0.01" value="@product.sys_sellingPrice" class="form-control" />
+                                                                    <input type="number" name="sys_unitPrice" step="0.01" value="@(product.sys_category == "Sellable"
+                                                    ? product.sys_sellingPrice.ToString("N2")
+                                                    : product.sys_unitCost.ToString("N2"))" class="form-control" />
                                                         </div>
                                                         <div class="col-sm-6">
                                                             <label>Stock Quantity</label>
