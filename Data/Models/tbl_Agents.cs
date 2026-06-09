@@ -16,9 +16,9 @@ namespace ZororoMemorialPark.Data.Models
         public int sys_commission { get; set; }
         public bool sys_isPercentage { get; set; }
 
-        public string? sys_whatsAppPinHash { get; set; }
+        public string? sys_whatsAppPinHash { get; set; } = "null";
 
-        public bool sys_whatsAppPinSet { get; set; }
+        public bool sys_whatsAppPinSet { get; set; } = false;
 
         public bool sys_isActive { get; set; } = true;
 

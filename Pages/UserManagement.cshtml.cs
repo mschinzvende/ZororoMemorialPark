@@ -13,6 +13,10 @@ using System.Net;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
+using ZororoMemorialPark.Data.Models;
+using ZororoMemorialPark.Data;
+using ZororoMemorialPark.Services.WhatsApp;
 
 [Authorize(Roles = "Manager")]
 public class UserManagementModel : PageModel
@@ -23,12 +27,15 @@ public class UserManagementModel : PageModel
     private readonly SystemSettingsService _settings;
     private readonly NotificationService _notify;
     private readonly PasswordResetService _passwordReset;
+    private readonly ApplicationDbContext _context;
+    private readonly WhatsAppNotificationService _wa;
 
     public UserManagementModel(
         UserManager<IdentityUser> userManager,
         RoleManager<IdentityRole> roleManager,
         IAppLogger logger, SystemSettingsService settings, 
-        NotificationService notify, PasswordResetService passwordReset)
+        NotificationService notify, PasswordResetService passwordReset, 
+        ApplicationDbContext context, WhatsAppNotificationService wa)
     {
         _userManager = userManager;
         _roleManager = roleManager;
@@ -36,6 +43,8 @@ public class UserManagementModel : PageModel
         _settings = settings;
         _notify = notify;
         _passwordReset = passwordReset;
+        _context = context;
+        _wa = wa;
     }
 
     [TempData] public string StatusMessage { get; set; }
@@ -380,6 +389,7 @@ public class UserManagementModel : PageModel
     public async Task<IActionResult> OnPostUpdateRolesAsync()
     {
         var user = await _userManager.FindByIdAsync(RolesUserId);
+
         if (user == null)
         {
             ShowRolesModal = true;
@@ -391,15 +401,121 @@ public class UserManagementModel : PageModel
         var current = await _userManager.GetRolesAsync(user);
         var selected = ModalSelectedRoles ?? new();
 
-        var toAdd = selected.Except(current);
-        var toRemove = current.Except(selected);
+        var toAdd = selected.Except(current).ToList();
+        var toRemove = current.Except(selected).ToList();
 
-        foreach (var r in toAdd) await _userManager.AddToRoleAsync(user, r);
-        foreach (var r in toRemove) await _userManager.RemoveFromRoleAsync(user, r);
+        foreach (var r in toAdd)
+            await _userManager.AddToRoleAsync(user, r);
 
-        SafeLog("Roles Updated", user.Email);
+        foreach (var r in toRemove)
+            await _userManager.RemoveFromRoleAsync(user, r);
 
-        TempData["SuccessMessage"] = "Roles updated successfully!";
+        // ----------------------------------
+        // AGENT ROLE ADDED
+        // ----------------------------------
+
+        if (toAdd.Contains("Agent"))
+        {
+            var existingAgent =
+                await _context.tbl_Agents
+                    .FirstOrDefaultAsync(a =>
+                        a.UserId == user.Id);
+
+            if (existingAgent == null)
+            {
+                var agent = new tbl_Agents
+                {
+                    UserId = user.Id,
+                    sys_agentName = user.UserName ?? "Agent",
+                    sys_agentContactPerson = user.UserName ?? "",
+                    sys_agentEmail = user.Email ?? "",
+                    sys_agentPhone = user.PhoneNumber ?? "",
+                    sys_agentAddress = "N/A",
+                    sys_commission = 0,
+                    sys_isPercentage = true,
+                    sys_isActive = true
+                    
+                };
+
+                _context.tbl_Agents.Add(agent);
+
+                await _context.SaveChangesAsync();
+
+                if (!string.IsNullOrWhiteSpace(agent.sys_agentPhone))
+                {
+                    await _wa.SendTextMessage(
+                        agent.sys_agentPhone,
+                """
+You have been added as a Zororo Memorial Agent.
+
+To activate WhatsApp booking:
+
+1. Send any message to our WhatsApp number.
+2. Create your PIN.
+3. Login and start booking graves.
+""");
+                }
+
+                SafeLog(
+                    "Agent Record Created",
+                    user.Email);
+            }
+            else
+            {
+                existingAgent.sys_isActive = true;
+
+
+
+                await _context.SaveChangesAsync();
+
+                await _wa.SendTextMessage(
+    existingAgent.sys_agentPhone,
+    existingAgent.sys_isActive
+        ? "Your Zororo agent account has been enabled."
+        : "Your Zororo agent account has been disabled. You can no longer access the WhatsApp booking service.");
+
+                SafeLog(
+                    "Agent Reactivated",
+                    user.Email);
+            }
+        }
+
+        // ----------------------------------
+        // AGENT ROLE REMOVED
+        // ----------------------------------
+
+        if (toRemove.Contains("Agent"))
+        {
+            var existingAgent =
+                await _context.tbl_Agents
+                    .FirstOrDefaultAsync(a =>
+                        a.UserId == user.Id);
+
+            if (existingAgent != null)
+            {
+                existingAgent.sys_isActive = false;
+
+                await _context.SaveChangesAsync();
+
+                await _wa.SendTextMessage(
+existingAgent.sys_agentPhone,
+existingAgent.sys_isActive
+? "Your Zororo agent account has been enabled."
+: "Your Zororo agent account has been disabled. You can no longer access the WhatsApp booking service.");
+
+                SafeLog(
+                    "Agent Disabled",
+                    user.Email);
+            }
+        }
+
+        SafeLog(
+            "Roles Updated",
+            user.Email);
+
+        TempData["SuccessMessage"] =
+            "Roles updated successfully!";
+
         return RedirectToPage();
     }
 

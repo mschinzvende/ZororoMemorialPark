@@ -76,10 +76,14 @@ public class AgentManagementModel : PageModel
             var result = await _userManager.CreateAsync(user, randomPassword);
             if (result.Succeeded)
             {
-                TempData["SuccessMessage"] = "Agent Created successfully!";
-
+                
                 await _userManager.AddToRoleAsync(user, "Agent");
 
+                Agent.UserId = user.Id;
+                _context.tbl_Agents.Add(Agent);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Agent Created successfully!";
                 //send a welcome email
                 _ = Task.Run(async () =>
                 {
@@ -93,11 +97,7 @@ public class AgentManagementModel : PageModel
                     );
                 });
 
-                Agent.UserId = user.Id;
-
-
-                _context.tbl_Agents.Add(Agent);
-                await _context.SaveChangesAsync();
+                
 
                 await _wa
     .SendTextMessage(
@@ -133,7 +133,7 @@ Thank you.
         catch(Exception ex)
         {
             _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Error Creating Agent", ex.Message);
-            TempData["ErrorMessage"] = "An error occurred while creating the agent.";
+            TempData["ErrorMessage"] = "An error occurred while creating the agent. "+ ex.Message;
             return RedirectToPage();
         }
        
