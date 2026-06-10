@@ -111,9 +111,16 @@
                                 <button type="button" class="btn btn-outline-danger status-filter" data-status="Overdue">Overdue</button>
                             </div>
 
-                            <button class="btn btn-sm btn-danger" id="deleteSelectedBtn" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal" disabled>
-                                <i class="bi bi-trash"></i> Delete Selected
-                            </button>
+                            @if (User.IsInRole("Manager"))
+                            {
+                                <button class="btn btn-sm btn-danger"
+                                        id="deleteSelectedBtn"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#bulkDeleteModal"
+                                        disabled>
+                                    <i class="bi bi-trash"></i> Delete Selected
+                                </button>
+                            }
                         </div>
                     </div>
 
@@ -251,13 +258,15 @@
                                                     <i class="bi bi-clipboard-check"></i>
                                                 </button>
                                             }
-
+                                            @if (User.IsInRole("Manager"))
+                                            {
                                             <button class="btn btn-sm btn-danger"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#deleteModal"
                                                     data-id="@job.JobId">
                                                 <i class="bi bi-trash"></i>
                                             </button>
+                                            }
                                         </td>
                                     </tr>
                                 }
