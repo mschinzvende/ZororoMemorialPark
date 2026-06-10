@@ -131,19 +131,19 @@
                 <form method="post" asp-page-handler="Create" id="createSupplierForm">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Supplier Name</label>
-                        <input name="sys_supplierName" class="form-control" />
+                        <input name="sys_supplierName" class="form-control" required />
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Address</label>
-                        <input name="sys_supplierAddress" class="form-control" />
+                        <input name="sys_supplierAddress" placeholder="Zororo" class="form-control" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Phone</label>
-                        <input name="sys_supplierPhone" class="form-control" />
+                        <label class="form-label fw-bold">Phone (263...)</label>
+                        <input name="sys_supplierPhone" placeholder="263000000000" class="form-control" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Email</label>
-                        <input type="email" name="sys_supplierEmail" class="form-control" />
+                        <input type="email" name="sys_supplierEmail" placeholder="supplier@@mail.com" class="form-control" />
                     </div>
                     <div class="text-end">
                         <button type="submit" class="btn btn-primary">Save</button>

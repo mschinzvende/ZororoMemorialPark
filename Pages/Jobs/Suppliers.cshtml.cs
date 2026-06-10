@@ -37,6 +37,13 @@ namespace ZororoMemorialPark.Pages.Jobs
         // CREATE
         public async Task<IActionResult> OnPostCreateAsync()
         {
+            
+            Supplier.sys_supplierAddress ??= "N/A";
+            Supplier.sys_supplierPhone ??= "N/A";
+            Supplier.sys_supplierEmail ??= "N/A";
+
+            ModelState.Clear();
+
             if (!ModelState.IsValid)
             {
                 var errors = string.Join("; ", ModelState.Values
@@ -55,6 +62,10 @@ namespace ZororoMemorialPark.Pages.Jobs
         // EDIT
         public async Task<IActionResult> OnPostEditAsync()
         {
+            Supplier.sys_supplierAddress ??= "N/A";
+            Supplier.sys_supplierPhone ??= "N/A";
+            Supplier.sys_supplierEmail ??= "N/A";
+
             if (!ModelState.IsValid)
             {
                 TempData["ErrorMessage"] = "Invalid input!";
