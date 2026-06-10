@@ -41,11 +41,8 @@ namespace ZororoMemorialPark.Pages.Bookings
 
         public async Task OnGetAsync()
         {
-            // Only show sections that still have available graves
+            // Only show sections that still have available graves 
             Sections = await _db.tbl_Sections.AsNoTracking()
-                .Where(s => _db.tbl_Graves.Any(g =>
-                    g.sys_sectionId == s.sys_sectionId &&
-                    g.sys_graveSaleStatus == "Unsold"))
                 .OrderBy(s => s.sys_sectionName)
                 .ToListAsync();
         }
@@ -295,7 +292,7 @@ namespace ZororoMemorialPark.Pages.Bookings
                 sys_agentId = agentId,
                 sys_bookingStatus = "PendingPayment",
                 sys_createdOn = DateTime.Now,
-                sys_expiresOn = selected.AddDays(1)
+                sys_expiresOn = selected.AddDays(14)
             };
 
             _db.tbl_BurialBookings.Add(booking);

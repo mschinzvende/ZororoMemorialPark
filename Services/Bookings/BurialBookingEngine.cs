@@ -4,16 +4,19 @@ using System.Security.Cryptography;
 using System.Text;
 using ZororoMemorialPark.Data;
 using ZororoMemorialPark.Data.Models;
+using ZororoMemorialPark.Services.WhatsApp;
 
 namespace ZororoMemorialPark.Services.Bookings
 {
     public class BurialBookingEngine
     {
         private readonly ApplicationDbContext _db;
+        private readonly WhatsAppNotificationService _notificationService;
 
-        public BurialBookingEngine(ApplicationDbContext db)
+        public BurialBookingEngine(ApplicationDbContext db, WhatsAppNotificationService notificationService)
         {
             _db = db;
+            _notificationService = notificationService;
         }
 
         // ======================================================
@@ -23,10 +26,6 @@ namespace ZororoMemorialPark.Services.Bookings
         {
             return await _db.tbl_Sections
                 .AsNoTracking()
-                .Where(s =>
-                    _db.tbl_Graves.Any(g =>
-                        g.sys_sectionId == s.sys_sectionId &&
-                        g.sys_graveSaleStatus == "Unsold"))
                 .OrderBy(s => s.sys_sectionName)
                 .ToListAsync();
         }
@@ -64,8 +63,8 @@ namespace ZororoMemorialPark.Services.Bookings
             var minutes = Math.Max(5, settings.MinutesBetweenBurials);
             var window = TimeSpan.FromMinutes(minutes);
 
-            var start = date.ToDateTime(new TimeOnly(8, 0));
-            var end = date.ToDateTime(new TimeOnly(17, 0));
+            var start = date.ToDateTime(new TimeOnly((int)settings.dayStartTime, 0));
+            var end = date.ToDateTime(new TimeOnly((int)settings.dayEndTime, 0));
 
             var allSlots = new List<DateTime>();
             for (var t = start; t <= end; t = t.AddMinutes(minutes))
@@ -152,7 +151,7 @@ namespace ZororoMemorialPark.Services.Bookings
                 sys_agentId = agentId,
                 sys_bookingStatus = "PendingPayment",
                 sys_createdOn = DateTime.Now,
-                sys_expiresOn = selected.AddDays(1),
+                sys_expiresOn = selected.AddDays(14),
                 sys_receiptPath = receiptPath,
                 sys_paymentReceived = paymentReceived
                 
@@ -160,6 +159,13 @@ namespace ZororoMemorialPark.Services.Bookings
 
             _db.tbl_BurialBookings.Add(booking);
             await _db.SaveChangesAsync();
+
+            //Send booking notification to next of kin
+            var bookedSection = await _db.tbl_Sections.AsNoTracking().FirstOrDefaultAsync(s => s.sys_sectionId == booking.sys_sectionId);
+
+            await _notificationService.SendBookingNotification(customer.sys_customerPhone, "booking_notification",
+                $"{booking.sys_deceasedFirstName} {booking.sys_deceasedLastName}", booking.sys_requestedBurialDateTime.ToString("f"),
+                bookedSection.sys_sectionName, customer.sys_paymentMadeBy);
 
             return (true, "Booking created.", booking);
         }
