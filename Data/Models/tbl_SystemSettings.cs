@@ -38,5 +38,9 @@ namespace ZororoMemorialPark.Data.Models
         // Burial rules
         public int MaxBurialsPerDay { get; set; }
         public int MinutesBetweenBurials { get; set; }
+
+        public int? dayStartTime { get; set; }
+
+        public int? dayEndTime { get; set; } 
     }
 }

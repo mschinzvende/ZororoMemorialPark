@@ -83,8 +83,8 @@ namespace ZororoMemorialPark.Pages.Bookings
             // Build slots 08:00–17:00 stepping by MinutesBetweenBurials
             var minutes = Math.Max(5, settings.MinutesBetweenBurials);
 
-            var start = date.ToDateTime(new TimeOnly(8, 0));
-            var end = date.ToDateTime(new TimeOnly(17, 0));
+            var start = date.ToDateTime(new TimeOnly((int)settings.dayStartTime, 0));
+            var end = date.ToDateTime(new TimeOnly((int)settings.dayEndTime, 0));
 
             var allSlots = new List<DateTime>();
             for (var t = start; t <= end; t = t.AddMinutes(minutes))

@@ -73,6 +73,8 @@ namespace ZororoMemorialPark.Pages.Settings
 
             settingsInDb.MaxBurialsPerDay = Settings.MaxBurialsPerDay;
             settingsInDb.MinutesBetweenBurials = Settings.MinutesBetweenBurials;
+            settingsInDb.dayStartTime = Settings.dayStartTime;
+            settingsInDb.dayEndTime = Settings.dayEndTime;
 
             // Upload Logo
             if (LogoFile != null)

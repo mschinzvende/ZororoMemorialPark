@@ -284,6 +284,12 @@ namespace ZororoMemorialPark.Migrations
                     b.Property<bool>("UseSSL")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("dayEndTime")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("dayStartTime")
+                        .HasColumnType("int");
+
                     b.Property<string>("systemUrl")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
