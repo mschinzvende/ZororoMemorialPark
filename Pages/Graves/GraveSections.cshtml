@@ -45,6 +45,7 @@
                                     <th>Reminder</th>
                                     <th>Period</th>
                                     <th>Last Grave No.</th>
+                                    <th>Max Concurrent Burials</th>
                                     <th style="width:150px;">Actions</th>
                                 </tr>
                             </thead>
@@ -57,6 +58,7 @@
                                         <td> @grave_section.sys_jobReminder</td>
                                         <td>@grave_section.sys_reminderPeriod Year(s)</td>
                                         <td>@grave_section.sys_lastGraveNo</td>
+                                        <td>@grave_section.sys_maxConcurrentBurialsPerSlot</td>
                                         <td>
                                             <button class="btn btn-sm btn-outline-secondary"
                                                     data-bs-toggle="modal"
@@ -66,7 +68,8 @@
                                                     data-price="@grave_section.sys_SecPrice"
                                                     data-reminder="@grave_section.sys_jobReminder"
                                                     data-period="@grave_section.sys_reminderPeriod"
-                                                    data-lastNo="@grave_section.sys_lastGraveNo">
+                                                    data-lastNo="@grave_section.sys_lastGraveNo"
+                                                    data-concurrent="@grave_section.sys_maxConcurrentBurialsPerSlot">
                                                 Edit
                                             </button>
 
@@ -162,6 +165,13 @@
                                 <input value="0" type="number" min="0" step="1" name="sys_lastGraveNo" class="form-control border" style="border-color: var(--primary-green);" />
                             </div>
                         </div>
+
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Max Concurrent Burials</label>
+                                <input value="0" type="number" min="0" step="1" name="sys_maxConcurrentBurialsPerSlot" class="form-control border" style="border-color: var(--primary-green);" />
+                            </div>
+                        </div>
                     </div>
                     
                     
@@ -222,6 +232,14 @@
                                 <input name="sys_lastGraveNo" class="form-control border" style="border-color: var(--primary-green);" />
                             </div>
                         </div>
+
+
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Max Concurrent Burials</label>
+                                <input value="0" type="number" min="0" step="1" name="sys_maxConcurrentBurialsPerSlot" class="form-control border" style="border-color: var(--primary-green);" />
+                            </div>
+                        </div>
             </div>
                     <div class="text-end">
                         <button type="submit" class="btn btn-primary">Update</button>
@@ -271,6 +289,7 @@
         var reminder = button.getAttribute('data-reminder')
         var period = button.getAttribute('data-period')
          var lastNo = button.getAttribute('data-lastNo')
+         var concurrent = button.getAttribute('data-concurrent')
         // Fill form fields
         var modal = this;
         modal.querySelector('input[name="sys_sectionId"]').value = id;
@@ -279,6 +298,7 @@
         modal.querySelector('input[name="sys_jobReminder"]').value = reminder;
         modal.querySelector('input[name="sys_reminderPeriod"]').value = period;
         modal.querySelector('input[name="sys_lastGraveNo"]').value = lastNo;
+         modal.querySelector('input[name="sys_maxConcurrentBurialsPerSlot"]').value = concurrent;
     });
 
     // When Delete modal is about to show

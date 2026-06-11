@@ -48,73 +48,175 @@ namespace ZororoMemorialPark.Pages.Bookings
         }
 
         // Slots API: called from JS after date change
-        public async Task<IActionResult> OnGetAvailableBurialSlotsAsync(string burialDate)
+        public async Task<IActionResult> OnGetAvailableBurialSlotsAsync(
+    string burialDate,
+    int sectionId)
         {
-            if (!DateOnly.TryParseExact(burialDate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
-                return new JsonResult(new { slots = Array.Empty<string>(), message = "Invalid date." });
+            if (!DateOnly.TryParseExact(
+                burialDate,
+                "yyyy-MM-dd",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out var date))
+            {
+                return new JsonResult(new
+                {
+                    slots = Array.Empty<string>(),
+                    message = "Invalid date."
+                });
+            }
 
-            var settings = await _db.SystemSettings.AsNoTracking().FirstOrDefaultAsync();
+            var settings = await _db.SystemSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+
             if (settings == null)
-                return new JsonResult(new { slots = Array.Empty<string>(), message = "System settings not configured." });
+            {
+                return new JsonResult(new
+                {
+                    slots = Array.Empty<string>(),
+                    message = "System settings not configured."
+                });
+            }
+            Console.WriteLine($"SECTION ID RECEIVED = {sectionId}");
+            var section = await _db.tbl_Sections
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.sys_sectionId == sectionId);
 
-            // Daily capacity check (bookings + allocations)
-            var dayStart = date.ToDateTime(new TimeOnly(0, 0));
+            if (section == null)
+            {
+                return new JsonResult(new
+                {
+                    slots = Array.Empty<string>(),
+                    message = "Invalid section."
+                });
+            }
+
+            var dayStart = date.ToDateTime(
+                new TimeOnly(0, 0));
+
             var dayEnd = dayStart.AddDays(1);
 
-            var activeBookingCount = await _db.tbl_BurialBookings.AsNoTracking()
-                .Where(b => b.sys_requestedBurialDateTime >= dayStart &&
-                            b.sys_requestedBurialDateTime < dayEnd &&
-                            b.sys_bookingStatus != "Cancelled" &&
-                            b.sys_bookingStatus != "Rejected" &&
-                            b.sys_bookingStatus != "Expired")
-                .CountAsync();
+            // Overall cemetery capacity
+            var activeBookingCount =
+                await _db.tbl_BurialBookings
+                    .AsNoTracking()
+                    .Where(b =>
+                        b.sys_requestedBurialDateTime >= dayStart &&
+                        b.sys_requestedBurialDateTime < dayEnd &&
+                        b.sys_bookingStatus != "Cancelled" &&
+                        b.sys_bookingStatus != "Rejected" &&
+                        b.sys_bookingStatus != "Expired")
+                    .CountAsync();
 
-            var allocationCount = await _db.tbl_GraveAllocations.AsNoTracking()
-                .Where(a => a.sys_dateTimeOfBurial >= dayStart &&
-                            a.sys_dateTimeOfBurial < dayEnd)
-                .CountAsync();
+           
 
-            if (activeBookingCount + allocationCount >= settings.MaxBurialsPerDay)
-                return new JsonResult(new { slots = Array.Empty<string>(), message = "Daily capacity reached." });
+            if (activeBookingCount  >=
+                settings.MaxBurialsPerDay)
+            {
+                return new JsonResult(new
+                {
+                    slots = Array.Empty<string>(),
+                    message = "Daily capacity reached. Try a new date."
+                });
+            }
 
-            // Build slots 08:00–17:00 stepping by MinutesBetweenBurials
-            var minutes = Math.Max(5, settings.MinutesBetweenBurials);
+            var minutes =
+                Math.Max(
+                    5,
+                    settings.MinutesBetweenBurials);
 
-            var start = date.ToDateTime(new TimeOnly((int)settings.dayStartTime, 0));
-            var end = date.ToDateTime(new TimeOnly((int)settings.dayEndTime, 0));
+            var start = date.ToDateTime(
+                new TimeOnly(
+                    (int)settings.dayStartTime,
+                    0));
+
+            var end = date.ToDateTime(
+                new TimeOnly(
+                    (int)settings.dayEndTime,
+                    0));
 
             var allSlots = new List<DateTime>();
-            for (var t = start; t <= end; t = t.AddMinutes(minutes))
+
+            for (var t = start;
+                 t <= end;
+                 t = t.AddMinutes(minutes))
+            {
                 allSlots.Add(t);
+            }
 
-            // Pull existing scheduled times (bookings + allocations)
-            var bookedTimes = await _db.tbl_BurialBookings.AsNoTracking()
-                .Where(b => b.sys_requestedBurialDateTime >= dayStart &&
-                            b.sys_requestedBurialDateTime < dayEnd &&
-                            b.sys_bookingStatus != "Cancelled" &&
-                            b.sys_bookingStatus != "Rejected" &&
-                            b.sys_bookingStatus != "Expired")
-                .Select(b => b.sys_requestedBurialDateTime)
-                .ToListAsync();
+            // Section-specific bookings
+            var sectionBookings =
+                await _db.tbl_BurialBookings
+                    .AsNoTracking()
+                    .Where(b =>
+                        b.sys_sectionId == sectionId &&
+                        b.sys_requestedBurialDateTime >= dayStart &&
+                        b.sys_requestedBurialDateTime < dayEnd &&
+                        b.sys_bookingStatus != "Cancelled" &&
+                        b.sys_bookingStatus != "Rejected" &&
+                        b.sys_bookingStatus != "Expired")
+                    .Select(b =>
+                        b.sys_requestedBurialDateTime)
+                    .ToListAsync();
 
-            var allocatedTimes = await _db.tbl_GraveAllocations.AsNoTracking()
-                .Where(a => a.sys_dateTimeOfBurial >= dayStart &&
-                            a.sys_dateTimeOfBurial < dayEnd)
-                .Select(a => a.sys_dateTimeOfBurial)
-                .ToListAsync();
 
-            var blockedTimes = bookedTimes.Concat(allocatedTimes).ToList();
-            var window = TimeSpan.FromMinutes(minutes);
+            var maxConcurrent =
+                Math.Max(
+                    1,
+                    (int)section.sys_maxConcurrentBurialsPerSlot);
+
+
+
+            ////////DEBUG
+            
+            Console.WriteLine(
+            $"SECTION={section.sys_sectionName}");
+
+            Console.WriteLine(
+                $"MAX CONCURRENT={section.sys_maxConcurrentBurialsPerSlot}");
+
+            Console.WriteLine(
+                $"BOOKINGS={sectionBookings.Count}");
+
+            foreach (var booking in sectionBookings)
+            {
+                Console.WriteLine(
+                    $"BOOKING={booking:yyyy-MM-dd HH:mm:ss}");
+            }
+            ///
+
 
             var available = allSlots
-                .Where(s => !blockedTimes.Any(bt => (bt - s).Duration() < window))
-                .Select(s => s.ToString("yyyy-MM-ddTHH:mm"))
+                .Where(slot =>
+                {
+                    var used = sectionBookings.Count(b =>
+                        b.Hour == slot.Hour &&
+                        b.Minute == slot.Minute);
+
+                    return used < maxConcurrent;
+                })
+                .Select(slot =>
+                    slot.ToString("yyyy-MM-ddTHH:mm"))
                 .ToList();
 
-            if (available.Count == 0)
-                return new JsonResult(new { slots = Array.Empty<string>(), message = "No slots available." });
 
-            return new JsonResult(new { slots = available, message = "" });
+            if (available.Count == 0)
+            {
+                return new JsonResult(new
+                {
+                    slots = Array.Empty<string>(),
+                    message =
+                        "No slots available for this section."
+                });
+            }
+
+            return new JsonResult(new
+            {
+                slots = available,
+                message = ""
+            });
         }
 
         public async Task<IActionResult> OnPostAsync()
@@ -130,7 +232,9 @@ namespace ZororoMemorialPark.Pages.Bookings
                 return Page();
             }
 
-            var hasAvailable = await _db.tbl_Graves.AnyAsync(g =>
+            //We now dont care if the section has graves
+
+            /*var hasAvailable = await _db.tbl_Graves.AnyAsync(g =>
                 g.sys_sectionId == SectionId &&
                 g.sys_graveSaleStatus == "Unsold");
 
@@ -138,7 +242,7 @@ namespace ZororoMemorialPark.Pages.Bookings
             {
                 ModelState.AddModelError("", "Selected section has no available graves.");
                 return Page();
-            }
+            }*/
 
             // -----------------------------
             // TIME SLOT PARSING
@@ -185,7 +289,7 @@ namespace ZororoMemorialPark.Pages.Bookings
             }
 
             // Cannot exceed 7 days in advance
-            if (selectedDate > today.AddDays(7))
+            if (selectedDate > today.AddDays(365))
             {
                 ModelState.AddModelError("", "Burial date cannot be more than 7 days in advance.");
                 return Page();
@@ -266,16 +370,16 @@ namespace ZororoMemorialPark.Pages.Bookings
                 .Select(a => a.sys_dateTimeOfBurial)
                 .ToListAsync();
 
-            if (scheduledTimes.Concat(allocatedTimes)
+           /* if (scheduledTimes.Concat(allocatedTimes)
                 .Any(t => Math.Abs((t - selected).TotalMinutes) < minutes))
             {
                 ModelState.AddModelError("", "Selected slot is no longer available. Please choose another slot.");
                 return Page();
-            }
+            }*/
 
             if (scheduledTimes.Count + allocatedTimes.Count >= settings.MaxBurialsPerDay)
             {
-                ModelState.AddModelError("", "Daily burial capacity has been reached for this date.");
+                ModelState.AddModelError("", "Daily burial capacity has been reached for this date. Please try another date.");
                 return Page();
             }
 

@@ -28,7 +28,7 @@
 
                 <div class="col-md-2">
                     <label class="form-label">Section <span class="text-danger">*</span></label>
-                    <select class="form-select" asp-for="SectionId" required>
+                    <select class="form-select" asp-for="SectionId" id="sectionId" required>
                         <option value="">-- Select Section --</option>
                         @foreach (var s in Model.Sections)
                         {
@@ -102,18 +102,28 @@
         const messageEl = document.getElementById("slotMessage");
         const burialError = document.getElementById("burialError");
         const submitBtn = document.getElementById("createBookingBtn");
+        const sectionSelect = document.getElementById("sectionId");
 
         // ---------- DATE LIMITS ----------
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         const maxDate = new Date(today);
-        maxDate.setDate(today.getDate() + 7);
+        maxDate.setDate(today.getDate() + 365);
 
         burialDateInput.min = today.toISOString().split("T")[0];
         burialDateInput.max = maxDate.toISOString().split("T")[0];
 
         submitBtn.disabled = true;
+
+        // ------- Section onchange
+
+            sectionSelect.addEventListener("change", function () {
+
+        if (burialDateInput.value)
+            burialDateInput.dispatchEvent(new Event("change"));
+
+    })
 
         // ---------- DATE CHANGE ----------
         burialDateInput.addEventListener("change", async function () {
@@ -126,6 +136,8 @@
             const selectedDate = new Date(this.value);
             selectedDate.setHours(0, 0, 0, 0);
 
+            const sectionId = sectionSelect.value;
+
             if (selectedDate < today || selectedDate > maxDate) {
                 burialError.textContent = "Burial date must be between today and the next 7 days.";
                 burialError.classList.remove("d-none");
@@ -134,8 +146,11 @@
             }
 
             try {
-                const response = await fetch(
-                    `?handler=AvailableBurialSlots&burialDate=${encodeURIComponent(this.value)}`
+                if (!sectionSelect.value)
+                    return;
+
+            const response = await fetch(
+                `?handler=AvailableBurialSlots&burialDate=${encodeURIComponent(this.value)}&sectionId=${encodeURIComponent(sectionSelect.value)}`
                 );
 
                 const result = await response.json();

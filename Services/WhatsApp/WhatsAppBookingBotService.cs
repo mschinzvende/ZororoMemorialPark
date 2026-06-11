@@ -498,7 +498,7 @@ namespace ZororoMemorialPark.Services.WhatsApp
 
             var slotsResult =
                 await _engine.GetAvailableSlotsAsync(
-                    burialDate);
+                    burialDate, (int)data.SectionId);
 
             if (!slotsResult.slots.Any())
             {
@@ -541,7 +541,7 @@ namespace ZororoMemorialPark.Services.WhatsApp
                 data.BurialDate!.Value;
 
             var slotsResult =
-                await _engine.GetAvailableSlotsAsync(burialDate);
+                await _engine.GetAvailableSlotsAsync(burialDate, (int)data.SectionId);
 
             if (!int.TryParse(text, out int selected) ||
                 selected < 1 ||

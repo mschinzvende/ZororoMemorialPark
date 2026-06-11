@@ -1119,6 +1119,9 @@ namespace ZororoMemorialPark.Migrations
                     b.Property<int>("sys_lastGraveNo")
                         .HasColumnType("int");
 
+                    b.Property<int?>("sys_maxConcurrentBurialsPerSlot")
+                        .HasColumnType("int");
+
                     b.Property<int>("sys_reminderPeriod")
                         .HasColumnType("int");
 

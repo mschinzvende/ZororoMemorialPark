@@ -33,15 +33,29 @@ namespace ZororoMemorialPark.Services.Bookings
         // ======================================================
         // AVAILABLE TIME SLOTS FOR A DATE
         // ======================================================
-        public async Task<(List<string> slots, string message)> GetAvailableSlotsAsync(DateOnly date)
+        public async Task<(List<string> slots, string message)> GetAvailableSlotsAsync(
+    DateOnly date,
+    int sectionId)
         {
-            var settings = await _db.SystemSettings.AsNoTracking().FirstOrDefaultAsync();
+            var settings = await _db.SystemSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+
             if (settings == null)
                 return (new(), "System settings not configured.");
+
+            var section = await _db.tbl_Sections
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.sys_sectionId == sectionId);
+
+            if (section == null)
+                return (new(), "Invalid section.");
 
             var dayStart = date.ToDateTime(new TimeOnly(0, 0));
             var dayEnd = dayStart.AddDays(1);
 
+            // Overall cemetery capacity
             var bookingCount = await _db.tbl_BurialBookings
                 .Where(b =>
                     b.sys_requestedBurialDateTime >= dayStart &&
@@ -51,49 +65,70 @@ namespace ZororoMemorialPark.Services.Bookings
                     b.sys_bookingStatus != "Expired")
                 .CountAsync();
 
-            var allocationCount = await _db.tbl_GraveAllocations
-                .Where(a =>
-                    a.sys_dateTimeOfBurial >= dayStart &&
-                    a.sys_dateTimeOfBurial < dayEnd)
-                .CountAsync();
-
-            if (bookingCount + allocationCount >= settings.MaxBurialsPerDay)
+            if (bookingCount >= settings.MaxBurialsPerDay)
                 return (new(), "Daily burial capacity reached.");
 
-            var minutes = Math.Max(5, settings.MinutesBetweenBurials);
-            var window = TimeSpan.FromMinutes(minutes);
+            var minutes =
+                Math.Max(
+                    5,
+                    settings.MinutesBetweenBurials);
 
-            var start = date.ToDateTime(new TimeOnly((int)settings.dayStartTime, 0));
-            var end = date.ToDateTime(new TimeOnly((int)settings.dayEndTime, 0));
+            var start = date.ToDateTime(
+                new TimeOnly(
+                    (int)settings.dayStartTime,
+                    0));
+
+            var end = date.ToDateTime(
+                new TimeOnly(
+                    (int)settings.dayEndTime,
+                    0));
 
             var allSlots = new List<DateTime>();
-            for (var t = start; t <= end; t = t.AddMinutes(minutes))
+
+            for (var t = start;
+                 t <= end;
+                 t = t.AddMinutes(minutes))
+            {
                 allSlots.Add(t);
+            }
 
-            var blockedTimes = await _db.tbl_BurialBookings
-                .Where(b =>
-                    b.sys_requestedBurialDateTime >= dayStart &&
-                    b.sys_requestedBurialDateTime < dayEnd &&
-                    b.sys_bookingStatus != "Cancelled" &&
-                    b.sys_bookingStatus != "Rejected" &&
-                    b.sys_bookingStatus != "Expired")
-                .Select(b => b.sys_requestedBurialDateTime)
-                .Concat(
-                    _db.tbl_GraveAllocations
-                        .Where(a =>
-                            a.sys_dateTimeOfBurial >= dayStart &&
-                            a.sys_dateTimeOfBurial < dayEnd)
-                        .Select(a => a.sys_dateTimeOfBurial)
-                )
-                .ToListAsync();
+            // Bookings for THIS section only
+            var sectionBookings =
+                await _db.tbl_BurialBookings
+                    .AsNoTracking()
+                    .Where(b =>
+                        b.sys_sectionId == sectionId &&
+                        b.sys_requestedBurialDateTime >= dayStart &&
+                        b.sys_requestedBurialDateTime < dayEnd &&
+                        b.sys_bookingStatus != "Cancelled" &&
+                        b.sys_bookingStatus != "Rejected" &&
+                        b.sys_bookingStatus != "Expired")
+                    .Select(b =>
+                        b.sys_requestedBurialDateTime)
+                    .ToListAsync();
 
-            var available = allSlots
-                .Where(s => !blockedTimes.Any(bt => (bt - s).Duration() < window))
-                .Select(s => s.ToString("yyyy-MM-ddTHH:mm"))
-                .ToList();
+            var maxConcurrent =
+                Math.Max(
+                    1,
+                    (int)section.sys_maxConcurrentBurialsPerSlot);
+
+            var available =
+                allSlots
+                    .Where(slot =>
+                    {
+                        var used =
+                            sectionBookings.Count(b =>
+                                b.Hour == slot.Hour &&
+                                b.Minute == slot.Minute);
+
+                        return used < maxConcurrent;
+                    })
+                    .Select(slot =>
+                        slot.ToString("yyyy-MM-ddTHH:mm"))
+                    .ToList();
 
             return available.Count == 0
-                ? (new(), "No slots available.")
+                ? (new(), "No slots available for this section.")
                 : (available, "");
         }
 
@@ -126,7 +161,7 @@ namespace ZororoMemorialPark.Services.Bookings
             if (selectedDate < today)
                 return (false, "Burial date cannot be in the past.", null);
 
-            if (selectedDate > today.AddDays(7))
+            if (selectedDate > today.AddDays(365))
                 return (false, "Burial date cannot exceed 7 days in advance.", null);
 
             if (selectedDate == today && selected <= DateTime.Now)
