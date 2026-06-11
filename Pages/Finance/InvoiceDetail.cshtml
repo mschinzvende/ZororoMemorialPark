@@ -17,85 +17,86 @@
 
 
 <div class="container-fluid py-4 mb-4">
-<div class="card shadow-sm">
-    <div class="card-header d-flex justify-content-between align-items-center"
-    style="background-color: var(--primary-green); color: var(--primary-white);">
-        <h5 class="mb-0">Invoice @Model.Invoice?.sys_invoiceId</h5>
-        <div>
-            <a asp-page="./InvoicesList" class="btn btn-light btn-sm">Back</a>
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center"
+        style="background-color: var(--primary-green); color: var(--primary-white);">
+            <h5 class="mb-0">Invoice @Model.Invoice?.sys_invoiceId</h5>
+            <div>
+                <a asp-page="./InvoicesList" class="btn btn-light btn-sm">Back</a>
                 <button class="btn btn-success btn-sm"
-                        data-bs-toggle="modal"
-                        data-bs-target="#sendInvoiceModal">
+                data-bs-toggle="modal"
+                data-bs-target="#sendInvoiceModal">
                     <i class="bi bi-whatsapp"></i> Send
                 </button>
-            <a asp-page-handler="Pdf"
-            asp-route-id="@Model.Invoice.sys_invoiceId"
-            class="btn btn-outline-white btn-sm"
-            style="background:white;color:#006A46;">
-                Download PDF
-            </a>
+                <a asp-page-handler="Pdf"
+                asp-route-id="@Model.Invoice.sys_invoiceId"
+                class="btn btn-outline-white btn-sm"
+                style="background:white;color:#006A46;">
+                    Download PDF
+                </a>
 
-            @{var balance = Model.Total - Model.Paid;}
+                @{var balance = Model.Total - Model.Paid;}
 
-            @if (Model.InvoiceType != "GraveSale" && Model.InvoiceType != "Reservation" && balance>0)
-            {
-               
-                <button class="btn btn-sm btn-success"
-                        data-bs-toggle="modal"
-                        data-bs-target="#paymentModal"
-                        data-invoice="@Model.Invoice.sys_invoiceId"
-                        data-balance="@balance">
-                    Capture Payment
-                </button>
-            }
+                @if (Model.InvoiceType != "GraveSale" && Model.InvoiceType != "Reservation" && balance > 0)
+                {
 
-        </div>
-    </div>
+                    <button class="btn btn-sm btn-success"
+                    data-bs-toggle="modal"
+                    data-bs-target="#paymentModal"
+                    data-invoice="@Model.Invoice.sys_invoiceId"
+                    data-balance="@balance">
+                        Capture Payment
+                    </button>
 
-    <div class="card-body">
-        @if (Model.Invoice == null)
-        {
-            <div class="alert alert-warning">Invoice not found.</div>
-        }
-        else
-        {
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <h6>Invoice</h6>
-                    <p><strong>Number:</strong> @Model.Invoice.sys_invoiceId</p>
-                    <p><strong>Date:</strong> @Model.Invoice.sys_invoiceDate.ToString("yyyy-MM-dd")</p>
-                    <p><strong>Due:</strong> @Model.Invoice.sys_invoiceDueDate.ToString("yyyy-MM-dd")</p>
-                </div>
-                <div class="col-md-6 text-end">
-                    <h6>Customer</h6>
-                    <p>@Model.CustomerName</p>
-                </div>
+                }
+
             </div>
+        </div>
 
-            <h6>Items</h6>
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Item</th>
-                        <th class="text-end">Cost</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var it in Model.Items)
-                    {
+        <div class="card-body">
+            @if (Model.Invoice == null)
+            {
+                <div class="alert alert-warning">Invoice not found.</div>
+            }
+            else
+            {
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6>Invoice</h6>
+                        <p><strong>Number:</strong> @Model.Invoice.sys_invoiceId</p>
+                        <p><strong>Date:</strong> @Model.Invoice.sys_invoiceDate.ToString("yyyy-MM-dd")</p>
+                        <p><strong>Due:</strong> @Model.Invoice.sys_invoiceDueDate.ToString("yyyy-MM-dd")</p>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <h6>Customer</h6>
+                        <p>@Model.CustomerName</p>
+                    </div>
+                </div>
+
+                <h6>Items</h6>
+                <table class="table table-bordered">
+                    <thead>
                         <tr>
-                            <td>@it.sys_itemName</td>
-                            <td class="text-end">$@it.sys_itemCost.ToString("N2")</td>
+                            <th>Item</th>
+                            <th class="text-end">Cost</th>
                         </tr>
-                    }
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td class="text-end"><strong>Total</strong></td>
-                        <td class="text-end">$@Model.Total.ToString("N2")</td>
-                    </tr>
-                </tfoot>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var it in Model.Items)
+                        {
+                            <tr>
+                                <td>@it.sys_itemName</td>
+                                <td class="text-end">$@it.sys_itemCost.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td class="text-end"><strong>Total</strong></td>
+                            <td class="text-end">$@Model.Total.ToString("N2")</td>
+                        </tr>
+                    </tfoot>
+                </table>
 
                 <h6>Payments</h6>
                 <table class="table table-sm table-bordered">
@@ -126,18 +127,22 @@
                                 <td>@p.sys_receiptNumber</td>
 
                                 <td class="text-center">
+                                    @if (Model.InvoiceType != "GraveSale" && Model.InvoiceType != "Reservation")
+                                    {
 
-                                    <form method="post"
-                                          asp-page-handler="ReversePayment"
-                                          asp-route-paymentId="@p.sys_incomeId"
-                                          asp-route-invoiceId="@Model.Invoice.sys_invoiceId"
-                                          onsubmit="return confirm('Reverse this payment?');">
 
-                                        <button class="btn btn-sm btn-danger">
-                                            Reverse
-                                        </button>
+                                        <form method="post"
+                                        asp-page-handler="ReversePayment"
+                                        asp-route-paymentId="@p.sys_incomeId"
+                                        asp-route-invoiceId="@Model.Invoice.sys_invoiceId"
+                                        onsubmit="return confirm('Reverse this payment?');">
 
-                                    </form>
+                                            <button class="btn btn-sm btn-danger">
+                                                Reverse
+                                            </button>
+
+                                        </form>
+                                    }
 
                                 </td>
 

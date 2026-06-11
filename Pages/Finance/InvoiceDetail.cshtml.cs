@@ -51,7 +51,7 @@ namespace ZororoMemorialPark.Pages.Finance
             Invoice = await _context.tbl_Invoices.FindAsync(id);
             if (Invoice == null) return Page();
 
-            var InvoiceType = "ProductService";
+            InvoiceType = "ProductService";
             if (await _context.tbl_GraveAllocationInvoices.AnyAsync(x => x.sys_invoiceId == Invoice.sys_invoiceId))
                 InvoiceType = "GraveSale";
             else if (await _context.tbl_GraveReservationInvoices.AnyAsync(x => x.sys_invoiceId == Invoice.sys_invoiceId))
