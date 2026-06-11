@@ -1112,6 +1112,9 @@ namespace ZororoMemorialPark.Migrations
                     b.Property<double>("sys_SecPrice")
                         .HasColumnType("float");
 
+                    b.Property<int?>("sys_agentCommission")
+                        .HasColumnType("int");
+
                     b.Property<string>("sys_jobReminder")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");

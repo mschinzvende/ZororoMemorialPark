@@ -80,8 +80,7 @@
                                 data-email="@a.sys_agentEmail"
                                 data-address="@a.sys_agentAddress"
                                 data-userid="@a.UserId"
-                                data-sys_commission="@a.sys_commission"
-                                data-sys_isPercentage="@a.sys_isPercentage">
+                                >
                             Edit
                         </button>
                                     @if (a.sys_isActive)
@@ -146,19 +145,6 @@
                             <input asp-for="Agent.sys_agentEmail" class="form-control" />
                         </div>
 
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Commission</label>
-                            <input asp-for="Agent.sys_commission" class="form-control" />
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Commission Type</label>
-                            <select asp-for="Agent.sys_isPercentage" class="form-control">
-                                <option value="true">Percentage</option>
-                                <option value="false">Fixed Amount</option>
-                            </select>
-                        </div>
-
                         <div class="col-12 mb-3">
                             <label class="form-label">Address</label>
                             <textarea asp-for="Agent.sys_agentAddress"
@@ -218,22 +204,6 @@
                             <input asp-for="Agent.sys_agentEmail"
                                    id="editEmail"
                                    class="form-control" />
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Commission</label>
-                            <input asp-for="Agent.sys_commission"
-                                   id="editCommission"
-                                   class="form-control" />
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Commission Type</label>
-                            <select id="editIsPercentage"
-                                    class="form-control"
-                                    asp-for="Agent.sys_isPercentage"
-                                    asp-items="Model.IsPercentageOptions">
-                            </select>
                         </div>
 
                         <div class="col-12 mb-3">
@@ -541,8 +511,7 @@
                     document.getElementById("editEmail").value = this.dataset.email;
                     document.getElementById("editAddress").value = this.dataset.address;
                    document.getElementById("editAgentUserId").value = this.dataset.userid;
-                   document.getElementById("editCommission").value = this.dataset.sys_commission;
-                   document.getElementById("editIsPercentage").value = this.dataset.sys_isPercentage;
+                   
                     new bootstrap.Modal(document.getElementById("editAgentModal")).show();
                 });
             });

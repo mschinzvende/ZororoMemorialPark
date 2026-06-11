@@ -853,7 +853,7 @@ namespace ZororoMemorialPark.Pages.Graves
             return new JsonResult(new { success, message });
         }
 
-        // Allocation Payment
+        /*Allocation Payment
         public async Task<IActionResult> OnPostAddAllocationPaymentAsync(
     int allocationId, double amountPaid, int paymentMethodId, int receiptNumber, int receiptBookId, string notes, int bookingAgent)
         {
@@ -909,6 +909,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 await _context.SaveChangesAsync();
             }
 
+            var sectionToPay = await _db.tbl_Sections.FindAsync(Booking.sys_sectionId);
 
             // --- Calculate Commission ---
             var agent = await _context.tbl_Agents.FindAsync(bookingAgent);
@@ -937,7 +938,7 @@ namespace ZororoMemorialPark.Pages.Graves
             TempData["SuccessMessage"] = "Allocation payment recorded successfully.";
             return RedirectToPage(new { id = allocation.sys_graveId });
         }
-
+        */
 
         // Record Reservation Payment
         public async Task<IActionResult> OnPostRecordReservationPaymentAsync(int reservationId, double amountPaid, int paymentMethodId, string notes)

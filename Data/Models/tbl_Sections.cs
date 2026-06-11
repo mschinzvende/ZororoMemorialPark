@@ -17,7 +17,7 @@ namespace ZororoMemorialPark.Data.Models
 
         public int? sys_maxConcurrentBurialsPerSlot { get; set; } = 1;
 
-
+        public int? sys_agentCommission { get; set; }
 
     }
 }

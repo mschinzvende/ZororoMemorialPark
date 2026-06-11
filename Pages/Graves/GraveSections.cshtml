@@ -46,6 +46,7 @@
                                     <th>Period</th>
                                     <th>Last Grave No.</th>
                                     <th>Max Concurrent Burials</th>
+                                    <th>Agent Commission</th>
                                     <th style="width:150px;">Actions</th>
                                 </tr>
                             </thead>
@@ -59,6 +60,7 @@
                                         <td>@grave_section.sys_reminderPeriod Year(s)</td>
                                         <td>@grave_section.sys_lastGraveNo</td>
                                         <td>@grave_section.sys_maxConcurrentBurialsPerSlot</td>
+                                        <td>$@grave_section.sys_agentCommission</td>
                                         <td>
                                             <button class="btn btn-sm btn-outline-secondary"
                                                     data-bs-toggle="modal"
@@ -69,7 +71,8 @@
                                                     data-reminder="@grave_section.sys_jobReminder"
                                                     data-period="@grave_section.sys_reminderPeriod"
                                                     data-lastNo="@grave_section.sys_lastGraveNo"
-                                                    data-concurrent="@grave_section.sys_maxConcurrentBurialsPerSlot">
+                                                    data-concurrent="@grave_section.sys_maxConcurrentBurialsPerSlot"
+                                                    data-agentCommission="@grave_section.sys_agentCommission">
                                                 Edit
                                             </button>
 
@@ -172,6 +175,13 @@
                                 <input value="0" type="number" min="0" step="1" name="sys_maxConcurrentBurialsPerSlot" class="form-control border" style="border-color: var(--primary-green);" />
                             </div>
                         </div>
+
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Agent Commission $</label>
+                                <input value="0" type="number" min="0" step="1" name="sys_agentCommission" class="form-control border" style="border-color: var(--primary-green);" />
+                            </div>
+                        </div>
                     </div>
                     
                     
@@ -240,6 +250,13 @@
                                 <input value="0" type="number" min="0" step="1" name="sys_maxConcurrentBurialsPerSlot" class="form-control border" style="border-color: var(--primary-green);" />
                             </div>
                         </div>
+
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Agent Commission $</label>
+                                <input value="0" type="number" min="0" step="1" name="sys_agentCommission" class="form-control border" style="border-color: var(--primary-green);" />
+                            </div>
+                        </div>
             </div>
                     <div class="text-end">
                         <button type="submit" class="btn btn-primary">Update</button>
@@ -290,6 +307,7 @@
         var period = button.getAttribute('data-period')
          var lastNo = button.getAttribute('data-lastNo')
          var concurrent = button.getAttribute('data-concurrent')
+         var agentCommission = button.getAttribute('data-agentCommission')
         // Fill form fields
         var modal = this;
         modal.querySelector('input[name="sys_sectionId"]').value = id;
@@ -298,7 +316,8 @@
         modal.querySelector('input[name="sys_jobReminder"]').value = reminder;
         modal.querySelector('input[name="sys_reminderPeriod"]').value = period;
         modal.querySelector('input[name="sys_lastGraveNo"]').value = lastNo;
-         modal.querySelector('input[name="sys_maxConcurrentBurialsPerSlot"]').value = concurrent;
+        modal.querySelector('input[name="sys_maxConcurrentBurialsPerSlot"]').value = concurrent;
+        modal.querySelector('input[name="sys_agentCommission"]').value = agentCommission;
     });
 
     // When Delete modal is about to show

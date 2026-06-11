@@ -64,7 +64,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 var reminderPeriod = Int32.Parse(Request.Form["reminderPeriod"].ToString().Trim());
                 var lastGraveNo = Int32.Parse(Request.Form["sys_lastGraveNo"].ToString().Trim());
                 var maxConcurrentBurials = Int32.Parse(Request.Form["sys_maxConcurrentBurialsPerSlot"].ToString().Trim());
-
+                var agentCommission= Int32.Parse(Request.Form["sys_agentCommission"].ToString().Trim());
 
 
                 if (string.IsNullOrEmpty(sectionName))
@@ -88,7 +88,8 @@ namespace ZororoMemorialPark.Pages.Graves
                     sys_jobReminder = jobReminder,
                     sys_reminderPeriod = reminderPeriod,
                     sys_lastGraveNo = lastGraveNo,
-                    sys_maxConcurrentBurialsPerSlot = maxConcurrentBurials
+                    sys_maxConcurrentBurialsPerSlot = maxConcurrentBurials,
+                    sys_agentCommission = agentCommission,
                 };
                 _context.tbl_Sections.Add(section);
                 await _context.SaveChangesAsync();
@@ -127,6 +128,8 @@ namespace ZororoMemorialPark.Pages.Graves
                 var reminderPeriod = Int32.Parse(Request.Form["sys_reminderPeriod"].ToString().Trim());
                 var lastGraveNo = Int32.Parse(Request.Form["sys_lastGraveNo"].ToString().Trim());
                 var maxConcurrentBurials = Int32.Parse(Request.Form["sys_maxConcurrentBurialsPerSlot"].ToString().Trim());
+                var agentCommission = Int32.Parse(Request.Form["sys_agentCommission"].ToString().Trim());
+
                 if (!int.TryParse(sectionIdStr, out int sectionId))
                 {
                     TempData["ErrorMessage"] = "Invalid section ID.";
@@ -158,6 +161,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 section.sys_SecPrice = sectionPrice;
                 section.sys_lastGraveNo = lastGraveNo;
                 section.sys_maxConcurrentBurialsPerSlot=maxConcurrentBurials;
+                section.sys_agentCommission = agentCommission;
                
 
                 _context.tbl_Sections.Update(section);

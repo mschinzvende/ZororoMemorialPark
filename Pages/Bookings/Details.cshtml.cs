@@ -725,7 +725,7 @@ namespace ZororoMemorialPark.Pages.Bookings
             if (Booking.sys_invoiceId.HasValue)
                 return RedirectToPage(new { id });
 
-            // Still ensure section has available graves at invoicing stage
+            /* Still ensure section has available graves at invoicing stage
             var hasAvailable = await _db.tbl_Graves.AnyAsync(g =>
                 g.sys_sectionId == Booking.sys_sectionId && g.sys_graveSaleStatus == "Unsold");
 
@@ -733,7 +733,7 @@ namespace ZororoMemorialPark.Pages.Bookings
             {
                 TempData["Err"] = "Cannot raise invoice. Selected section has no available graves.";
                 return RedirectToPage(new { id });
-            }
+            }*/
 
             using var tx = await _db.Database.BeginTransactionAsync();
 
@@ -891,19 +891,18 @@ namespace ZororoMemorialPark.Pages.Bookings
 
             await _db.SaveChangesAsync();
 
-
+            
             //Calculate the agent commission 
 
             // ---------- COMMISSION LOGIC ----------
             if (AgentId!= 0)
             {
+                var sectionToPay = await _db.tbl_Sections.FindAsync(Booking.sys_sectionId);
                 var agent = await _db.tbl_Agents.FindAsync(AgentId);
 
                 if (agent != null)
                 {
-                    double commissionAmount = agent.sys_isPercentage
-                        ? (Amount * agent.sys_commission / 100.0)
-                        : agent.sys_commission;
+                    double commissionAmount = (double)sectionToPay.sys_agentCommission;
 
                     if (commissionAmount > 0)
                     {

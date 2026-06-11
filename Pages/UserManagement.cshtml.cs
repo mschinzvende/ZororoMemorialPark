@@ -431,8 +431,7 @@ public class UserManagementModel : PageModel
                     sys_agentEmail = user.Email ?? "",
                     sys_agentPhone = user.PhoneNumber ?? "",
                     sys_agentAddress = "N/A",
-                    sys_commission = 0,
-                    sys_isPercentage = true,
+                    
                     sys_isActive = true
                     
                 };
