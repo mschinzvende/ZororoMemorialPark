@@ -39,7 +39,7 @@ namespace ZororoMemorialPark.Pages.Finance
                 return RedirectToPage();
             }
 
-            // Check overlapping ranges for agent
+            /* Check overlapping ranges for agent
             var overlap = await _context.tbl_ReceiptBooks.AnyAsync(r =>
                 r.sys_agentId == book.sys_agentId &&
                 !(book.sys_endNumber < r.sys_startNumber || book.sys_startNumber > r.sys_endNumber));
@@ -48,9 +48,9 @@ namespace ZororoMemorialPark.Pages.Finance
             {
                 TempData["ErrorMessage"] = "This receipt range overlaps with an existing book.";
                 return RedirectToPage();
-            }
+            }*/
 
-            book.sys_currentNumber = book.sys_startNumber - 1;
+            book.sys_currentNumber = book.sys_startNumber;
             book.sys_isClosed = false;
 
             _context.tbl_ReceiptBooks.Add(book);
@@ -68,6 +68,7 @@ namespace ZororoMemorialPark.Pages.Finance
 
             if (!existing.sys_isClosed)
             {
+                existing.issuedTo = book.issuedTo;
                 existing.sys_bookNumber = book.sys_bookNumber;
                 existing.sys_startNumber = book.sys_startNumber;
                 existing.sys_endNumber = book.sys_endNumber;

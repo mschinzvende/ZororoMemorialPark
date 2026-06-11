@@ -165,7 +165,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 if (agent != null)
                 {
                     AgentRecordExists = true;
-                    AgentReceiptBook = await _context.tbl_ReceiptBooks.FirstOrDefaultAsync(rb => rb.sys_agentId == agent.sys_agentId && !rb.sys_isClosed);
+                    //AgentReceiptBook = await _context.tbl_ReceiptBooks.FirstOrDefaultAsync(rb => rb.sys_agentId == agent.sys_agentId && !rb.sys_isClosed);
                 }
                 else
                 {
@@ -179,7 +179,7 @@ namespace ZororoMemorialPark.Pages.Graves
                             sys_endNumber = b.sys_endNumber,
                             sys_currentNumber = b.sys_currentNumber,
 
-                            AgentName = b.Agent.sys_agentName
+                            AgentName = b.issuedTo
                         })
                         .ToListAsync();
                 }
@@ -826,10 +826,10 @@ namespace ZororoMemorialPark.Pages.Graves
 
         //Receipt Validation Script
 
-        public async Task<(bool Success, string Message)> ValidateReceiptNumber(int agentId, int receiptNumber)
+        public async Task<(bool Success, string Message)> ValidateReceiptNumber(int receiptBooktId, int receiptNumber)
         {
             var book = await _context.tbl_ReceiptBooks
-                .FirstOrDefaultAsync(b => b.sys_agentId == agentId && b.sys_isClosed != true);
+                .FirstOrDefaultAsync(b => b.sys_receiptBookId == receiptBooktId && b.sys_isClosed != true);
 
             if (book == null)
                 return (false, "Receipt book not found for this agent.");
@@ -855,7 +855,7 @@ namespace ZororoMemorialPark.Pages.Graves
 
         // Allocation Payment
         public async Task<IActionResult> OnPostAddAllocationPaymentAsync(
-    int allocationId, double amountPaid, int paymentMethodId, int receiptNumber, int receiptBookId, string notes)
+    int allocationId, double amountPaid, int paymentMethodId, int receiptNumber, int receiptBookId, string notes, int bookingAgent)
         {
             var allocation = await _context.tbl_GraveAllocations
                 .FirstOrDefaultAsync(a => a.sys_allocationId == allocationId);
@@ -911,7 +911,7 @@ namespace ZororoMemorialPark.Pages.Graves
 
 
             // --- Calculate Commission ---
-            var agent = await _context.tbl_Agents.FindAsync(book.sys_agentId);
+            var agent = await _context.tbl_Agents.FindAsync(bookingAgent);
             if (agent != null)
             {
                 double commissionAmount = agent.sys_isPercentage

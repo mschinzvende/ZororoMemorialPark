@@ -524,7 +524,7 @@ namespace ZororoMemorialPark.Pages.Bookings
             if (agent != null)
             {
                 AgentRecordExists = true;
-                AgentReceiptBook = await _db.tbl_ReceiptBooks.FirstOrDefaultAsync(rb => rb.sys_agentId == agent.sys_agentId && !rb.sys_isClosed);
+                AgentReceiptBook = await _db.tbl_ReceiptBooks.FirstOrDefaultAsync(rb => !rb.sys_isClosed);
             }
             else
             {
@@ -538,7 +538,7 @@ namespace ZororoMemorialPark.Pages.Bookings
                         sys_endNumber = b.sys_endNumber,
                         sys_currentNumber = b.sys_currentNumber,
 
-                        AgentName = b.Agent.sys_agentName
+                        AgentName = b.issuedTo
                     })
                     .ToListAsync();
             }
@@ -550,9 +550,7 @@ namespace ZororoMemorialPark.Pages.Bookings
                     from p in _db.tbl_BurialPayments.AsNoTracking()
                     join rb in _db.tbl_ReceiptBooks.AsNoTracking()
                         on p.sys_receiptBookId equals rb.sys_receiptBookId
-                    join a in _db.tbl_Agents.AsNoTracking()
-                        on rb.sys_agentId equals a.sys_agentId into agentJoin
-                    from theagent in agentJoin.DefaultIfEmpty()
+                    
                     where p.sys_invoiceId == Booking.sys_invoiceId.Value
                     orderby p.sys_paymentDate
                     select new PaymentViewRow
@@ -560,7 +558,7 @@ namespace ZororoMemorialPark.Pages.Bookings
                         Date = p.sys_paymentDate,
                         ReceiptBookNumber = rb.sys_bookNumber,
                         ReceiptNumber = p.sys_receiptNumber,
-                        AgentName = theagent != null ? theagent.sys_agentName : "Admin",
+                        AgentName = rb.issuedTo,
                         Method = p.sys_paymentMethod,
                         Amount = p.sys_amountPaid
                     }
@@ -577,21 +575,13 @@ namespace ZororoMemorialPark.Pages.Bookings
 
 
 
-            // ReceiptBooks
-            if (IsAgent)
-            {
-                ReceiptBooks = await _db.tbl_ReceiptBooks.AsNoTracking()
-                    .Where(r => r.sys_agentId == CurrentAgentId && !r.sys_isClosed)
-                    .OrderByDescending(r => r.sys_issueDate)
-                    .ToListAsync();
-            }
-            else
-            {
+            // Get ReceiptBooks
+            
                 ReceiptBooks = await _db.tbl_ReceiptBooks.AsNoTracking()
                     .Where(r => !r.sys_isClosed)
                     .OrderByDescending(r => r.sys_issueDate)
                     .ToListAsync();
-            }
+            
 
             // Totals
             if (Booking.sys_invoiceId.HasValue)
@@ -844,19 +834,8 @@ namespace ZororoMemorialPark.Pages.Bookings
             }
 
             // Ensure selected receipt book is valid for agent/non-agent
-            if (IsAgent)
-            {
-                var ok = await _db.tbl_ReceiptBooks.AsNoTracking()
-                    .AnyAsync(r => r.sys_receiptBookId == ReceiptBookId && r.sys_agentId == CurrentAgentId && !r.sys_isClosed);
-
-                if (!ok)
-                {
-                    TempData["Err"] = "Invalid receipt book selection for this agent.";
-                    return RedirectToPage(new { id });
-                }
-            }
-            else
-            {
+            
+            
                 var ok = await _db.tbl_ReceiptBooks.AsNoTracking()
                     .AnyAsync(r => r.sys_receiptBookId == ReceiptBookId && !r.sys_isClosed);
 
@@ -865,7 +844,7 @@ namespace ZororoMemorialPark.Pages.Bookings
                     TempData["Err"] = "Invalid receipt book selection.";
                     return RedirectToPage(new { id });
                 }
-            }
+            
 
             using var tx = await _db.Database.BeginTransactionAsync();
 

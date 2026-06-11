@@ -1042,8 +1042,8 @@ namespace ZororoMemorialPark.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_receiptBookId"));
 
-                    b.Property<int>("sys_agentId")
-                        .HasColumnType("int");
+                    b.Property<string>("issuedTo")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("sys_bookNumber")
                         .IsRequired()
@@ -1065,8 +1065,6 @@ namespace ZororoMemorialPark.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("sys_receiptBookId");
-
-                    b.HasIndex("sys_agentId");
 
                     b.ToTable("tbl_ReceiptBooks");
                 });
@@ -1898,17 +1896,6 @@ namespace ZororoMemorialPark.Migrations
                     b.Navigation("tbl_Grave");
 
                     b.Navigation("tbl_Supplier");
-                });
-
-            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_ReceiptBooks", b =>
-                {
-                    b.HasOne("ZororoMemorialPark.Data.Models.tbl_Agents", "Agent")
-                        .WithMany()
-                        .HasForeignKey("sys_agentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Agent");
                 });
 
             modelBuilder.Entity("tbl_Requisition", b =>
