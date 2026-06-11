@@ -313,7 +313,7 @@
                                        name="sys_plotNumber"
                                        id="singlePlotNumber"
                                        class="form-control"
-                                       readonly
+                                       
                                        required />
 
                             </div>
@@ -325,7 +325,7 @@
                                 <select name="sys_sectionId"
                                         class="form-select"
                                         required
-                                        onchange="loadNextPlotNumber(this.value, 'singlePlotNumber')">
+                                        >
                                         <option selected></option>
                                     @foreach (var grave_section in Model.Sections)
                                     {

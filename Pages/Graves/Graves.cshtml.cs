@@ -296,6 +296,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 string status = Request.Form["sys_graveSaleStatus"];
                 double latitude = double.Parse(Request.Form["sys_Latitude"]);
                 double longitude = double.Parse(Request.Form["sys_Longitude"]);
+                int plotNumber = int.Parse(Request.Form["sys_plotNumber"]);
 
                 var section = await _context.tbl_Sections
                     .FirstOrDefaultAsync(s => s.sys_sectionId == sectionId);
@@ -306,8 +307,8 @@ namespace ZororoMemorialPark.Pages.Graves
                     return RedirectToPage();
                 }
 
-                int nextPlotNo = section.sys_lastGraveNo + 1;
-                string plot = $"{nextPlotNo}-{section.sys_sectionName}";
+                //int nextPlotNo = section.sys_lastGraveNo + 1;
+                string plot = $"{plotNumber}-{section.sys_sectionName}";
 
                 var exists = await _context.tbl_Graves
                     .AnyAsync(g => g.sys_plotNumber == plot && g.sys_sectionId == sectionId);
@@ -330,8 +331,8 @@ namespace ZororoMemorialPark.Pages.Graves
 
                 _context.tbl_Graves.Add(grave);
 
-                section.sys_lastGraveNo = nextPlotNo;
-                _context.tbl_Sections.Update(section);
+                //section.sys_lastGraveNo = nextPlotNo;
+                //_context.tbl_Sections.Update(section);
 
                 await _context.SaveChangesAsync();
 
@@ -342,7 +343,7 @@ namespace ZororoMemorialPark.Pages.Graves
                     sys_jobStatus = "Pending",
                     sys_startDate = DateOnly.FromDateTime(DateTime.Now),
                     sys_endDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7)),
-                    sys_supplierId = 1
+                    sys_supplierId = 11
                 });
 
                 await _context.SaveChangesAsync();
