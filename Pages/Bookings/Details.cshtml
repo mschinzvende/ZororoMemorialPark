@@ -204,40 +204,59 @@
                         <!-- ========================= -->
                         <!-- PAYMENT CAPTURE FORM -->
                         <!-- ========================= -->
-                        <form method="post" asp-page-handler="CapturePayment" class="row g-2">
+                                    <form method="post" asp-page-handler="CapturePayment" class="row g-3">
 
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Receipt Number</label>
-
-                                    
-                                    
-                                        <!-- Agent must choose a book -->
-                                        <select id="receiptBookId" name="receiptBookId"
-                                                class="form-select mb-2" required>
-                                            <option value="">Select Receipt Book</option>
-                                            @foreach (var b in Model.AvailableBooks)
-                                            {
-                                                <option value="@b.sys_receiptBookId"
-                                                        data-start="@b.sys_startNumber"
-                                                        data-end="@b.sys_endNumber"
-                                                        data-current="@b.sys_currentNumber">
-                                                    Book @b.sys_startNumber - @b.sys_endNumber
-                                                    (Agent: @b.AgentName)
-                                                </option>
-                                            }
-                                        </select>
-
-                                        <input type="number" id="receiptNumber" name="receiptNumber"
-                                               class="form-control" placeholder="Enter Receipt #" required />
-
-                                        <div id="receiptValidationMsg" class="text-danger small mt-1"></div>
-                                    
-                                </div>
-                            </div>
-
+                                        <!-- Receipt Book -->
                                         <div class="col-md-3">
-                                            <label class="form-label">Amount</label>
+                                            <label class="form-label">
+                                                Receipt Book <span class="text-danger">*</span>
+                                            </label>
+
+                                            <select id="receiptBookId"
+                                                    name="receiptBookId"
+                                                    class="form-select"
+                                                    required>
+                                                <option value="">Select Book</option>
+
+                                                @foreach (var b in Model.ReceiptBooks)
+                                                {
+                                                    <option value="@b.sys_receiptBookId"
+                                                            data-start="@b.sys_startNumber"
+                                                            data-end="@b.sys_endNumber"
+                                                            data-current="@b.sys_currentNumber">
+
+                                                        Book @b.sys_bookNumber
+                                                        (@b.sys_startNumber - @b.sys_endNumber)
+
+                                                    </option>
+                                                }
+                                            </select>
+                                        </div>
+
+                                        <!-- Receipt Number -->
+                                        <div class="col-md-3">
+                                            <label class="form-label">
+                                                Receipt Number <span class="text-danger">*</span>
+                                            </label>
+
+                                            <input type="number"
+                                                   id="receiptNumber"
+                                                   name="receiptNumber"
+                                                   class="form-control"
+                                                   placeholder="Receipt Number"
+                                                   required />
+
+                                            <div id="receiptValidationMsg"
+                                                 class="text-danger small mt-1">
+                                            </div>
+                                        </div>
+
+                                        <!-- Amount -->
+                                        <div class="col-md-3">
+                                            <label class="form-label">
+                                                Amount <span class="text-danger">*</span>
+                                            </label>
+
                                             <input class="form-control"
                                                    type="number"
                                                    step="1"
@@ -246,13 +265,22 @@
                                                    required
                                                    onfocus="if(this.value=='0' || this.value=='0.00') this.value='';"
                                                    onblur="if(this.value=='') this.value='0';" />
+
+                                            <small class="text-muted">
+                                                Balance: $@Model.Balance.ToString("N0")
+                                            </small>
                                         </div>
 
-                            <div class="col-md-3">
+                                        <!-- Payment Method -->
+                                        <div class="col-md-3">
+                                            <label class="form-label">
+                                                Payment Method <span class="text-danger">*</span>
+                                            </label>
 
-                                            <label class="form-label">Method <span class="text-danger">*</span></label>
-                                            <select class="form-select" asp-for="Method" required>
-                                                
+                                            <select class="form-select"
+                                                    asp-for="Method"
+                                                    required>
+
                                                 @foreach (var mt in Model.PaymentMethods)
                                                 {
                                                     <option value="@mt.sys_paymentMethodName">
@@ -260,21 +288,59 @@
                                                     </option>
                                                 }
                                             </select>
+                                        </div>
 
+                                        <!-- Agent -->
+                                        <div class="col-md-6">
+                                            <label class="form-label">
+                                                Commission Agent
+                                            </label>
 
-                                
-                            </div>
+                                            <select id="agentId"
+                                                    name="agentId"
+                                                    class="form-select">
 
-                            <div class="col-12 d-flex justify-content-end">
-                                <button class="btn btn-sm btn-success">
-                                    Capture Payment
-                                </button>
-                            </div>
+                                                <option value="">
+                                                    No Agent Commission
+                                                </option>
 
-                            <small class="text-muted mt-2">
-                                Payment cannot exceed the outstanding balance.
-                            </small>
-                        </form>
+                                                @if (Model.Agents != null)
+                                                {
+                                                    @foreach (var ag in Model.Agents)
+                                                    {
+                                                        <option value="@ag.sys_agentId">
+                                                            @ag.sys_agentName
+                                                            (@ag.sys_agentContactPerson)
+                                                        </option>
+                                                    }
+                                                }
+                                            </select>
+
+                                            <small class="text-muted">
+                                                Select the agent who should receive commission for this payment.
+                                            </small>
+                                        </div>
+
+                                        <!-- Save Button -->
+                                        <div class="col-md-6 d-flex align-items-end justify-content-end">
+
+                                            <button type="submit"
+                                                    class="btn btn-success">
+                                                <i class="bi bi-cash-coin me-1"></i>
+                                                Capture Payment
+                                            </button>
+
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="alert alert-light border mb-0">
+                                                <small>
+                                                    Payment cannot exceed the outstanding balance.
+                                                </small>
+                                            </div>
+                                        </div>
+
+                                    </form>
                     }
                     else if (Model.Booking.sys_invoiceId.HasValue && Model.IsPaidInFull)
                             
@@ -762,7 +828,7 @@
             return;
         }
 
-        // Agent with record → book info comes from server model
+        // Agent with record → book info comes from selected book
         if (hiddenBook && !bookSelect) {
             const start = parseInt("@Model.AgentReceiptBook.sys_startNumber");
             const end = parseInt("@Model.AgentReceiptBook.sys_endNumber");
@@ -770,8 +836,8 @@
 
             if (receiptNumber < start || receiptNumber > end) {
                 validationMsg.textContent = "❌ Receipt number not in valid range.";
-            } else if (receiptNumber !== current + 1) {
-                validationMsg.textContent = `❌ Invalid sequence. Next expected is ${current + 1}.`;
+            } else if (receiptNumber !== current +1) {
+                validationMsg.textContent = `❌ Invalid sequence. Next expected is ${current +1}.`;
             } else {
                 validationMsg.textContent = "✅ Receipt number is valid.";
                 validationMsg.className = "text-success small mt-1";
@@ -792,7 +858,7 @@
 
             if (receiptNumber < start || receiptNumber > end) {
                 validationMsg.textContent = "❌ Receipt number not in valid range.";
-            } else if (receiptNumber !== current) {
+            } else if (receiptNumber !== current +1) {
                 validationMsg.textContent = `❌ Invalid sequence. Next expected is ${current + 1}.`;
             } else {
                 validationMsg.textContent = "✅ Receipt number is valid.";

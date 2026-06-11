@@ -93,6 +93,10 @@ namespace ZororoMemorialPark.Pages.Bookings
         [BindProperty] public double Amount { get; set; }
         [BindProperty] public string Method { get; set; } = "Cash";
 
+        [BindProperty] public int AgentId { get; set; }
+
+        [BindProperty] public int ReceiptNumber { get; set; }
+
         // Allocate input
         [BindProperty] public int GraveId { get; set; }
 
@@ -119,6 +123,8 @@ namespace ZororoMemorialPark.Pages.Bookings
         public List<PaymentViewRow> PaymentRows { get; set; } = new();
 
         public List<tbl_Graves> AvailableGraves { get; set; } = new();
+
+        public List<tbl_Agents> Agents { get; set; } = new();
 
 
         [BindProperty] public IFormFile? BurialOrder { get; set; }
@@ -459,7 +465,9 @@ namespace ZororoMemorialPark.Pages.Bookings
         private async Task LoadAsync()
         {
 
-           
+           Agents = await _db.tbl_Agents
+                    .AsNoTracking()
+                    .ToListAsync();
 
             Booking = await _db.tbl_BurialBookings.FirstOrDefaultAsync(b => b.sys_bookingId == id);
             if (Booking == null) return;
@@ -514,34 +522,7 @@ namespace ZororoMemorialPark.Pages.Bookings
                     .OrderBy(g => g.sys_plotNumber)
                     .ToListAsync();
 
-            // Agent detection
-            var user = await _userManager.GetUserAsync(User);
-
-            var agent = await _db.tbl_Agents
-
-                .FirstOrDefaultAsync(a => a.UserId == user.Id);
-
-            if (agent != null)
-            {
-                AgentRecordExists = true;
-                AgentReceiptBook = await _db.tbl_ReceiptBooks.FirstOrDefaultAsync(rb => !rb.sys_isClosed);
-            }
-            else
-            {
-                AgentRecordExists = false;
-                AvailableBooks = await _db.tbl_ReceiptBooks
-                    .Where(b => !b.sys_isClosed)
-                    .Select(b => new ReceiptBookView
-                    {
-                        sys_receiptBookId = b.sys_receiptBookId,
-                        sys_startNumber = b.sys_startNumber,
-                        sys_endNumber = b.sys_endNumber,
-                        sys_currentNumber = b.sys_currentNumber,
-
-                        AgentName = b.issuedTo
-                    })
-                    .ToListAsync();
-            }
+            
 
 
             if (Booking.sys_invoiceId.HasValue)
@@ -857,7 +838,7 @@ namespace ZororoMemorialPark.Pages.Bookings
                 return RedirectToPage(new { id });
             }
 
-            var nextReceipt = book.sys_currentNumber + 1;
+            var nextReceipt = ReceiptNumber + 1;
             if (nextReceipt < book.sys_startNumber) nextReceipt = book.sys_startNumber;
 
             if (nextReceipt > book.sys_endNumber)
@@ -869,7 +850,7 @@ namespace ZororoMemorialPark.Pages.Bookings
                 return RedirectToPage(new { id });
             }
 
-            book.sys_currentNumber = nextReceipt;
+            book.sys_currentNumber = ReceiptNumber;
             if (book.sys_currentNumber >= book.sys_endNumber)
                 book.sys_isClosed = true;
 
@@ -879,7 +860,7 @@ namespace ZororoMemorialPark.Pages.Bookings
             {
                 sys_invoiceId = Booking.sys_invoiceId.Value,
                 sys_receiptBookId = book.sys_receiptBookId,
-                sys_receiptNumber = nextReceipt,
+                sys_receiptNumber = ReceiptNumber,
                 sys_amountPaid = Amount,
                 sys_paymentMethod = string.IsNullOrWhiteSpace(Method) ? "Cash" : Method.Trim(),
                 sys_capturedByUserId = userId
@@ -891,7 +872,7 @@ namespace ZororoMemorialPark.Pages.Bookings
             {
                 sys_invoiceId = Booking.sys_invoiceId.Value,
                 sys_date = DateOnly.FromDateTime(DateTime.Now),
-                sys_receiptNumber = nextReceipt,
+                sys_receiptNumber = ReceiptNumber,
                 sys_amount = Amount,
                 sys_paymentMethod = string.IsNullOrWhiteSpace(Method) ? "Cash" : Method.Trim(),
 
@@ -914,9 +895,9 @@ namespace ZororoMemorialPark.Pages.Bookings
             //Calculate the agent commission 
 
             // ---------- COMMISSION LOGIC ----------
-            if (IsAgent && CurrentAgentId.HasValue)
+            if (AgentId!= 0)
             {
-                var agent = await _db.tbl_Agents.FindAsync(CurrentAgentId.Value);
+                var agent = await _db.tbl_Agents.FindAsync(AgentId);
 
                 if (agent != null)
                 {
