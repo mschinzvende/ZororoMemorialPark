@@ -53,10 +53,9 @@ namespace ZororoMemorialPark.Pages.Burials
                         DeceasedName = d.sys_deceasedFullName,
                         PlotNumber = g.sys_plotNumber,
                         SectionName = s.sys_sectionName,
-                        DateOfDeath = d.sys_deceasedDOD.ToString("yyyy-MM-dd"),
+                        DateOfDeath = d.sys_deceasedDOD.ToString(),
                         BurialDate = alloc.sys_dateTimeOfBurial.ToString("yyyy-MM-dd"),
-                        ExistingDateTime = alloc.sys_dateTimeOfBurial,
-                        NextOfKinEmail = d.sys_deceasedNextOfKinEmail
+                        ExistingDateTime = alloc.sys_dateTimeOfBurial
                     }
                 ).FirstOrDefaultAsync();
 

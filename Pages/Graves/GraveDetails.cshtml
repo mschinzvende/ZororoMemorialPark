@@ -147,31 +147,31 @@
                                             <dt class="col-sm-5">Name</dt>
                                             <dd class="col-sm-7 fw-bold">@Model.Deceased.sys_deceasedFullName</dd>
 
-                                            <dt class="col-sm-5">DOB</dt>
-                                            <dd class="col-sm-7">@Model.Deceased.sys_deceasedDOB.ToString("yyyy-MM-dd")</dd>
-
                                             <dt class="col-sm-5">DOD</dt>
-                                            <dd class="col-sm-7">@Model.Deceased.sys_deceasedDOD.ToString("yyyy-MM-dd")</dd>
+                                            <dd class="col-sm-7">@Model.Deceased.sys_deceasedDOD.ToString()</dd>
 
                                             <dt class="col-sm-5">Gender</dt>
                                             <dd class="col-sm-7">@Model.Deceased.sys_deceasedGender</dd>
-
-                                            <dt class="col-sm-5">Marital Status</dt>
-                                            <dd class="col-sm-7">@Model.Deceased.sys_deceasedMaritalStatus</dd>
-
-                                            <dt class="col-sm-5">Spouse</dt>
-                                            <dd class="col-sm-7">@Model.Deceased.sys_deceasedNameOfSpouse</dd>
 
                                             <dt class="col-sm-5">Nationality</dt>
                                             <dd class="col-sm-7">@Model.Deceased.sys_deceasedNationality</dd>
 
                                             <dt class="col-sm-5">Burial Date</dt>
                                             <dd class="col-sm-7">
-                                                <span class="badge bg-info text-dark">@Model.Allocation.sys_dateTimeOfBurial</span>
+                                                <span class="badge bg-info text-dark">@Model.Allocation.sys_allocatedOn</span>
                                             </dd>
 
                                             <dt class="col-sm-5">Repatriation Source</dt>
                                             <dd class="col-sm-7">@Model.Allocation.sys_repatriationSource</dd>
+
+                                            <dt class="col-sm-5">Burial Order No</dt>
+                                            <dd class="col-sm-7">@Model.Deceased.sys_burialOrderNo</dd>
+
+                                            <dt class="col-sm-5">Minister</dt>
+                                            <dd class="col-sm-7">@Model.Deceased.sys_minister</dd>
+
+                                            <dt class="col-sm-5">Undertaker</dt>
+                                            <dd class="col-sm-7">@Model.Deceased.sys_undertaker</dd>
 
                                             <dt class="col-sm-5">Burial Order</dt>
 
@@ -216,18 +216,11 @@
                                                 <p class="text-muted">No file uploaded</p>
                                             }
 
-
-
-
-
                                             <dt class="col-sm-5">Next of Kin</dt>
                                             <dd class="col-sm-7">@Model.Deceased.sys_deceasedNextOfKinName</dd>
 
                                             <dt class="col-sm-5">Address</dt>
                                             <dd class="col-sm-7">@Model.Deceased.sys_deceasedNextOfKinAddress</dd>
-
-                                            <dt class="col-sm-5">Email</dt>
-                                            <dd class="col-sm-7">@Model.Deceased.sys_deceasedNextOfKinEmail</dd>
 
                                             <dt class="col-sm-5">Phone (263...)</dt>
                                             <dd class="col-sm-7">@Model.Deceased.sys_deceasedNextOfKinPhone</dd>

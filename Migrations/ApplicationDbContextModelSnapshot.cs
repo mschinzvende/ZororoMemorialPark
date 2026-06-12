@@ -339,13 +339,7 @@ namespace ZororoMemorialPark.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("sys_commission")
-                        .HasColumnType("int");
-
                     b.Property<bool>("sys_isActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("sys_isPercentage")
                         .HasColumnType("bit");
 
                     b.Property<string>("sys_whatsAppPinHash")
@@ -465,8 +459,8 @@ namespace ZororoMemorialPark.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_deceasedId"));
 
-                    b.Property<DateOnly>("sys_deceasedDOB")
-                        .HasColumnType("date");
+                    b.Property<string>("sys_burialOrderNo")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateOnly>("sys_deceasedDOD")
                         .HasColumnType("date");
@@ -479,23 +473,11 @@ namespace ZororoMemorialPark.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("sys_deceasedMaritalStatus")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("sys_deceasedNameOfSpouse")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("sys_deceasedNationality")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("sys_deceasedNextOfKinAddress")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("sys_deceasedNextOfKinEmail")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -505,6 +487,15 @@ namespace ZororoMemorialPark.Migrations
 
                     b.Property<string>("sys_deceasedNextOfKinPhone")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_depth")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_minister")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_undertaker")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("sys_deceasedId");

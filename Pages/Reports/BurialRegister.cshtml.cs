@@ -65,7 +65,7 @@ namespace ZororoMemorialPark.Pages.Reports
                     grave.sys_plotNumber,
                     SectionName = section.sys_sectionName,
                     DeceasedName = dec.sys_deceasedFullName,
-                    dec.sys_deceasedDOB,
+                    
                     dec.sys_deceasedDOD,
                     dec.sys_deceasedGender,
                     dec.sys_deceasedNationality,
@@ -102,13 +102,7 @@ namespace ZororoMemorialPark.Pages.Reports
 
             Rows = data.Select(x =>
             {
-                int? age = null;
-                if (x.sys_deceasedDOB != default && x.sys_deceasedDOD != default)
-                {
-                    age = x.sys_deceasedDOD.Year - x.sys_deceasedDOB.Year;
-                    if (x.sys_deceasedDOD < x.sys_deceasedDOB.AddYears(age.Value))
-                        age--;
-                }
+                
 
                 return new BurialRegisterRow
                 {
@@ -118,7 +112,7 @@ namespace ZororoMemorialPark.Pages.Reports
                     DeceasedName = x.DeceasedName,
                     DeceasedGender = x.sys_deceasedGender,
                     DeceasedNationality = x.sys_deceasedNationality,
-                    AgeAtDeath = age,
+                    
                     CustomerName = x.CustomerName,
                     CustomerPhone = x.CustomerPhone,
                     RepatriationSource = x.sys_repatriationSource,
@@ -146,7 +140,7 @@ namespace ZororoMemorialPark.Pages.Reports
                     grave.sys_plotNumber,
                     SectionName = section.sys_sectionName,
                     DeceasedName = dec.sys_deceasedFullName,
-                    dec.sys_deceasedDOB,
+                    
                     dec.sys_deceasedDOD,
                     dec.sys_deceasedGender,
                     dec.sys_deceasedNationality,
@@ -187,13 +181,7 @@ namespace ZororoMemorialPark.Pages.Reports
 
             var rows = data.Select(x =>
             {
-                int? age = null;
-                if (x.sys_deceasedDOB != default && x.sys_deceasedDOD != default)
-                {
-                    age = x.sys_deceasedDOD.Year - x.sys_deceasedDOB.Year;
-                    if (x.sys_deceasedDOD < x.sys_deceasedDOB.AddYears(age.Value))
-                        age--;
-                }
+                
 
                 return new BurialRegisterRow
                 {
@@ -203,7 +191,7 @@ namespace ZororoMemorialPark.Pages.Reports
                     DeceasedName = x.DeceasedName,
                     DeceasedGender = x.sys_deceasedGender,
                     DeceasedNationality = x.sys_deceasedNationality,
-                    AgeAtDeath = age,
+                    
                     CustomerName = x.CustomerName,
                     CustomerPhone = x.CustomerPhone,
                     RepatriationSource = x.sys_repatriationSource,

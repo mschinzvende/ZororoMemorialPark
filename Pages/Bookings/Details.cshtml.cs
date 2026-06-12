@@ -102,17 +102,21 @@ namespace ZororoMemorialPark.Pages.Bookings
 
         // Deceased fields (only created at allocation)
         [BindProperty] public string DeceasedFullName { get; set; }
-        [BindProperty] public DateOnly DeceasedDOB { get; set; }
+        [BindProperty] public string Depth { get; set; }
         [BindProperty] public DateOnly DeceasedDOD { get; set; }
+
+        [BindProperty] public DateOnly BurialDate { get; set; }
         [BindProperty] public string Gender { get; set; }
         [BindProperty] public string NextOfKinName { get; set; }
         [BindProperty] public string NextOfKinAddress { get; set; }
-        [BindProperty] public string NextOfKinEmail { get; set; } = "n/a";
+        [BindProperty] public string Minister { get; set; } = "n/a";
         [BindProperty] public string NextOfKinPhone { get; set; }
-        [BindProperty] public string MaritalStatus { get; set; }
-        [BindProperty] public string NameOfSpouse { get; set; } = "n/a";
+        [BindProperty] public string Undertaker { get; set; }
+        [BindProperty] public string BurialOrderNo { get; set; } = "n/a";
         [BindProperty] public string Nationality { get; set; }
         [BindProperty] public string sys_repatriationSource { get; set; }
+
+
 
         // Override (partial payment)
         [BindProperty] public bool OverridePartialPayment { get; set; }
@@ -138,124 +142,124 @@ namespace ZororoMemorialPark.Pages.Bookings
 
         public async Task<IActionResult> OnPostAllocateGraveAsync()
         {
-            await LoadAsync();
-            if (Booking == null) return RedirectToPage("Index");
 
-            // ----- SERVER DATE VALIDATION -----
-            if (DeceasedDOB > DateOnly.FromDateTime(DateTime.Today))
+            try
             {
-                TempData["Err"] = "DOB cannot be in the future.";
+
+
+                await LoadAsync();
+                if (Booking == null) return RedirectToPage("Index");
+
+                // ----- SERVER DATE VALIDATION -----
+
+
+                // ----- PAYMENT CHECK -----
+                if (!IsPaidInFull)
+                {
+                    if (!OverridePartialPayment || !CanOverride)
+                    {
+                        TempData["Err"] = "Invoice not fully paid. Override not authorized.";
+                        return RedirectToPage(new { id });
+                    }
+
+                    if (string.IsNullOrWhiteSpace(OverrideReason))
+                    {
+                        TempData["Err"] = "Override reason is required.";
+                        return RedirectToPage(new { id });
+                    }
+                }
+
+
+                // ----- SAVE BURIAL ORDER -----
+                string burialOrderPath = null;
+                if (BurialOrder != null)
+                {
+                    var dir = Path.Combine("wwwroot", "uploads", "burial-orders");
+                    Directory.CreateDirectory(dir);
+                    var file = $"{Guid.NewGuid()}{Path.GetExtension(BurialOrder.FileName)}";
+                    var full = Path.Combine(dir, file);
+                    using var fs = new FileStream(full, FileMode.Create);
+                    await BurialOrder.CopyToAsync(fs);
+                    burialOrderPath = $"/uploads/burial-orders/{file}";
+                }
+
+                using var tx = await _db.Database.BeginTransactionAsync();
+
+                var deceased = new tbl_Deceased
+                {
+                    sys_deceasedFullName = DeceasedFullName,
+                    sys_deceasedDOD = DeceasedDOD,
+                    sys_deceasedGender = Gender,
+                    sys_deceasedNationality = Nationality,
+                    sys_deceasedNextOfKinName = NextOfKinName,
+                    sys_deceasedNextOfKinPhone = NextOfKinPhone,
+                    sys_deceasedNextOfKinAddress = NextOfKinAddress,
+                    sys_burialOrderNo = BurialOrderNo,
+                    sys_minister = Minister,
+                    sys_undertaker = Undertaker,
+                    sys_depth = Depth
+                };
+
+                _db.tbl_Deceased.Add(deceased);
+                await _db.SaveChangesAsync();
+
+                var alloc = new tbl_GraveAllocations
+                {
+                    sys_graveId = GraveId,
+                    sys_deceasedId = deceased.sys_deceasedId,
+                    sys_customerId = Booking.sys_customerId,
+                    sys_dateTimeOfBurial = Booking.sys_requestedBurialDateTime,
+                    sys_allocatedOn = BurialDate,
+                    sys_burialOrder = burialOrderPath,
+                    sys_bookingId = Booking.sys_bookingId,
+                    sys_repatriationSource = sys_repatriationSource
+
+                };
+
+                _db.tbl_GraveAllocations.Add(alloc);
+
+                Booking.sys_bookingStatus = "Allocated";
+                var grave = await _db.tbl_Graves.FindAsync(GraveId);
+                grave.sys_graveSaleStatus = "Occupied";
+
+                await _db.SaveChangesAsync();
+
+                // ---------- FINALIZE COMMISSION ----------
+                var commissions = await _db.tbl_CommissionsDue
+                    .Where(c => c.sys_bookingId == Booking.sys_bookingId && c.sys_graveId == null)
+                    .ToListAsync();
+
+                foreach (var c in commissions)
+                {
+                    c.sys_graveId = GraveId;
+                }
+
+                await _db.SaveChangesAsync();
+
+                // Finalize Linking Allocation Invoices
+
+                var linkerInvoices = await _db.tbl_GraveAllocationInvoices
+                    .Where(a => a.sys_invoiceId == Booking.sys_invoiceId && a.sys_allocationId == null)
+                    .ToListAsync();
+
+                foreach (var link in linkerInvoices)
+                {
+                    link.sys_allocationId = alloc.sys_allocationId;
+                }
+
+                await _db.SaveChangesAsync();
+
+                await tx.CommitAsync();
+
+                TempData["Ok"] = "Grave allocated successfully.";
                 return RedirectToPage(new { id });
             }
 
-            if (DeceasedDOD < DeceasedDOB)
+            catch (Exception ex)
             {
-                TempData["Err"] = "DOD cannot be before DOB.";
+                TempData["Err"] = ex.Message;
                 return RedirectToPage(new { id });
             }
-
-
-
-            // ----- PAYMENT CHECK -----
-            if (!IsPaidInFull)
-            {
-                if (!OverridePartialPayment || !CanOverride)
-                {
-                    TempData["Err"] = "Invoice not fully paid. Override not authorized.";
-                    return RedirectToPage(new { id });
-                }
-
-                if (string.IsNullOrWhiteSpace(OverrideReason))
-                {
-                    TempData["Err"] = "Override reason is required.";
-                    return RedirectToPage(new { id });
-                }
-            }
-
-
-            // ----- SAVE BURIAL ORDER -----
-            string burialOrderPath = null;
-            if (BurialOrder != null)
-            {
-                var dir = Path.Combine("wwwroot", "uploads", "burial-orders");
-                Directory.CreateDirectory(dir);
-                var file = $"{Guid.NewGuid()}{Path.GetExtension(BurialOrder.FileName)}";
-                var full = Path.Combine(dir, file);
-                using var fs = new FileStream(full, FileMode.Create);
-                await BurialOrder.CopyToAsync(fs);
-                burialOrderPath = $"/uploads/burial-orders/{file}";
-            }
-
-            using var tx = await _db.Database.BeginTransactionAsync();
-
-            var deceased = new tbl_Deceased
-            {
-                sys_deceasedFullName = DeceasedFullName,
-                sys_deceasedDOB = DeceasedDOB,
-                sys_deceasedDOD = DeceasedDOD,
-                sys_deceasedGender = Gender,
-                sys_deceasedNationality = Nationality,
-                sys_deceasedNextOfKinName = NextOfKinName,
-                sys_deceasedNextOfKinPhone = NextOfKinPhone,
-                sys_deceasedNextOfKinEmail = NextOfKinEmail,
-                sys_deceasedNextOfKinAddress = NextOfKinAddress,
-                sys_deceasedMaritalStatus = MaritalStatus,
-                sys_deceasedNameOfSpouse = NameOfSpouse
-            };
-
-            _db.tbl_Deceased.Add(deceased);
-            await _db.SaveChangesAsync();
-
-            var alloc = new tbl_GraveAllocations
-            {
-                sys_graveId = GraveId,
-                sys_deceasedId = deceased.sys_deceasedId,
-                sys_customerId = Booking.sys_customerId,
-                sys_dateTimeOfBurial = Booking.sys_requestedBurialDateTime,
-                sys_allocatedOn = DateOnly.FromDateTime(DateTime.Now),
-                sys_burialOrder = burialOrderPath,
-                sys_bookingId = Booking.sys_bookingId,
-                sys_repatriationSource = sys_repatriationSource
-                
-            };
-
-            _db.tbl_GraveAllocations.Add(alloc);
-
-            Booking.sys_bookingStatus = "Allocated";
-            var grave = await _db.tbl_Graves.FindAsync(GraveId);
-            grave.sys_graveSaleStatus = "Occupied";
-
-            await _db.SaveChangesAsync();
-
-            // ---------- FINALIZE COMMISSION ----------
-            var commissions = await _db.tbl_CommissionsDue
-                .Where(c => c.sys_bookingId == Booking.sys_bookingId && c.sys_graveId == null)
-                .ToListAsync();
-
-            foreach (var c in commissions)
-            {
-                c.sys_graveId = GraveId;
-            }
-
-            await _db.SaveChangesAsync();
-
-            // Finalize Linking Allocation Invoices
-
-            var linkerInvoices = await _db.tbl_GraveAllocationInvoices
-                .Where(a => a.sys_invoiceId == Booking.sys_invoiceId && a.sys_allocationId == null)
-                .ToListAsync();
-
-            foreach (var link in linkerInvoices)
-            {
-                link.sys_allocationId = alloc.sys_allocationId;
-            }
-
-            await _db.SaveChangesAsync();
-
-            await tx.CommitAsync();
-
-            TempData["Ok"] = "Grave allocated successfully.";
-            return RedirectToPage(new { id });
         }
 
 
@@ -929,76 +933,178 @@ namespace ZororoMemorialPark.Pages.Bookings
             return RedirectToPage(new { id });
         }
 
-   
 
 
-        public async Task<IActionResult> OnGetAvailableBurialSlotsAsync(string burialDate)
+
+        public async Task<IActionResult> OnGetAvailableBurialSlotsAsync(
+    string burialDate,
+    int sectionId)
         {
-            if (!DateOnly.TryParseExact(burialDate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
-                return new JsonResult(new { slots = Array.Empty<string>(), message = "Invalid date." });
+            if (!DateOnly.TryParseExact(
+                burialDate,
+                "yyyy-MM-dd",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out var date))
+            {
+                return new JsonResult(new
+                {
+                    slots = Array.Empty<string>(),
+                    message = "Invalid date."
+                });
+            }
 
-            var settings = await _db.SystemSettings.AsNoTracking().FirstOrDefaultAsync();
+            var settings = await _db.SystemSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+
             if (settings == null)
-                return new JsonResult(new { slots = Array.Empty<string>(), message = "System settings not configured." });
+            {
+                return new JsonResult(new
+                {
+                    slots = Array.Empty<string>(),
+                    message = "System settings not configured."
+                });
+            }
+            Console.WriteLine($"SECTION ID RECEIVED = {sectionId}");
+            var section = await _db.tbl_Sections
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.sys_sectionId == sectionId);
 
-            // Daily capacity check (bookings + allocations)
-            var dayStart = date.ToDateTime(new TimeOnly(0, 0));
+            if (section == null)
+            {
+                return new JsonResult(new
+                {
+                    slots = Array.Empty<string>(),
+                    message = "Invalid section."
+                });
+            }
+
+            var dayStart = date.ToDateTime(
+                new TimeOnly(0, 0));
+
             var dayEnd = dayStart.AddDays(1);
 
-            var activeBookingCount = await _db.tbl_BurialBookings.AsNoTracking()
-                .Where(b => b.sys_requestedBurialDateTime >= dayStart &&
-                            b.sys_requestedBurialDateTime < dayEnd &&
-                            b.sys_bookingStatus != "Cancelled" &&
-                            b.sys_bookingStatus != "Rejected" &&
-                            b.sys_bookingStatus != "Expired")
-                .CountAsync();
+            // Overall cemetery capacity
+            var activeBookingCount =
+                await _db.tbl_BurialBookings
+                    .AsNoTracking()
+                    .Where(b =>
+                        b.sys_requestedBurialDateTime >= dayStart &&
+                        b.sys_requestedBurialDateTime < dayEnd &&
+                        b.sys_bookingStatus != "Cancelled" &&
+                        b.sys_bookingStatus != "Rejected" &&
+                        b.sys_bookingStatus != "Expired")
+                    .CountAsync();
 
-            var allocationCount = await _db.tbl_GraveAllocations.AsNoTracking()
-                .Where(a => a.sys_dateTimeOfBurial >= dayStart &&
-                            a.sys_dateTimeOfBurial < dayEnd)
-                .CountAsync();
 
-            if (activeBookingCount + allocationCount >= settings.MaxBurialsPerDay)
-                return new JsonResult(new { slots = Array.Empty<string>(), message = "Daily capacity reached." });
 
-            // Build slots 08:00–17:00 stepping by MinutesBetweenBurials
-            var minutes = Math.Max(5, settings.MinutesBetweenBurials);
+            if (activeBookingCount >=
+                settings.MaxBurialsPerDay)
+            {
+                return new JsonResult(new
+                {
+                    slots = Array.Empty<string>(),
+                    message = "Daily capacity reached. Try a new date."
+                });
+            }
 
-            var start = date.ToDateTime(new TimeOnly(8, 0));
-            var end = date.ToDateTime(new TimeOnly(17, 0));
+            var minutes =
+                Math.Max(
+                    5,
+                    settings.MinutesBetweenBurials);
+
+            var start = date.ToDateTime(
+                new TimeOnly(
+                    (int)settings.dayStartTime,
+                    0));
+
+            var end = date.ToDateTime(
+                new TimeOnly(
+                    (int)settings.dayEndTime,
+                    0));
 
             var allSlots = new List<DateTime>();
-            for (var t = start; t <= end; t = t.AddMinutes(minutes))
+
+            for (var t = start;
+                 t <= end;
+                 t = t.AddMinutes(minutes))
+            {
                 allSlots.Add(t);
+            }
 
-            // Pull existing scheduled times (bookings + allocations)
-            var bookedTimes = await _db.tbl_BurialBookings.AsNoTracking()
-                .Where(b => b.sys_requestedBurialDateTime >= dayStart &&
-                            b.sys_requestedBurialDateTime < dayEnd &&
-                            b.sys_bookingStatus != "Cancelled" &&
-                            b.sys_bookingStatus != "Rejected" &&
-                            b.sys_bookingStatus != "Expired")
-                .Select(b => b.sys_requestedBurialDateTime)
-                .ToListAsync();
+            // Section-specific bookings
+            var sectionBookings =
+                await _db.tbl_BurialBookings
+                    .AsNoTracking()
+                    .Where(b =>
+                        b.sys_sectionId == sectionId &&
+                        b.sys_requestedBurialDateTime >= dayStart &&
+                        b.sys_requestedBurialDateTime < dayEnd &&
+                        b.sys_bookingStatus != "Cancelled" &&
+                        b.sys_bookingStatus != "Rejected" &&
+                        b.sys_bookingStatus != "Expired")
+                    .Select(b =>
+                        b.sys_requestedBurialDateTime)
+                    .ToListAsync();
 
-            var allocatedTimes = await _db.tbl_GraveAllocations.AsNoTracking()
-                .Where(a => a.sys_dateTimeOfBurial >= dayStart &&
-                            a.sys_dateTimeOfBurial < dayEnd)
-                .Select(a => a.sys_dateTimeOfBurial)
-                .ToListAsync();
 
-            var blockedTimes = bookedTimes.Concat(allocatedTimes).ToList();
-            var window = TimeSpan.FromMinutes(minutes);
+            var maxConcurrent =
+                Math.Max(
+                    1,
+                    (int)section.sys_maxConcurrentBurialsPerSlot);
+
+
+
+            ////////DEBUG
+
+            Console.WriteLine(
+            $"SECTION={section.sys_sectionName}");
+
+            Console.WriteLine(
+                $"MAX CONCURRENT={section.sys_maxConcurrentBurialsPerSlot}");
+
+            Console.WriteLine(
+                $"BOOKINGS={sectionBookings.Count}");
+
+            foreach (var booking in sectionBookings)
+            {
+                Console.WriteLine(
+                    $"BOOKING={booking:yyyy-MM-dd HH:mm:ss}");
+            }
+            ///
+
 
             var available = allSlots
-                .Where(s => !blockedTimes.Any(bt => (bt - s).Duration() < window))
-                .Select(s => s.ToString("yyyy-MM-ddTHH:mm"))
+                .Where(slot =>
+                {
+                    var used = sectionBookings.Count(b =>
+                        b.Hour == slot.Hour &&
+                        b.Minute == slot.Minute);
+
+                    return used < maxConcurrent;
+                })
+                .Select(slot =>
+                    slot.ToString("yyyy-MM-ddTHH:mm"))
                 .ToList();
 
-            if (available.Count == 0)
-                return new JsonResult(new { slots = Array.Empty<string>(), message = "No slots available." });
 
-            return new JsonResult(new { slots = available, message = "" });
+            if (available.Count == 0)
+            {
+                return new JsonResult(new
+                {
+                    slots = Array.Empty<string>(),
+                    message =
+                        "No slots available for this section."
+                });
+            }
+
+            return new JsonResult(new
+            {
+                slots = available,
+                message = ""
+            });
         }
 
 

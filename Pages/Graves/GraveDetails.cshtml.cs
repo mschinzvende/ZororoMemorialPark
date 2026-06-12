@@ -508,15 +508,14 @@ namespace ZororoMemorialPark.Pages.Graves
                 var deceased = new tbl_Deceased
                 {
                     sys_deceasedFullName = deceasedFullName,
-                    sys_deceasedDOB = deceasedDOB,
+                    
                     sys_deceasedDOD = deceasedDOD,
                     sys_deceasedGender = deceasedGender,
                     sys_deceasedNationality = nationality,
-                    sys_deceasedMaritalStatus = maritalStatus,
-                    sys_deceasedNameOfSpouse = nameOfSpouse ?? "n/a",
+                   
                     sys_deceasedNextOfKinName = nextOfKinFullName ?? "n/a",
                     sys_deceasedNextOfKinAddress = nextOfKinAddress ?? "n/a",
-                    sys_deceasedNextOfKinEmail = nextOfKinEmail ?? "n/a",
+                    
                     sys_deceasedNextOfKinPhone = nextOfKinPhone ?? "n/a"
 
                 };

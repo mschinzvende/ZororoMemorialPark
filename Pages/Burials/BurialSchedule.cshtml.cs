@@ -266,7 +266,6 @@ namespace ZororoMemorialPark.Pages.Burials
                         d.sys_deceasedFullName,
                         d.sys_deceasedNextOfKinName,
                         d.sys_deceasedNextOfKinPhone,
-                        d.sys_deceasedNextOfKinEmail,
                         g.sys_plotNumber,
                         s.sys_sectionName,
                         a.sys_dateTimeOfBurial
@@ -280,7 +279,7 @@ namespace ZororoMemorialPark.Pages.Burials
                 }
 
                 await _notificationService.SendNextOfKinNotificationAsync(
-                    b.sys_deceasedNextOfKinEmail,
+                  "info@zimbotech.co.zw",
                     b.sys_deceasedNextOfKinPhone,
                     b.sys_deceasedFullName,
                     b.sys_dateTimeOfBurial,
