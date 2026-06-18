@@ -79,6 +79,22 @@
                     <input class="form-control" asp-for="CustomerPhone" required/>
                 </div>
 
+                            <div class="col-md-3">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           asp-for="IsTemporaryBooking" />
+
+                                    <label class="form-check-label"
+                                           asp-for="IsTemporaryBooking">
+                                        Temporary Booking
+                                    </label>
+                                </div>
+
+                                <small class="text-muted">
+                                    Tick if this booking is provisional and awaiting confirmation.
+                                </small>
+                            </div>
             </div>
         </div>
 

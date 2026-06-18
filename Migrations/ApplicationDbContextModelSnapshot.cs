@@ -1466,6 +1466,9 @@ namespace ZororoMemorialPark.Migrations
                     b.Property<int?>("sys_invoiceId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("sys_isTemporary")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("sys_paymentReceived")
                         .HasColumnType("bit");
 
@@ -1477,6 +1480,9 @@ namespace ZororoMemorialPark.Migrations
 
                     b.Property<int>("sys_sectionId")
                         .HasColumnType("int");
+
+                    b.Property<double?>("sys_suspense_amount")
+                        .HasColumnType("float");
 
                     b.HasKey("sys_bookingId");
 

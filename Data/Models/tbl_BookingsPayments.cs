@@ -23,6 +23,10 @@ public class tbl_BurialBookings
 
     public int? sys_invoiceId { get; set; }
 
+    public double? sys_suspense_amount { get; set; }
+
+    public bool sys_isTemporary { get; set; } = false;
+
     public DateTime sys_createdOn { get; set; }
     public DateTime sys_expiresOn { get; set; }
 

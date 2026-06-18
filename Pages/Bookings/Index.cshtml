@@ -47,9 +47,10 @@
                 <option value="PaidPartial">PaidPartial</option>
                 <option value="PaidFull">PaidFull</option>
                 <option value="Allocated">Allocated</option>
-                <option value="Cancelled">Cancelled</option>
-                <option value="Rejected">Rejected</option>
-                <option value="Expired">Expired</option>
+                
+                
+                <option value="Temporary">Temporary</option>
+
             </select>
         </div>
         <div class="col-md-3">
@@ -67,9 +68,10 @@
                     <th>Deceased</th>
                     <th>Burial Date/Time</th>
                     <th>Section</th>
-                    <th>Section Price</th>
+                    
                     <th>Status</th>
                     <th>Invoice</th>
+                                <th>Agent</th>
                     <th style="width:120px;"></th>
                 </tr>
             </thead>
@@ -80,9 +82,42 @@
                         <td>@r.Booking.sys_deceasedFirstName @r.Booking.sys_deceasedLastName</td>
                         <td>@r.Booking.sys_requestedBurialDateTime.ToString("yyyy-MM-dd HH:mm")</td>
                         <td>@r.SectionName</td>
-                        <td>$@r.SectionPrice</td>
-                        <td><span class="badge bg-secondary">@r.Booking.sys_bookingStatus</span></td>
+
+                                    <td>
+
+                                        @{
+                                            var statusClass = r.Booking.sys_bookingStatus switch
+                                            {
+                                                "PendingPayment" => "bg-warning text-dark",
+                                                "Invoiced" => "bg-info text-dark",
+                                                "PaidPartial" => "bg-primary",
+                                                "PaidFull" => "bg-success",
+                                                "Allocated" => "bg-dark",
+                                                _ => "bg-secondary"
+                                            };
+                                        }
+
+                                        <span class="badge rounded-pill @statusClass">
+                                            @r.Booking.sys_bookingStatus
+                                        </span>
+
+                                        @if (r.Booking.sys_isTemporary)
+                                        {
+                                            <span class="badge bg-info text-dark ms-1"
+                                                  title="Suspense Balance">
+                                                T: $@r.Booking.sys_suspense_amount.ToString()
+                                            </span>
+                                        }
+
+                                    </td>
+
+                        
+
                         <td>@(r.Booking.sys_invoiceId?.ToString() ?? "-")</td>
+
+                                    <td>
+                                        @r.AgentName
+                                    </td>
                                     <td class="text-end">
                                         <div class="btn-group btn-group-sm">
                                             <a class="btn btn-outline-primary"
@@ -99,6 +134,8 @@
                                             </button>
                                         </div>
                                     </td>
+
+
                     </tr>
                 }
             </tbody>

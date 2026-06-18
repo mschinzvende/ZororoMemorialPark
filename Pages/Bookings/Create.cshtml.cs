@@ -27,6 +27,9 @@ namespace ZororoMemorialPark.Pages.Bookings
 
         public List<tbl_Sections> Sections { get; set; } = new();
 
+        [BindProperty]
+        public bool IsTemporaryBooking { get; set; }
+
         [BindProperty] public int SectionId { get; set; }
 
         // Date-first UI pieces
@@ -396,7 +399,9 @@ namespace ZororoMemorialPark.Pages.Bookings
                 sys_agentId = agentId,
                 sys_bookingStatus = "PendingPayment",
                 sys_createdOn = DateTime.Now,
-                sys_expiresOn = selected.AddDays(14)
+                sys_expiresOn = selected.AddDays(365),
+                sys_suspense_amount = 0,
+                sys_isTemporary = IsTemporaryBooking
             };
 
             _db.tbl_BurialBookings.Add(booking);

@@ -42,6 +42,7 @@ namespace ZororoMemorialPark.Pages.Bookings
             public tbl_BurialBookings Booking { get; set; }
             public string SectionName { get; set; }
             public double SectionPrice { get; set; }
+            public string AgentName { get; set; } = "-";
         }
 
         public async Task OnGetAsync()
@@ -57,8 +58,21 @@ namespace ZororoMemorialPark.Pages.Bookings
             }
 
             if (!string.IsNullOrWhiteSpace(status))
-                query = query.Where(b => b.sys_bookingStatus == status);
+            {
 
+
+                if (status == "Temporary")
+                {
+
+                    query = query.Where(b => b.sys_isTemporary == true);
+                }
+
+                else
+                {
+                    query = query.Where(b => b.sys_bookingStatus == status);
+
+                }
+            }
             if (date.HasValue)
             {
                 var start = date.Value.Date;
@@ -82,14 +96,36 @@ namespace ZororoMemorialPark.Pages.Bookings
                 .Where(s => sectionIds.Contains(s.sys_sectionId))
                 .ToDictionaryAsync(s => s.sys_sectionId);
 
+            var agentIds = bookings
+    .Where(b => b.sys_agentId.HasValue)
+    .Select(b => b.sys_agentId.Value)
+    .Distinct()
+    .ToList();
+
+            var agents = await _db.tbl_Agents
+                .AsNoTracking()
+                .Where(a => agentIds.Contains(a.sys_agentId))
+                .ToDictionaryAsync(a => a.sys_agentId);
+
+
             Rows = bookings.Select(b =>
             {
                 sections.TryGetValue(b.sys_sectionId, out var sec);
+
+                string agentName = "-";
+
+                if (b.sys_agentId.HasValue &&
+                    agents.TryGetValue(b.sys_agentId.Value, out var agent))
+                {
+                    agentName = agent.sys_agentName;
+                }
+
                 return new BookingRow
                 {
                     Booking = b,
                     SectionName = sec?.sys_sectionName ?? "-",
-                    SectionPrice = sec?.sys_SecPrice ?? 0
+                    SectionPrice = sec?.sys_SecPrice ?? 0,
+                    AgentName = agentName
                 };
             }).ToList();
         }

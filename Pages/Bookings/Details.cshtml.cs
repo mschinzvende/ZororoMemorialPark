@@ -51,6 +51,11 @@ namespace ZororoMemorialPark.Pages.Bookings
 
         public bool PaymentReceived { get; set; }
 
+        [BindProperty]
+        public double SuspenseAmount { get; set; }
+
+        [BindProperty]
+        public bool UseSuspenseFunds { get; set; }
 
         // Permissions
         public bool CanOverride => User.IsInRole("Manager");
@@ -139,7 +144,45 @@ namespace ZororoMemorialPark.Pages.Bookings
         public List<ReceiptBookView> AvailableBooks { get; set; } = new();
         public tbl_ReceiptBooks AgentReceiptBook { get; set; } = new();
 
+        public async Task<IActionResult> OnPostAddSuspenseFundsAsync(
+    int BookingId)
+        {
+            var booking =
+                await _db.tbl_BurialBookings
+                    .FirstOrDefaultAsync(x =>
+                        x.sys_bookingId == BookingId);
 
+            if (booking == null)
+            {
+                TempData["ErrorMessage"] =
+                    "Booking not found.";
+
+                return RedirectToPage();
+            }
+
+            if (SuspenseAmount <= 0)
+            {
+                TempData["ErrorMessage"] =
+                    "Amount must be greater than zero.";
+
+                return RedirectToPage(new
+                {
+                    id = BookingId
+                });
+            }
+
+            booking.sys_suspense_amount+= SuspenseAmount;
+
+            await _db.SaveChangesAsync();
+
+            TempData["Ok"] =
+                $"$ {SuspenseAmount:N2} added to suspense account.";
+
+            return RedirectToPage(new
+            {
+                id = BookingId
+            });
+        }
         public async Task<IActionResult> OnPostAllocateGraveAsync()
         {
 
@@ -804,6 +847,22 @@ namespace ZororoMemorialPark.Pages.Bookings
                 TempData["Err"] = "Amount must be greater than zero.";
                 return RedirectToPage(new { id });
             }
+
+
+            //Add suspense funds to amount
+
+            double suspenseUsed = 0;
+
+            if (UseSuspenseFunds &&
+                Booking.sys_suspense_amount > 0)
+            {
+                suspenseUsed =
+                    (double)Booking.sys_suspense_amount;
+            }
+
+
+            Amount = Amount + suspenseUsed;
+
 
             if (Amount > balance)
             {
