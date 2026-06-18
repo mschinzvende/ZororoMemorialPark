@@ -105,7 +105,7 @@
                                         {
                                             <span class="badge bg-info text-dark ms-1"
                                                   title="Suspense Balance">
-                                                T: $@r.Booking.sys_suspense_amount.ToString()
+                                                TEMP: $@r.Booking.sys_suspense_amount.ToString()
                                             </span>
                                         }
 
@@ -114,9 +114,23 @@
                         
 
                         <td>@(r.Booking.sys_invoiceId?.ToString() ?? "-")</td>
-
                                     <td>
                                         @r.AgentName
+
+                                        @if (r.Booking.sys_paymentReceived)
+                                        {
+                                            <span class="badge bg-success ms-1"
+                                                  title="Agent Receipt Received">
+                                                ✓
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark ms-1"
+                                                  title="Awaiting Agent Receipt">
+                                                !
+                                            </span>
+                                        }
                                     </td>
                                     <td class="text-end">
                                         <div class="btn-group btn-group-sm">

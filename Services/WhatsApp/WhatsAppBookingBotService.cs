@@ -89,8 +89,9 @@ namespace ZororoMemorialPark.Services.WhatsApp
             if (agent == null)
             {
                 await _notificationService.SendTextMessage(
-                    phone,
-                    "You are not registered as an agent.");
+                   phone,
+                   "Hi. Thank you for getting in touch with Zororo Memorial. This number is for notifications only. For " +
+                   "assistance kindly contact +263719999892");
 
                 return;
             }
@@ -182,7 +183,7 @@ namespace ZororoMemorialPark.Services.WhatsApp
 
                     await _notificationService.SendTextMessage(
                         phone,
-                        "Invalid PIN");
+                        "Invalid PIN. Please try again.");
 
                     return;
                 }

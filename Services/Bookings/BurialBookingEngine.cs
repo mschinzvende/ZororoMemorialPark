@@ -176,6 +176,18 @@ namespace ZororoMemorialPark.Services.Bookings
             _db.tbl_Customers.Add(customer);
             await _db.SaveChangesAsync();
 
+            var sectionName = await _db.tbl_Sections
+    .Where(s => s.sys_sectionId == sectionId)
+    .Select(s => s.sys_sectionName)
+    .FirstOrDefaultAsync();
+
+            bool isTemporary = false;
+
+            if(sectionName == "Zororo Temporary Booking")
+            {
+                isTemporary = true;
+            }
+
             var booking = new tbl_BurialBookings
             {
                 sys_deceasedFirstName = deceasedFirstName.Trim(),
@@ -188,7 +200,9 @@ namespace ZororoMemorialPark.Services.Bookings
                 sys_createdOn = DateTime.Now,
                 sys_expiresOn = selected.AddDays(14),
                 sys_receiptPath = receiptPath,
-                sys_paymentReceived = paymentReceived
+                sys_paymentReceived = paymentReceived,
+                sys_suspense_amount = 0,
+                sys_isTemporary = isTemporary
                 
             };
 
