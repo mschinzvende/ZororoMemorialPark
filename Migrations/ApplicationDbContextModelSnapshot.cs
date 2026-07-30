@@ -380,6 +380,32 @@ namespace ZororoMemorialPark.Migrations
                     b.ToTable("tbl_Beneficiaries");
                 });
 
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_CommissionPaymentAllocations", b =>
+                {
+                    b.Property<int>("sys_allocationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_allocationId"));
+
+                    b.Property<double>("sys_amountAllocated")
+                        .HasColumnType("float");
+
+                    b.Property<int>("sys_commissionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("sys_commissionPaymentId")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_allocationId");
+
+                    b.HasIndex("sys_commissionId");
+
+                    b.HasIndex("sys_commissionPaymentId");
+
+                    b.ToTable("tbl_CommissionPaymentAllocations");
+                });
+
             modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_CommissionPayments", b =>
                 {
                     b.Property<int>("sys_commissionPaymentId")
@@ -388,16 +414,32 @@ namespace ZororoMemorialPark.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_commissionPaymentId"));
 
+                    b.Property<int>("sys_agentId")
+                        .HasColumnType("int");
+
                     b.Property<double>("sys_amountPaid")
                         .HasColumnType("float");
 
-                    b.Property<int>("sys_commissionId")
-                        .HasColumnType("int");
+                    b.Property<DateTime>("sys_createdOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("sys_notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime>("sys_paymentDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("sys_recordedByUserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("sys_reference")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.HasKey("sys_commissionPaymentId");
+
+                    b.HasIndex("sys_agentId");
 
                     b.ToTable("tbl_CommissionPayments");
                 });
@@ -419,13 +461,18 @@ namespace ZororoMemorialPark.Migrations
                     b.Property<int>("sys_bookingId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime>("sys_createdOn")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("sys_graveId")
                         .HasColumnType("int");
 
-                    b.Property<bool>("sys_isPaid")
-                        .HasColumnType("bit");
+                    b.Property<string>("sys_notes")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("sys_commissionId");
+
+                    b.HasIndex("sys_agentId");
 
                     b.ToTable("tbl_CommissionsDue");
                 });

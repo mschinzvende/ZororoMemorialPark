@@ -21,11 +21,12 @@ namespace ZororoMemorialPark.Services
             {
                 s = new SystemSettings
                 {
-                    CompanyName = "Zororo Memorial Park",
+                    CompanyName = "Zimbotech Memorial Park",
                     SmtpPort = 587,
                     UseSSL = true,
                     MaxBurialsPerDay = 5,
-                    MinutesBetweenBurials = 60
+                    MinutesBetweenBurials = 60,
+                    LogoPath = "/uploads/company_logo.png"
                 };
                 _context.SystemSettings.Add(s);
                 await _context.SaveChangesAsync();

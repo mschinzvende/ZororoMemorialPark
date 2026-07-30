@@ -38,6 +38,19 @@ namespace ZororoMemorialPark.Data
                 .WithMany()
                 .HasForeignKey(x => x.RequisitionLineId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+
+            modelBuilder.Entity<tbl_CommissionsDue>()
+    .HasIndex(x => x.sys_agentId);
+
+            modelBuilder.Entity<tbl_CommissionPayments>()
+                .HasIndex(x => x.sys_agentId);
+
+            modelBuilder.Entity<tbl_CommissionPaymentAllocations>()
+                .HasIndex(x => x.sys_commissionId);
+
+            modelBuilder.Entity<tbl_CommissionPaymentAllocations>()
+                .HasIndex(x => x.sys_commissionPaymentId);
         }
 
         // Define DbSets for your entities here
@@ -112,6 +125,8 @@ namespace ZororoMemorialPark.Data
         public DbSet<tbl_WhatsAppOtp> tbl_WhatsAppOtps { get; set; }
 
         public DbSet<tbl_RequisitionActionToken> tbl_RequisitionActionToken { get; set; }
+
+        public DbSet<tbl_CommissionPaymentAllocations> tbl_CommissionPaymentAllocations { get; set; }
 
     }
 }

@@ -974,8 +974,8 @@ namespace ZororoMemorialPark.Pages.Bookings
                         {
                             sys_bookingId = Booking.sys_bookingId,   // IMPORTANT
                             sys_agentId = agent.sys_agentId,
-                            sys_amount = commissionAmount,
-                            sys_isPaid = false
+                            sys_amount = commissionAmount
+                           
                             
                         });
 

@@ -1,0 +1,314 @@
+﻿@page
+@model ZororoMemorialPark.Pages.Finance.Commissions.IndexModel
+
+<div class="container-fluid py-4 mb-4">
+
+    <div class="card shadow">
+
+        <div class="card-header text-white"
+             style="background-color:var(--primary-green)">
+
+            <div class="d-flex justify-content-between">
+
+                <div>
+
+                    <h4 class="mb-0">
+                        Agent Commission Management
+                    </h4>
+
+                    <small>
+                        Commission Dashboard
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-3 mb-4">
+
+                <div class="col-md-3">
+
+                    <div class="card border-success">
+
+                        <div class="card-body">
+
+                            <small>Total Commission</small>
+
+                            <h3>
+
+                                $@Model.TotalCommission.ToString("N2")
+
+                            </h3>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <div class="card border-primary">
+
+                        <div class="card-body">
+
+                            <small>Total Paid</small>
+
+                            <h3>
+
+                                $@Model.TotalPaid.ToString("N2")
+
+                            </h3>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <div class="card border-danger">
+
+                        <div class="card-body">
+
+                            <small>Outstanding</small>
+
+                            <h3>
+
+                                $@Model.Outstanding.ToString("N2")
+
+                            </h3>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <div class="card border-warning">
+
+                        <div class="card-body">
+
+                            <small>Agents Owing</small>
+
+                            <h3>
+
+                                @Model.AgentCount
+
+                            </h3>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <form method="get" class="row mb-3">
+
+                <div class="col-md-4">
+
+                    <input class="form-control"
+                           asp-for="Search"
+                           placeholder="Search Agent..." />
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <div class="form-check mt-2">
+
+                        <input class="form-check-input"
+                               asp-for="OutstandingOnly" />
+
+                        <label class="form-check-label">
+
+                            Outstanding Only
+
+                        </label>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <button class="btn btn-success">
+
+                        Search
+
+                    </button>
+
+                </div>
+
+            </form>
+
+            <div class="mb-2">
+
+                Showing
+
+                <strong>@Model.Rows.Count</strong>
+
+                agents
+
+            </div>
+
+            <div class="table-responsive">
+
+                <table class="table table-hover table-striped">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Agent</th>
+
+                            <th>Bookings</th>
+
+                            <th>Earned</th>
+
+                            <th>Paid</th>
+
+                            <th>Outstanding</th>
+
+                            <th></th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var row in Model.Rows)
+                        {
+                            <tr>
+
+                                <td>
+
+                                    @row.AgentName
+
+                                </td>
+
+                                <td>
+
+                                    @row.Bookings
+
+                                </td>
+
+                                <td>
+
+                                    $@row.Earned.ToString("N2")
+
+                                </td>
+
+                                <td>
+
+                                    $@row.Paid.ToString("N2")
+
+                                </td>
+
+                                <td>
+
+                                    @if (row.Outstanding > 0)
+                                    {
+                                        <span class="badge bg-danger">
+
+                                            $@row.Outstanding.ToString("N2")
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">
+
+                                            Fully Paid
+
+                                        </span>
+                                    }
+
+                                </td>
+
+                                <td>
+
+                                    <a class="btn btn-sm btn-success"
+                                       asp-page="Details"
+                                       asp-route-id="@row.AgentId">
+
+                                        Open
+
+                                    </a>
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            <nav>
+
+                <ul class="pagination justify-content-end">
+
+                    <li class="page-item @(Model.PageNumber==1?"disabled":"")">
+
+                        <a class="page-link"
+                           asp-route-PageNumber="@(Model.PageNumber-1)"
+                           asp-route-Search="@Model.Search"
+                           asp-route-OutstandingOnly="@Model.OutstandingOnly">
+
+                            Previous
+
+                        </a>
+
+                    </li>
+
+                    @for (int i = 1; i <= Model.TotalPages; i++)
+                    {
+                        <li class="page-item @(i==Model.PageNumber?"active":"")">
+
+                            <a class="page-link"
+                               asp-route-PageNumber="@i"
+                               asp-route-Search="@Model.Search"
+                               asp-route-OutstandingOnly="@Model.OutstandingOnly">
+
+                                @i
+
+                            </a>
+
+                        </li>
+                    }
+
+                    <li class="page-item @(Model.PageNumber==Model.TotalPages?"disabled":"")">
+
+                        <a class="page-link"
+                           asp-route-PageNumber="@(Model.PageNumber+1)"
+                           asp-route-Search="@Model.Search"
+                           asp-route-OutstandingOnly="@Model.OutstandingOnly">
+
+                            Next
+
+                        </a>
+
+                    </li>
+
+                </ul>
+
+            </nav>
+
+        </div>
+
+    </div>
+
+</div>

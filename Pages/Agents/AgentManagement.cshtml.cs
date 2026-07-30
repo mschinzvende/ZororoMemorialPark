@@ -253,23 +253,23 @@ Thank you.
             await _context.SaveChangesAsync();
 
             // Update commission status if fully paid
-            var commission = await _context.tbl_CommissionsDue.FindAsync(payment.sys_commissionId);
+            var commission = await _context.tbl_CommissionsDue.FindAsync(payment.sys_agentId);
             if (commission != null)
             {
                 var totalPaid = await _context.tbl_CommissionPayments
-                    .Where(p => p.sys_commissionId == commission.sys_commissionId)
+                    .Where(p => p.sys_agentId == commission.sys_agentId)
                     .SumAsync(p => p.sys_amountPaid);
 
                 if (totalPaid >= commission.sys_amount)
                 {
-                    commission.sys_isPaid = true;
+                    
                     _context.tbl_CommissionsDue.Update(commission);
                     await _context.SaveChangesAsync();
                 }
             }
 
             TempData["SuccessMessage"] = "Payment added successfully.";
-            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Added Commission Payment", $"Payment of {payment.sys_amountPaid} added for Commission ID {payment.sys_commissionId}.");
+            await _appLogger.LogActivityAsync(_userManager.GetUserId(User), "Added Commission Payment", $"Payment of {payment.sys_amountPaid} added for Commission ID {payment.sys_agentId}.");
             return new JsonResult(new { success = true });
         }
         catch (Exception)
@@ -296,14 +296,14 @@ Thank you.
                 c.sys_commissionId,
                 c.sys_graveId,
                 c.sys_amount,
-                c.sys_isPaid,
+               
                 amountPaid = _context.tbl_CommissionPayments
-                    .Where(p => p.sys_commissionId == c.sys_commissionId)
+                    .Where(p => p.sys_agentId== id)
                     .Sum(p => (decimal?)p.sys_amountPaid) ?? 0
             }).ToList();
 
             var payments = await _context.tbl_CommissionPayments
-                .Where(p => commissions.Select(c => c.sys_commissionId).Contains(p.sys_commissionId))
+                .Where(p => commissions.Select(c => c.sys_commissionId).Contains(p.sys_agentId))
                 .ToListAsync();
 
             var totalCommission =
@@ -345,98 +345,7 @@ Thank you.
 
 
 
-    public async Task<IActionResult> OnPostPayCommissionsAsync(string commissionData, string paymentDate)
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(commissionData))
-                return new JsonResult(new { success = false, message = "No commissions selected." });
-
-            if (!DateTime.TryParse(paymentDate, out DateTime payDate))
-                payDate = DateTime.UtcNow;
-
-            // commissionData format: "id:amount,id:amount"
-            var entries = commissionData.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                            .Select(e =>
-                            {
-                                var parts = e.Split(':');
-                                return (Id: int.Parse(parts[0]), Amount: double.Parse(parts[1]));
-                            })
-                            .ToList();
-
-            var ids = entries.Select(e => e.Id).ToList();
-            var commissions = await _context.tbl_CommissionsDue
-                                    .Where(c => ids.Contains(c.sys_commissionId))
-                                    .ToListAsync();
-
-            foreach (var entry in entries)
-            {
-                var comm = commissions.FirstOrDefault(c => c.sys_commissionId == entry.Id);
-                if (comm == null) continue;
-
-                var alreadyPaid = await _context.tbl_CommissionPayments
-                                    .Where(p => p.sys_commissionId == comm.sys_commissionId)
-                                    .SumAsync(p => (double?)p.sys_amountPaid) ?? 0.0;
-
-                var remaining = comm.sys_amount - alreadyPaid;
-                if (remaining <= 0) continue;
-
-                var payAmount = Math.Min(entry.Amount, remaining);
-
-                _context.tbl_CommissionPayments.Add(new tbl_CommissionPayments
-                {
-                    sys_commissionId = comm.sys_commissionId,
-                    sys_amountPaid = payAmount,
-                    sys_paymentDate = payDate
-                });
-
-                if (alreadyPaid + payAmount >= comm.sys_amount)
-                    comm.sys_isPaid = true;
-            }
-
-            await _context.SaveChangesAsync();
-
-            var agentId = commissions.First().sys_agentId;
-            var agent = await _context.tbl_Agents.FirstOrDefaultAsync(a => a.sys_agentId == agentId);
-
-            var updatedCommissions = await _context.tbl_CommissionsDue
-                                        .Where(c => c.sys_agentId == agentId)
-                                        .ToListAsync();
-
-            var commissionIdsAll = updatedCommissions.Select(c => c.sys_commissionId).ToList();
-            var updatedPayments = await _context.tbl_CommissionPayments
-                                        .Where(p => commissionIdsAll.Contains(p.sys_commissionId))
-                                        .OrderByDescending(p => p.sys_paymentDate)
-                                        .ToListAsync();
-
-            return new JsonResult(new
-            {
-                success = true,
-                message = "Payments recorded.",
-                agent,
-                commissions = updatedCommissions.Select(c => new
-                {
-                    c.sys_commissionId,
-                    c.sys_graveId,
-                    c.sys_amount,
-                    c.sys_isPaid
-                }),
-                payments = updatedPayments.Select(p => new
-                {
-                    p.sys_commissionPaymentId,
-                    p.sys_commissionId,
-                    p.sys_amountPaid,
-                    paymentDate = p.sys_paymentDate.ToString("yyyy-MM-dd")
-                })
-            });
-        }
-        catch (Exception ex)
-        {
-            TempData["Error Message"] = ex.Message;
-            
-            return new JsonResult(new { success = false, message = "An error occurred while processing payments." });
-        }
-    }
+  
 
 
 

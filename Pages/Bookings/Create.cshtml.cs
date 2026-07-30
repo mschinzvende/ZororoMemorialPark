@@ -11,6 +11,7 @@ using ZororoMemorialPark.Data.Models;
 using ZororoMemorialPark.Data;
 using ZororoMemorialPark.Services.WhatsApp;
 using static System.Collections.Specialized.BitVector32;
+using Azure;
 
 namespace ZororoMemorialPark.Pages.Bookings
 {
@@ -389,6 +390,10 @@ namespace ZororoMemorialPark.Pages.Bookings
             // -----------------------------
             // CREATE BOOKING
             // -----------------------------
+
+
+
+
             var booking = new tbl_BurialBookings
             {
                 sys_deceasedFirstName = DeceasedFirstName.Trim(),
@@ -410,8 +415,28 @@ namespace ZororoMemorialPark.Pages.Bookings
             //send whatsapp notification
 
             var bookedSection  = await _db.tbl_Sections.AsNoTracking().FirstOrDefaultAsync(s => s.sys_sectionId == booking.sys_sectionId);
-           // var customer = await _db.tbl_Customers.AsNoTracking().FirstOrDefaultAsync(c => c.sys_customerId == booking.sys_customerId);
+            // var customer = await _db.tbl_Customers.AsNoTracking().FirstOrDefaultAsync(c => c.sys_customerId == booking.sys_customerId);
+
             
+
+            if (IsTemporaryBooking)
+            {
+                var tempResponse = await _whatsApp.SendBookingNotification(customer.sys_customerPhone, "booking_notification",
+                $"{booking.sys_deceasedFirstName} {booking.sys_deceasedLastName}", "To Be Advised",
+                bookedSection.sys_sectionName, customer.sys_paymentMadeBy);
+
+
+                if (tempResponse.IsSuccessStatusCode)
+                {
+                    TempData["Ok"] = "Booking Notification Sent to Customer";
+                }
+
+                else
+                {
+                    TempData["Err"] = $"Notification Failed to Send: {tempResponse.ReasonPhrase}";
+                }
+            }
+
             var response = await _whatsApp.SendBookingNotification(customer.sys_customerPhone, "booking_notification",
                 $"{booking.sys_deceasedFirstName} {booking.sys_deceasedLastName}", booking.sys_requestedBurialDateTime.ToString("f"),
                 bookedSection.sys_sectionName, customer.sys_paymentMadeBy);

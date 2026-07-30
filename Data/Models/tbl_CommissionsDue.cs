@@ -11,8 +11,10 @@ namespace ZororoMemorialPark.Data.Models
         public int sys_agentId { get; set; }
         public double sys_amount { get; set; }
 
-        public bool sys_isPaid { get; set; }
-
         public int sys_bookingId { get; set; }
+
+        public DateTime sys_createdOn { get; set; } = DateTime.Now;
+
+        public string? sys_notes { get; set; }
     }
 }
