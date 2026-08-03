@@ -423,7 +423,7 @@ namespace ZororoMemorialPark.Pages.Bookings
             {
                 var tempResponse = await _whatsApp.SendBookingNotification(customer.sys_customerPhone, "booking_notification",
                 $"{booking.sys_deceasedFirstName} {booking.sys_deceasedLastName}", "To Be Advised",
-                bookedSection.sys_sectionName, customer.sys_paymentMadeBy);
+                "To be Advised", customer.sys_paymentMadeBy);
 
 
                 if (tempResponse.IsSuccessStatusCode)
