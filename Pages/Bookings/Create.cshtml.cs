@@ -417,7 +417,7 @@ namespace ZororoMemorialPark.Pages.Bookings
             var bookedSection  = await _db.tbl_Sections.AsNoTracking().FirstOrDefaultAsync(s => s.sys_sectionId == booking.sys_sectionId);
             // var customer = await _db.tbl_Customers.AsNoTracking().FirstOrDefaultAsync(c => c.sys_customerId == booking.sys_customerId);
 
-            
+
 
             if (IsTemporaryBooking)
             {
@@ -437,18 +437,23 @@ namespace ZororoMemorialPark.Pages.Bookings
                 }
             }
 
-            var response = await _whatsApp.SendBookingNotification(customer.sys_customerPhone, "booking_notification",
-                $"{booking.sys_deceasedFirstName} {booking.sys_deceasedLastName}", booking.sys_requestedBurialDateTime.ToString("f"),
-                bookedSection.sys_sectionName, customer.sys_paymentMadeBy);
-
-            if (response.IsSuccessStatusCode)
-            {
-                TempData["Ok"] = "Booking Notification Sent to Customer";
-            }
-
             else
             {
-                TempData["Err"] = $"Notification Failed to Send: {response.ReasonPhrase}";
+
+
+                var response = await _whatsApp.SendBookingNotification(customer.sys_customerPhone, "booking_notification",
+                    $"{booking.sys_deceasedFirstName} {booking.sys_deceasedLastName}", booking.sys_requestedBurialDateTime.ToString("f"),
+                    bookedSection.sys_sectionName, customer.sys_paymentMadeBy);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["Ok"] = "Booking Notification Sent to Customer";
+                }
+
+                else
+                {
+                    TempData["Err"] = $"Notification Failed to Send: {response.ReasonPhrase}";
+                }
             }
 
             return RedirectToPage("Details", new { id = booking.sys_bookingId });
