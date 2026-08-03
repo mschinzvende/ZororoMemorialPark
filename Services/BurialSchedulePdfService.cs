@@ -32,44 +32,71 @@ namespace ZororoMemorialPark.Services
 
                     page.DefaultTextStyle(x => x.FontSize(9).FontColor(Colors.Black));
 
+                    
                     // ================= HEADER =================
-                    page.Header().Background("#006A46").Padding(15).Row(row =>
-                    {
-                        // ================= LEFT: COMPANY =================
-                        row.RelativeItem().AlignMiddle().Column(col =>
+                    page.Header()
+                        .Background(themeGreen)
+                        .Padding(15)
+                        .Row(row =>
                         {
-                            col.Item().Text(settings.CompanyName)
-                                .Bold().FontSize(13).FontColor(Colors.White);
+                            // ================= LEFT: COMPANY =================
+                            row.RelativeItem()
+                                .AlignMiddle()
+                                .Column(col =>
+                                {
+                                    col.Item()
+                                        .Text(settings.CompanyName ?? "")
+                                        .Bold()
+                                        .FontSize(13)
+                                        .FontColor(Colors.White);
 
-                            col.Item().Text(settings.PhysicalAddress)
-                                .FontSize(9).FontColor(Colors.White);
+                                    col.Item()
+                                        .Text(settings.PhysicalAddress ?? "")
+                                        .FontSize(9)
+                                        .FontColor(Colors.White);
 
-                            col.Item().Text($"{settings.Phone} | {settings.Email}")
-                                .FontSize(9).FontColor(Colors.White);
+                                    col.Item()
+                                        .Text($"{settings.Phone ?? ""} | {settings.Email ?? ""}")
+                                        .FontSize(9)
+                                        .FontColor(Colors.White);
+                                });
+
+                            // ================= CENTER: LOGO =================
+                            row.ConstantItem(100)
+                                .AlignMiddle()
+                                .AlignCenter()
+                                .Element(container =>
+                                {
+                                    if (!string.IsNullOrWhiteSpace(logoPath) &&
+                                        File.Exists(logoPath))
+                                    {
+                                        container
+                                            .Width(90)
+                                            .Height(50)
+                                            .Image(logoPath, ImageScaling.FitArea);
+                                    }
+                                });
+
+                            // ================= RIGHT: TITLE =================
+                            row.RelativeItem()
+                                .AlignMiddle()
+                                .AlignRight()
+                                .Column(col =>
+                                {
+                                    col.Item()
+                                        .AlignRight()
+                                        .Text("BURIAL SCHEDULE")
+                                        .Bold()
+                                        .FontSize(14)
+                                        .FontColor(Colors.White);
+
+                                    col.Item()
+                                        .AlignRight()
+                                        .Text($"Generated: {DateTime.Now:dd MMM yyyy}")
+                                        .FontSize(9)
+                                        .FontColor(Colors.White);
+                                });
                         });
-
-                        // ================= CENTER: LOGO =================
-                        row.ConstantItem(100).AlignCenter().AlignMiddle().Element(container =>
-                        {
-                            if (!string.IsNullOrEmpty(logoPath) && File.Exists(logoPath))
-                            {
-                                container
-                                    .Height(55)
-                                    .AlignCenter()
-                                    .Image(logoPath, ImageScaling.FitHeight);
-                            }
-                        });
-
-                        // ================= RIGHT: TITLE =================
-                        row.RelativeItem().AlignMiddle().AlignRight().Column(col =>
-                        {
-                            col.Item().AlignRight().Text("BURIAL SCHEDULE")
-                                .Bold().FontSize(14).FontColor(Colors.White);
-
-                            col.Item().AlignRight().Text($"Generated: {DateTime.Now:dd MMM yyyy}")
-                                .FontSize(9).FontColor(Colors.White);
-                        });
-                    });
 
                     // ================= BODY CARD =================
                     page.Content().PaddingTop(15).Column(content =>
