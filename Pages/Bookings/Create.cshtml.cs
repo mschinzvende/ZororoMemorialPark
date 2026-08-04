@@ -292,7 +292,7 @@ namespace ZororoMemorialPark.Pages.Bookings
                 return Page();
             }
 
-            // Cannot exceed 7 days in advance
+            // Cannot exceed 365 days in advance
             if (selectedDate > today.AddDays(365))
             {
                 ModelState.AddModelError("", "Burial date cannot be more than 7 days in advance.");

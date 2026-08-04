@@ -196,7 +196,7 @@ namespace ZororoMemorialPark.Pages.Burials
 
                 var settings = await _settingsService.GetSettingsAsync();
 
-                var logoPath = Path.Combine(_env.ContentRootPath, "wwwroot", settings.LogoPath.TrimStart('/'));
+                var logoPath = Path.Combine(_env.ContentRootPath, "wwwroot", settings.LogoPath);
 
                 var pdfBytes = _pdfService.GenerateSchedulePdf(AllBurials, settings, logoPath);
 

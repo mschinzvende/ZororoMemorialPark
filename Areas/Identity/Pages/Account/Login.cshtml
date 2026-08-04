@@ -10,7 +10,7 @@
 
 @{
     var settings = await SettingsService.GetSettingsAsync();
-    string logo = settings?.LogoPath ?? "/images/default-logo.png";
+    string logo = "https://zororomemorial.azurewebsites.net" + settings?.LogoPath;
     string companyName = settings?.CompanyName ?? "Zororo Memorial";
 }
 <!DOCTYPE html>
