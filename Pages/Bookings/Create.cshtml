@@ -154,7 +154,7 @@
 
             const sectionId = sectionSelect.value;
 
-            if (selectedDate < today || selectedDate > maxDate) {
+            if (selectedDate > maxDate) {
                 burialError.textContent = "Burial date must be between today and the next 7 days.";
                 burialError.classList.remove("d-none");
                 
