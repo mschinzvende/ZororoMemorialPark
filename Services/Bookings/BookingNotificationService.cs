@@ -44,28 +44,20 @@ namespace ZororoMemorialPark.Services.Bookings
                 ? "To be advised"
                 : booking.sys_requestedBurialDateTime.ToString("f");
 
-            var bookingType = booking.sys_isTemporary
-                ? "temporary burial booking"
-                : "burial booking";
-
-            var message =
-                $"New {bookingType} created.\n" +
-                $"Reference: #{booking.sys_bookingId}\n" +
-                $"Deceased: {booking.sys_deceasedFirstName} {booking.sys_deceasedLastName}\n" +
-                $"Burial: {burialDate}\n" +
-                $"Section: {section?.sys_sectionName ?? "Not specified"}\n" +
-                $"Payer: {customer.sys_paymentMadeBy}\n" +
-                $"Customer phone: {customer.sys_customerPhone}";
-
             foreach (var recipient in recipients
                 .GroupBy(x => x.PhoneNumber)
                 .Select(group => group.First()))
             {
                 try
                 {
-                    var response = await _whatsApp.SendTextMessage(
+                    var response = await _whatsApp.SendInternalBookingNotification(
                         recipient.PhoneNumber!,
-                        message);
+                        $"#{booking.sys_bookingId}",
+                        $"{booking.sys_deceasedFirstName} {booking.sys_deceasedLastName}",
+                        burialDate,
+                        section?.sys_sectionName ?? "Not specified",
+                        customer.sys_paymentMadeBy,
+                        customer.sys_customerPhone);
 
                     if (!response.IsSuccessStatusCode)
                     {

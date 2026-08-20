@@ -1,215 +1,337 @@
-﻿@page
+@page
 @model ZororoMemorialPark.Pages.Settings.SystemSettingsModel
 
 @{
     ViewData["Title"] = "System Settings";
+    var statusMessage = TempData["Message"]?.ToString();
+    var isErrorMessage = statusMessage?.Contains("error", StringComparison.OrdinalIgnoreCase) == true;
+    var selectedRecipientCount = Model.BookingNotificationUsers.Count(user => user.IsSelected);
+    var recipientsWithoutPhoneCount = Model.BookingNotificationUsers.Count(user => string.IsNullOrWhiteSpace(user.PhoneNumber));
 }
-<div class="container-fluid py-4 mb-4">
-<div class="card shadow-sm">
-    <div class="card-header" style="background-color: var(--primary-green); color:white;">
-        <h5 class="mb-0">System Settings</h5>
-    </div>
 
-    <div class="card-body">
+<div class="settings-page">
+    <header class="settings-hero">
+        <div>
+            <div class="settings-eyebrow"><i class="bi bi-sliders2"></i> Administration</div>
+            <h1>System settings</h1>
+            <p>Manage your organisation profile, communication channels, booking notifications and burial scheduling rules.</p>
+        </div>
+        <div class="settings-hero-actions">
+            <a class="btn btn-light" href="/UserManagement">
+                <i class="bi bi-people me-2"></i>Manage users
+            </a>
+            <button class="btn btn-success" type="submit" form="systemSettingsForm">
+                <i class="bi bi-check2-circle me-2"></i>Save changes
+            </button>
+        </div>
+    </header>
 
-        @if (TempData["Message"] != null)
-        {
-                <div class="alert alert-info">@TempData["Message"]</div>
-        }
+    @if (!string.IsNullOrWhiteSpace(statusMessage))
+    {
+        <div class="alert @(isErrorMessage ? "alert-danger" : "alert-success") settings-alert" role="alert">
+            <i class="bi @(isErrorMessage ? "bi-exclamation-circle" : "bi-check-circle")"></i>
+            <span>@statusMessage</span>
+        </div>
+    }
 
-        <form method="post" enctype="multipart/form-data">
+    <form id="systemSettingsForm" method="post" enctype="multipart/form-data">
+        <div class="row g-4 align-items-start">
+            <aside class="col-xl-3">
+                <nav class="settings-navigation" aria-label="Settings sections">
+                    <div class="settings-navigation-label">Configuration</div>
+                    <a href="#organisation">
+                        <i class="bi bi-building"></i>
+                        <span><strong>Organisation</strong><small>Company and brand</small></span>
+                    </a>
+                    <a href="#email">
+                        <i class="bi bi-envelope"></i>
+                        <span><strong>Email delivery</strong><small>SMTP connection</small></span>
+                    </a>
+                    <a href="#whatsapp">
+                        <i class="bi bi-whatsapp"></i>
+                        <span><strong>WhatsApp</strong><small>API and booking alerts</small></span>
+                    </a>
+                    <a href="#burial-rules">
+                        <i class="bi bi-calendar2-week"></i>
+                        <span><strong>Burial scheduling</strong><small>Capacity and operating hours</small></span>
+                    </a>
+                </nav>
+            </aside>
 
-            <h5 class="mt-3 mb-2">Company Information</h5>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label>Company Name</label>
-                    <input type="text" class="form-control" asp-for="Settings.CompanyName" required />
-                </div>
+            <div class="col-xl-9">
+                <section id="organisation" class="settings-section-card">
+                    <div class="settings-section-heading">
+                        <div class="settings-section-icon"><i class="bi bi-building"></i></div>
+                        <div>
+                            <h2>Organisation profile</h2>
+                            <p>These details appear across documents, communications and the main navigation.</p>
+                        </div>
+                    </div>
 
-                <div class="col-md-6 mb-3">
-                    <label>Company Logo</label>
-                    <input type="file" class="form-control" asp-for="LogoFile" />
-                    @if (!string.IsNullOrEmpty(Model.Settings.LogoPath))
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <label class="form-label" asp-for="Settings.CompanyName">Company name</label>
+                            <input type="text" class="form-control" asp-for="Settings.CompanyName" required />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label" asp-for="LogoFile">Company logo</label>
+                            <div class="settings-logo-control">
+                                @if (!string.IsNullOrEmpty(Model.Settings.LogoPath))
+                                {
+                                    <img src="@Model.Settings.LogoPath" alt="Current company logo" />
+                                }
+                                else
+                                {
+                                    <span class="settings-logo-placeholder"><i class="bi bi-image"></i></span>
+                                }
+                                <input type="file" class="form-control" asp-for="LogoFile" accept="image/*" />
+                            </div>
+                            <div class="form-text">PNG, JPG or SVG recommended.</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" asp-for="Settings.PhysicalAddress">Physical address</label>
+                            <input type="text" class="form-control" asp-for="Settings.PhysicalAddress" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" asp-for="Settings.Phone">Primary phone</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                <input type="text" class="form-control" asp-for="Settings.Phone" placeholder="263..." />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" asp-for="Settings.Email">Primary email</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-at"></i></span>
+                                <input type="email" class="form-control" asp-for="Settings.Email" />
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="email" class="settings-section-card">
+                    <div class="settings-section-heading settings-section-heading-with-action">
+                        <div class="d-flex gap-3">
+                            <div class="settings-section-icon"><i class="bi bi-envelope"></i></div>
+                            <div>
+                                <h2>Email delivery</h2>
+                                <p>Configure the outgoing account used for system emails and invoices.</p>
+                            </div>
+                        </div>
+                        <span class="settings-status-badge"><i class="bi bi-shield-lock"></i> Credentials protected</span>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <label class="form-label" asp-for="Settings.SmtpServer">SMTP server</label>
+                            <input type="text" class="form-control" asp-for="Settings.SmtpServer" placeholder="mail.example.com" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label" asp-for="Settings.SmtpPort">Port</label>
+                            <input type="number" class="form-control" asp-for="Settings.SmtpPort" />
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <div class="form-check form-switch settings-switch">
+                                <input class="form-check-input" type="checkbox" asp-for="Settings.UseSSL" />
+                                <label class="form-check-label" asp-for="Settings.UseSSL">Use SSL encryption</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" asp-for="Settings.SenderName">Sender name</label>
+                            <input type="text" class="form-control" asp-for="Settings.SenderName" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" asp-for="Settings.SenderEmail">Sender email</label>
+                            <input type="email" class="form-control" asp-for="Settings.SenderEmail" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" asp-for="Settings.SmtpUsername">SMTP username</label>
+                            <input type="text" class="form-control" asp-for="Settings.SmtpUsername" autocomplete="username" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" asp-for="Settings.SmtpPassword">SMTP password</label>
+                            <input type="password" class="form-control" asp-for="Settings.SmtpPassword" autocomplete="new-password" />
+                            <div class="form-text">Leave blank to retain the existing password.</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="whatsapp" class="settings-section-card">
+                    <div class="settings-section-heading">
+                        <div class="settings-section-icon"><i class="bi bi-whatsapp"></i></div>
+                        <div>
+                            <h2>WhatsApp notifications</h2>
+                            <p>Connect the WhatsApp Business API and choose the internal users who receive new-booking alerts.</p>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" asp-for="Settings.systemUrl">System URL</label>
+                            <input type="url" class="form-control" asp-for="Settings.systemUrl" required placeholder="https://your-system.example" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" asp-for="Settings.waApiUrl">WhatsApp API URL</label>
+                            <input type="url" class="form-control" asp-for="Settings.waApiUrl" required placeholder="https://graph.facebook.com/.../messages" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" asp-for="Settings.waAccessToken">WhatsApp access token</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-key"></i></span>
+                                <input type="password" class="form-control" asp-for="Settings.waAccessToken" required autocomplete="new-password" />
+                            </div>
+                            <div class="form-text">This token is used only by the server when sending WhatsApp messages.</div>
+                        </div>
+                    </div>
+
+                    <div class="settings-subsection-heading">
+                        <div>
+                            <h3>New booking recipients</h3>
+                            <p>Each selected person receives an individual WhatsApp alert when a burial booking is created.</p>
+                        </div>
+                        <div class="settings-recipient-summary">
+                            <span><strong>@selectedRecipientCount</strong> selected</span>
+                            <span><strong>@Model.BookingNotificationUsers.Count</strong> eligible users</span>
+                        </div>
+                    </div>
+
+                    @if (Model.BookingNotificationUsers.Any())
                     {
-                            <img src="@Model.Settings.LogoPath" class="img-thumbnail mt-2" style="height:60px;" />
+                        <div class="settings-recipient-table table-responsive">
+                            <table class="table align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th scope="col" class="settings-selection-column">Notify</th>
+                                        <th scope="col">User</th>
+                                        <th scope="col">Role</th>
+                                        <th scope="col">WhatsApp number</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var user in Model.BookingNotificationUsers)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="form-check mb-0">
+                                                    @if (string.IsNullOrWhiteSpace(user.PhoneNumber))
+                                                    {
+                                                        <input class="form-check-input" type="checkbox" disabled
+                                                               title="Add a phone number to this user before selecting them." />
+                                                    }
+                                                    else
+                                                    {
+                                                        <input class="form-check-input"
+                                                               type="checkbox"
+                                                               name="SelectedBookingNotificationUserIds"
+                                                               value="@user.UserId"
+                                                               checked="@(user.IsSelected ? "checked" : null)" />
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="settings-user-name">@user.UserName</div>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex flex-wrap gap-1">
+                                                    @foreach (var role in user.Roles)
+                                                    {
+                                                        <span class="settings-role-badge">@role</span>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @if (string.IsNullOrWhiteSpace(user.PhoneNumber))
+                                                {
+                                                    <span class="settings-phone-missing"><i class="bi bi-exclamation-triangle"></i>No phone number</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="settings-phone"><i class="bi bi-whatsapp"></i>@user.PhoneNumber</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        @if (recipientsWithoutPhoneCount > 0)
+                        {
+                            <div class="settings-inline-notice">
+                                <i class="bi bi-info-circle"></i>
+                                <span>@recipientsWithoutPhoneCount eligible @(recipientsWithoutPhoneCount == 1 ? "user needs" : "users need") a phone number before they can receive notifications.</span>
+                            </div>
+                        }
                     }
-                </div>
+                    else
+                    {
+                        <div class="settings-empty-state">
+                            <i class="bi bi-people"></i>
+                            <div>
+                                <strong>No eligible users found</strong>
+                                <span>Add users in the supported roles before configuring booking notifications.</span>
+                            </div>
+                            <a class="btn btn-outline-success btn-sm" href="/UserManagement">Manage users</a>
+                        </div>
+                    }
+                </section>
 
-                <div class="col-md-6 mb-3">
-                    <label>Physical Address</label>
-                    <input type="text" class="form-control" asp-for="Settings.PhysicalAddress" />
-                </div>
+                <section id="burial-rules" class="settings-section-card">
+                    <div class="settings-section-heading">
+                        <div class="settings-section-icon"><i class="bi bi-calendar2-week"></i></div>
+                        <div>
+                            <h2>Burial scheduling rules</h2>
+                            <p>Control daily capacity and the hours available when reserving burial appointments.</p>
+                        </div>
+                    </div>
 
-                <div class="col-md-3 mb-3">
-                    <label>Phone (263...)</label>
-                    <input type="text" class="form-control" asp-for="Settings.Phone" />
-                </div>
+                    <div class="row g-3">
+                        <div class="col-sm-6 col-lg-3">
+                            <label class="form-label" asp-for="Settings.MaxBurialsPerDay">Maximum burials</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" asp-for="Settings.MaxBurialsPerDay" required min="1" />
+                                <span class="input-group-text">daily</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-lg-3">
+                            <label class="form-label" asp-for="Settings.MinutesBetweenBurials">Appointment interval</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" asp-for="Settings.MinutesBetweenBurials" required min="1" />
+                                <span class="input-group-text">mins</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-lg-3">
+                            <label class="form-label" asp-for="Settings.dayStartTime">Day start</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" asp-for="Settings.dayStartTime" required min="0" max="23" />
+                                <span class="input-group-text">hour</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-lg-3">
+                            <label class="form-label" asp-for="Settings.dayEndTime">Day end</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" asp-for="Settings.dayEndTime" required min="0" max="23" />
+                                <span class="input-group-text">hour</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
-                <div class="col-md-3 mb-3">
-                    <label>Email</label>
-                    <input type="email" class="form-control" asp-for="Settings.Email" />
-                </div>
+                <footer class="settings-form-actions">
+                    <div>
+                        <strong>Ready to apply your changes?</strong>
+                        <span>Save to update the settings used by the application.</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" formaction="?handler=TestEmail" class="btn btn-outline-success">
+                            <i class="bi bi-send me-2"></i>Send test email
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check2-circle me-2"></i>Save changes
+                        </button>
+                    </div>
+                </footer>
             </div>
-
-            <hr />
-
-            <h5 class="mt-3">SMTP Configuration</h5>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label>SMTP Server</label>
-                    <input type="text" class="form-control" asp-for="Settings.SmtpServer" />
-                </div>
-
-                <div class="col-md-2 mb-3">
-                    <label>Port</label>
-                    <input type="number" class="form-control" asp-for="Settings.SmtpPort" />
-                </div>
-
-                <div class="col-md-4 mb-3">
-                    <label>Use SSL</label><br />
-                    <input type="checkbox" asp-for="Settings.UseSSL" />
-                </div>
-
-                <div class="col-md-3 mb-3">
-                    <label>Sender Name</label>
-                    <input type="text" class="form-control" asp-for="Settings.SenderName" />
-                </div>
-
-                <div class="col-md-3 mb-3">
-                    <label>Sender Email</label>
-                    <input type="email" class="form-control" asp-for="Settings.SenderEmail" />
-                </div>
-
-                <div class="col-md-3 mb-3">
-                    <label>SMTP Username</label>
-                    <input type="text" class="form-control" asp-for="Settings.SmtpUsername" />
-                </div>
-
-                <div class="col-md-3 mb-3">
-                    <label>SMTP Password</label>
-                    <input type="password" class="form-control" asp-for="Settings.SmtpPassword" />
-                </div>
-            </div>
-
-            <hr />
-
-                <h5 class="mt-3">WhatsApp Api</h5>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label>System Url</label>
-                        <input type="text" class="form-control" asp-for="Settings.systemUrl" required />
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label>WhatsApp API Url</label>
-                        <input type="text" class="form-control" asp-for="Settings.waApiUrl" required />
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label>WhatsApp Access Token</label>
-                        <input type="text" class="form-control" asp-for="Settings.waAccessToken" required />
-                    </div>
-                </div>
-
-            <hr />
-
-            <h5 class="mt-3">Booking WhatsApp Notifications</h5>
-            <p class="text-muted mb-3">
-                Choose internal users to receive an individual WhatsApp alert whenever a new burial booking is created.
-                Users are listed by their current role, with the legacy role name shown for reference.
-            </p>
-
-            @if (Model.BookingNotificationUsers.Any())
-            {
-                <div class="table-responsive border rounded">
-                    <table class="table table-sm align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th style="width: 90px;">Notify</th>
-                                <th>User</th>
-                                <th>Role</th>
-                                <th>WhatsApp Number</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var user in Model.BookingNotificationUsers)
-                            {
-                                <tr>
-                                    <td>
-                                        @if (string.IsNullOrWhiteSpace(user.PhoneNumber))
-                                        {
-                                            <input class="form-check-input" type="checkbox" disabled
-                                                   title="Add a phone number to this user before selecting them." />
-                                        }
-                                        else
-                                        {
-                                            <input class="form-check-input"
-                                                   type="checkbox"
-                                                   name="SelectedBookingNotificationUserIds"
-                                                   value="@user.UserId"
-                                                   checked="@user.IsSelected" />
-                                        }
-                                    </td>
-                                    <td>@user.UserName</td>
-                                    <td>
-                                        @foreach (var role in user.Roles)
-                                        {
-                                            <span class="badge bg-secondary me-1">@role</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        @if (string.IsNullOrWhiteSpace(user.PhoneNumber))
-                                        {
-                                            <span class="text-warning">No phone number</span>
-                                        }
-                                        else
-                                        {
-                                            @user.PhoneNumber
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-            else
-            {
-                <div class="alert alert-warning mb-0">
-                    No users in the configured booking-notification roles were found.
-                </div>
-            }
-
-            <hr />
-
-            <h5 class="mt-3">Burial Rules</h5>
-            <div class="row">
-                <div class="col-md-3 mb-3">
-                    <label>Max Burials Per Day</label>
-                    <input type="number" class="form-control" asp-for="Settings.MaxBurialsPerDay" required />
-                </div>
-
-                <div class="col-md-3 mb-3">
-                    <label>Minutes Between Burials</label>
-                    <input type="number" class="form-control" asp-for="Settings.MinutesBetweenBurials" required />
-                </div>
-
-                    <div class="col-md-3 mb-3">
-                        <label>Day Start Hour (e.g 8)</label>
-                        <input type="number" class="form-control" asp-for="Settings.dayStartTime" required />
-                    </div>
-
-                    <div class="col-md-3 mb-3">
-                        <label>Day End Hour (e.g 16 for 4pm)</label>
-                        <input type="number" class="form-control" asp-for="Settings.dayEndTime" required />
-                    </div>
-            </div>
-
-            <div class="text-end mt-4">
-                <button type="submit" class="btn btn-success">Save Settings</button>
-                <button type="submit" formaction="?handler=TestEmail" class="btn btn-primary">Send Test Email</button>
-            </div>
-
-        </form>
-    </div>
-</div>
+        </div>
+    </form>
 </div>

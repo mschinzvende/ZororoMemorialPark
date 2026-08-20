@@ -11,6 +11,9 @@ namespace ZororoMemorialPark.Services.WhatsApp
 {
     public class WhatsAppNotificationService
     {
+        private const string InternalBookingNotificationTemplateName = "internal_booking_notification";
+        private const string InternalBookingNotificationLanguageCode = "en";
+
         private readonly HttpClient _httpClient;
         private readonly SystemSettingsService _settingsService;
 
@@ -203,6 +206,59 @@ namespace ZororoMemorialPark.Services.WhatsApp
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
+            Console.WriteLine($"Response Status: {response.StatusCode}");
+            Console.WriteLine($"Response Content: {responseContent}");
+
+            return response;
+        }
+
+        public async Task<HttpResponseMessage> SendInternalBookingNotification(
+            string to,
+            string bookingReference,
+            string deceasedName,
+            string burialDate,
+            string burialSection,
+            string payerName,
+            string customerPhone)
+        {
+            await EnsureInitializedAsync();
+
+            var messageData = new
+            {
+                messaging_product = "whatsapp",
+                to,
+                type = "template",
+                template = new
+                {
+                    name = InternalBookingNotificationTemplateName,
+                    language = new { code = InternalBookingNotificationLanguageCode },
+                    components = new object[]
+                    {
+                        new
+                        {
+                            type = "body",
+                            parameters = new object[]
+                            {
+                                new { type = "text", text = bookingReference },
+                                new { type = "text", text = deceasedName },
+                                new { type = "text", text = burialDate },
+                                new { type = "text", text = burialSection },
+                                new { type = "text", text = payerName },
+                                new { type = "text", text = customerPhone }
+                            }
+                        }
+                    }
+                }
+            };
+
+            var content = new StringContent(
+                JsonConvert.SerializeObject(messageData),
+                Encoding.UTF8,
+                "application/json");
+
+            var response = await _httpClient.PostAsync("", content);
+
+            var responseContent = await response.Content.ReadAsStringAsync();
             Console.WriteLine($"Response Status: {response.StatusCode}");
             Console.WriteLine($"Response Content: {responseContent}");
 
