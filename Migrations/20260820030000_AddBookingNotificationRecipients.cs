@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ZororoMemorialPark.Migrations
 {
     /// <inheritdoc />
-    [Migration("20260820030000_AddBookingNotificationRecipients")]
     public partial class AddBookingNotificationRecipients : Migration
     {
         /// <inheritdoc />
