@@ -15,6 +15,7 @@ namespace ZororoMemorialPark.Services.WhatsApp
         private const string InternalBookingNotificationLanguageCode = "en";
         private const string ReservationNotificationTemplateName = "reservation_created";
         private const string ReservationInstallmentReminderTemplateName = "reservation_installment_reminder";
+        private const string ReservationPaymentNotificationTemplateName = "reservation_payment_received";
 
         private readonly HttpClient _httpClient;
         private readonly SystemSettingsService _settingsService;
@@ -248,6 +249,24 @@ namespace ZororoMemorialPark.Services.WhatsApp
                 sectionName,
                 outstandingBalance,
                 dueDate);
+        }
+
+        public async Task<HttpResponseMessage> SendReservationPaymentNotification(
+            string to,
+            string reservationReference,
+            string customerName,
+            string paymentAmount,
+            string outstandingBalance,
+            string paymentDate)
+        {
+            return await SendReservationTemplateAsync(
+                to,
+                ReservationPaymentNotificationTemplateName,
+                reservationReference,
+                customerName,
+                paymentAmount,
+                outstandingBalance,
+                paymentDate);
         }
 
         private async Task<HttpResponseMessage> SendReservationTemplateAsync(

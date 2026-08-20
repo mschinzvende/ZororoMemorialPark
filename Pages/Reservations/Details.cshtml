@@ -22,7 +22,13 @@
             <a asp-page="Index" class="text-decoration-none small"><i class="bi bi-arrow-left"></i> Reservations</a>
             <h4 class="mb-0 mt-1">@reference</h4>
         </div>
-        <a class="btn btn-outline-primary" asp-page="/Finance/InvoicesList" asp-route-SearchTerm="@Model.Customer.sys_paymentMadeBy"><i class="bi bi-receipt me-1"></i> View invoices</a>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editReservationModal"><i class="bi bi-pencil-square me-1"></i> Edit reservation</button>
+            @if (Model.Invoices.Any(x => x.Balance > 0))
+            {
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#capturePaymentModal"><i class="bi bi-cash-coin me-1"></i> Capture installment</button>
+            }
+        </div>
     </div>
 
     <div class="row g-4">
@@ -55,7 +61,13 @@
             <div class="card shadow-sm mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">Reservation invoices and payments</h6>
-                    <span class="badge @(Model.PaymentStatus == "Fully paid" ? "bg-success" : Model.PaymentStatus == "Partially paid" ? "bg-warning text-dark" : "bg-primary")">@Model.PaymentStatus</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge @(Model.PaymentStatus == "Fully paid" ? "bg-success" : Model.PaymentStatus == "Partially paid" ? "bg-warning text-dark" : "bg-primary")">@Model.PaymentStatus</span>
+                        @if (Model.Invoices.Any(x => x.Balance > 0))
+                        {
+                            <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#capturePaymentModal">Capture payment</button>
+                        }
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="row text-center border-bottom pb-3 mb-3">
@@ -126,3 +138,91 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="capturePaymentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="CapturePayment">
+                <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);">
+                    <div><h5 class="modal-title">Capture installment payment</h5><small>Confirmation is sent to the reservation contact after payment is saved.</small></div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="reservationId" value="@Model.Reservation.sys_reservationId" />
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Outstanding invoice</label>
+                        <select class="form-select" name="invoiceId" required>
+                            @foreach (var invoice in Model.Invoices.Where(x => x.Balance > 0))
+                            {
+                                <option value="@invoice.InvoiceId">Invoice #@invoice.InvoiceId — balance $@invoice.Balance.ToString("N2")</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label fw-semibold">Amount</label><input type="number" class="form-control" name="amount" min="0.01" step="0.01" required /></div>
+                        <div class="col-md-6"><label class="form-label fw-semibold">Payment date</label><input type="date" class="form-control" name="paymentDate" value="@DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")" required /></div>
+                        <div class="col-md-6"><label class="form-label fw-semibold">Payment method</label><select class="form-select" name="paymentMethodId" required><option value="">Select method</option>@foreach (var method in Model.PaymentMethods) { <option value="@method.sys_paymentMethodId">@method.sys_paymentMethodName</option> }</select></div>
+                        <div class="col-md-6"><label class="form-label fw-semibold">Notes</label><input type="text" class="form-control" name="notes" placeholder="Optional" /></div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save payment &amp; notify</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editReservationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="Update">
+                <div class="modal-header" style="background-color: var(--primary-green); color: var(--primary-white);">
+                    <div><h5 class="modal-title">Edit reservation</h5><small>Changes to the next installment date update outstanding reservation invoices.</small></div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input asp-for="EditInput.ReservationId" type="hidden" />
+                    <input asp-for="EditInput.BeneficiaryId" type="hidden" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <div class="row g-3">
+                        <div class="col-12"><h6 class="border-bottom pb-2">Customer contact</h6></div>
+                        <div class="col-md-6"><label asp-for="EditInput.CustomerName" class="form-label fw-semibold">Customer name</label><input asp-for="EditInput.CustomerName" class="form-control" /><span asp-validation-for="EditInput.CustomerName" class="text-danger"></span></div>
+                        <div class="col-md-6"><label asp-for="EditInput.CustomerPhone" class="form-label fw-semibold">WhatsApp / phone number</label><input asp-for="EditInput.CustomerPhone" class="form-control" /><span asp-validation-for="EditInput.CustomerPhone" class="text-danger"></span></div>
+                        <div class="col-md-6"><label asp-for="EditInput.CustomerEmail" class="form-label fw-semibold">Email address</label><input asp-for="EditInput.CustomerEmail" type="email" class="form-control" /><span asp-validation-for="EditInput.CustomerEmail" class="text-danger"></span></div>
+                        <div class="col-md-6"><label asp-for="EditInput.Status" class="form-label fw-semibold">Reservation status</label><select asp-for="EditInput.Status" class="form-select"><option value="Active">Active</option><option value="Expired">Expired</option><option value="Cancelled">Cancelled</option></select></div>
+                        <div class="col-12"><h6 class="border-bottom pb-2 mt-2">Reservation terms</h6></div>
+                        <div class="col-md-6">
+                            <label asp-for="EditInput.SectionId" class="form-label fw-semibold">Selected section</label>
+                            @if (Model.LinkedGrave != null)
+                            {
+                                <input asp-for="EditInput.SectionId" type="hidden" />
+                                <input class="form-control" value="@Model.PreferredSection?.sys_sectionName" disabled />
+                                <small class="text-muted">The section is locked because a grave has been linked.</small>
+                            }
+                            else
+                            {
+                                <select asp-for="EditInput.SectionId" class="form-select"><option value="">Select section</option>@foreach (var availableSection in Model.Sections) { <option value="@availableSection.sys_sectionId">@availableSection.sys_sectionName</option> }</select>
+                            }
+                            <span asp-validation-for="EditInput.SectionId" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6"><label asp-for="EditInput.AgreedPrice" class="form-label fw-semibold">Agreed price</label><input asp-for="EditInput.AgreedPrice" type="number" min="0" step="0.01" class="form-control" /><small class="text-muted">The price remains locked unless you explicitly amend it.</small><span asp-validation-for="EditInput.AgreedPrice" class="text-danger"></span></div>
+                        <div class="col-md-6"><label asp-for="EditInput.NextInstallmentDueDate" class="form-label fw-semibold">Next installment due</label><input asp-for="EditInput.NextInstallmentDueDate" type="date" class="form-control" /><span asp-validation-for="EditInput.NextInstallmentDueDate" class="text-danger"></span></div>
+                        <div class="col-md-6"><label asp-for="EditInput.ExpiryDate" class="form-label fw-semibold">Reservation expiry</label><input asp-for="EditInput.ExpiryDate" type="date" class="form-control" /></div>
+                        <div class="col-12"><h6 class="border-bottom pb-2 mt-2">Beneficiary</h6></div>
+                        <div class="col-md-6"><label asp-for="EditInput.BeneficiaryFullName" class="form-label fw-semibold">Full name</label><input asp-for="EditInput.BeneficiaryFullName" class="form-control" /><span asp-validation-for="EditInput.BeneficiaryFullName" class="text-danger"></span></div>
+                        <div class="col-md-3"><label asp-for="EditInput.BeneficiaryDOB" class="form-label fw-semibold">Date of birth</label><input asp-for="EditInput.BeneficiaryDOB" type="date" class="form-control" /><span asp-validation-for="EditInput.BeneficiaryDOB" class="text-danger"></span></div>
+                        <div class="col-md-3"><label asp-for="EditInput.BeneficiaryRelationship" class="form-label fw-semibold">Relationship</label><input asp-for="EditInput.BeneficiaryRelationship" class="form-control" /><span asp-validation-for="EditInput.BeneficiaryRelationship" class="text-danger"></span></div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save changes</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    @if (!ViewContext.ModelState.IsValid)
+    {
+        <script>document.addEventListener('DOMContentLoaded', () => new bootstrap.Modal(document.getElementById('editReservationModal')).show());</script>
+    }
+}
