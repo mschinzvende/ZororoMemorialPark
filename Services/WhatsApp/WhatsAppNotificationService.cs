@@ -13,6 +13,8 @@ namespace ZororoMemorialPark.Services.WhatsApp
     {
         private const string InternalBookingNotificationTemplateName = "internal_booking_notification";
         private const string InternalBookingNotificationLanguageCode = "en";
+        private const string ReservationNotificationTemplateName = "reservation_created";
+        private const string ReservationInstallmentReminderTemplateName = "reservation_installment_reminder";
 
         private readonly HttpClient _httpClient;
         private readonly SystemSettingsService _settingsService;
@@ -210,6 +212,88 @@ namespace ZororoMemorialPark.Services.WhatsApp
             Console.WriteLine($"Response Content: {responseContent}");
 
             return response;
+        }
+
+        public async Task<HttpResponseMessage> SendReservationNotification(
+            string to,
+            string reservationReference,
+            string customerName,
+            string sectionName,
+            string agreedPrice,
+            string nextInstallmentDueDate)
+        {
+            return await SendReservationTemplateAsync(
+                to,
+                ReservationNotificationTemplateName,
+                reservationReference,
+                customerName,
+                sectionName,
+                agreedPrice,
+                nextInstallmentDueDate);
+        }
+
+        public async Task<HttpResponseMessage> SendReservationInstallmentReminder(
+            string to,
+            string reservationReference,
+            string customerName,
+            string sectionName,
+            string outstandingBalance,
+            string dueDate)
+        {
+            return await SendReservationTemplateAsync(
+                to,
+                ReservationInstallmentReminderTemplateName,
+                reservationReference,
+                customerName,
+                sectionName,
+                outstandingBalance,
+                dueDate);
+        }
+
+        private async Task<HttpResponseMessage> SendReservationTemplateAsync(
+            string to,
+            string templateName,
+            string reservationReference,
+            string customerName,
+            string sectionName,
+            string amount,
+            string dueDate)
+        {
+            await EnsureInitializedAsync();
+
+            var messageData = new
+            {
+                messaging_product = "whatsapp",
+                to,
+                type = "template",
+                template = new
+                {
+                    name = templateName,
+                    language = new { code = "en" },
+                    components = new object[]
+                    {
+                        new
+                        {
+                            type = "body",
+                            parameters = new object[]
+                            {
+                                new { type = "text", text = reservationReference },
+                                new { type = "text", text = customerName },
+                                new { type = "text", text = sectionName },
+                                new { type = "text", text = amount },
+                                new { type = "text", text = dueDate }
+                            }
+                        }
+                    }
+                }
+            };
+
+            var content = new StringContent(
+                JsonConvert.SerializeObject(messageData),
+                Encoding.UTF8,
+                "application/json");
+
+            return await _httpClient.PostAsync("", content);
         }
 
         public async Task<HttpResponseMessage> SendInternalBookingNotification(

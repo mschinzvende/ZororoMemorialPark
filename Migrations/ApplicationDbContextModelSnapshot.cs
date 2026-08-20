@@ -353,27 +353,6 @@ namespace ZororoMemorialPark.Migrations
                     b.ToTable("tbl_Agents");
                 });
 
-            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_BookingNotificationRecipient", b =>
-                {
-                    b.Property<int>("sys_bookingNotificationRecipientId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_bookingNotificationRecipientId"));
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("sys_bookingNotificationRecipientId");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("tbl_BookingNotificationRecipients");
-                });
-
             modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Beneficiaries", b =>
                 {
                     b.Property<int>("sys_benefitId")
@@ -399,6 +378,27 @@ namespace ZororoMemorialPark.Migrations
                     b.HasKey("sys_benefitId");
 
                     b.ToTable("tbl_Beneficiaries");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_BookingNotificationRecipient", b =>
+                {
+                    b.Property<int>("sys_bookingNotificationRecipientId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_bookingNotificationRecipientId"));
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("sys_bookingNotificationRecipientId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("tbl_BookingNotificationRecipients");
                 });
 
             modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_CommissionPaymentAllocations", b =>
@@ -505,6 +505,9 @@ namespace ZororoMemorialPark.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_customerId"));
+
+                    b.Property<string>("sys_customerEmail")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("sys_customerPhone")
                         .IsRequired()
@@ -744,16 +747,46 @@ namespace ZororoMemorialPark.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_reservationId"));
 
+                    b.Property<double>("sys_agreedPrice")
+                        .HasColumnType("float");
+
                     b.Property<int>("sys_customerId")
                         .HasColumnType("int");
 
-                    b.Property<int>("sys_graveId")
+                    b.Property<DateOnly?>("sys_expiryDate")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("sys_graveId")
                         .HasColumnType("int");
+
+                    b.Property<DateOnly?>("sys_lastInstallmentReminderSentOn")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("sys_nextInstallmentDueDate")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("sys_preferredSectionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("sys_reservationReference")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<DateOnly>("sys_reservedOn")
                         .HasColumnType("date");
 
+                    b.Property<string>("sys_status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("sys_reservationId");
+
+                    b.HasIndex("sys_graveId");
+
+                    b.HasIndex("sys_preferredSectionId");
+
+                    b.HasIndex("sys_reservationReference")
+                        .IsUnique();
 
                     b.ToTable("tbl_GraveReservations");
                 });

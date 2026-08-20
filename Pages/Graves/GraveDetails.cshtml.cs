@@ -46,12 +46,7 @@ namespace ZororoMemorialPark.Pages.Graves
         public tbl_GraveAllocations Allocation { get; set; } = new();
         public tbl_Deceased Deceased { get; set; } = new();
         public bool AllocationPendingPayment { get; set; }
-        public tbl_GraveReservations Reservation { get; set; } = new();
-        public tbl_Customers Customer { get; set; } = new();
-        public List<tbl_Beneficiaries> Beneficiaries { get; set; } = new();
-
         public List<CustomerPaymentDto> AllocationPayments { get; set; } = new();
-        public List<CustomerPaymentDto> ReservationPayments { get; set; } = new();
 
         public List<tbl_PaymentMethods> PaymentMethods { get; set; } = new();
 
@@ -80,11 +75,8 @@ namespace ZororoMemorialPark.Pages.Graves
         [BindProperty] public tbl_JobEvaluations JobEvaluation { get; set; } = new();
 
         public double TotalPaidAllocation { get; set; }
-        public double TotalPaidReservation { get; set; }
         public double AllocationBalance { get; set; }
-        public double ReservationBalance { get; set; }
         public string AllocationPaymentStatus { get; set; }
-        public string ReservationPaymentStatus { get; set; }
 
         public bool isReadyForAllocation { get; set; }
 
@@ -207,35 +199,6 @@ namespace ZororoMemorialPark.Pages.Graves
                     AllocationPendingPayment = !await _context.tbl_IncomePayments.AnyAsync(p => p.sys_invoiceId == Allocation.sys_allocationId);
                 }
 
-                // Reservation + Customer + Beneficiaries
-                Reservation = await _context.tbl_GraveReservations.FirstOrDefaultAsync(r => r.sys_graveId == id);
-                if (Reservation != null)
-                {
-                    Customer = await _context.tbl_Customers.FindAsync(Reservation.sys_customerId);
-                    Beneficiaries = await _context.tbl_Beneficiaries.Where(b => b.sys_reservationId == Reservation.sys_reservationId).ToListAsync();
-                }
-
-                // Payments from Reservation invoices
-                if (Reservation != null)
-                {
-                    ReservationPayments = await (
-                        from gri in _context.tbl_GraveReservationInvoices
-                        join inv in _context.tbl_Invoices on gri.sys_invoiceId equals inv.sys_invoiceId
-                        join pay in _context.tbl_IncomePayments on inv.sys_invoiceId equals pay.sys_invoiceId
-                        where gri.sys_reservationId == Reservation.sys_reservationId
-                        select new CustomerPaymentDto
-                        {
-                            sys_incomeId = pay.sys_incomeId,
-                            sys_date = pay.sys_date,
-                            
-                            sys_amount = pay.sys_amount,
-                            sys_paymentMethod = pay.sys_paymentMethod,
-                            sys_notes = pay.sys_notes
-                        }).ToListAsync();
-
-
-                }
-
                 // Payments from Allocation invoices
                 if (Allocation != null)
                 {
@@ -275,25 +238,6 @@ namespace ZororoMemorialPark.Pages.Graves
                 {
                     AllocationPaymentStatus = "Unpaid";
                 }
-
-                //Calculate totals for reservations
-                TotalPaidReservation = ReservationPayments.Sum(CustomerPaymentDto => CustomerPaymentDto.sys_amount);
-                ReservationBalance = (Section?.sys_SecPrice ?? 0) - TotalPaidReservation;
-
-                if (ReservationBalance <= 0)
-                {
-                    ReservationPaymentStatus = "Fully Paid";
-                    ReservationBalance = 0; // avoid showing negative
-                }
-                else if (TotalPaidReservation > 0)
-                {
-                    ReservationPaymentStatus = "Partially Paid";
-                }
-                else
-                {
-                    ReservationPaymentStatus = "Unpaid";
-                }
-
 
                 // Base query for a specific grave
                 var baseQuery = _context.tbl_Jobs
@@ -527,11 +471,11 @@ namespace ZororoMemorialPark.Pages.Graves
                 await _context.SaveChangesAsync();
 
                 // Check if there is an existing reservation for this grave
-                Reservation = await _context.tbl_GraveReservations.FirstOrDefaultAsync(r => r.sys_graveId == graveId);
+                var reservation = await _context.tbl_GraveReservations.FirstOrDefaultAsync(r => r.sys_graveId == graveId);
 
 
 
-                if (Reservation == null) //only do this if there is no reservation already
+                if (reservation == null) //only do this if there is no reservation already
                 {
                     // Create Customer
                     var customer = new tbl_Customers { sys_paymentMadeBy = paymentBy };
@@ -618,7 +562,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 else
                 {
                     // Use existing reservation to get customer
-                    var customer = await _context.tbl_Customers.FindAsync(Reservation.sys_customerId);
+                    var customer = await _context.tbl_Customers.FindAsync(reservation.sys_customerId);
                     if (customer == null) return BadRequest("Customer not found for existing reservation.");
 
                     // Create Allocation
@@ -720,87 +664,6 @@ namespace ZororoMemorialPark.Pages.Graves
         }
 
 
-
-        // Create Reservation
-        public async Task<IActionResult> OnPostCreateReservationAsync(int graveId, string customerName,
-            string beneficiaryFullName, DateOnly beneficiaryDOB, string beneficiaryRelationship)
-        {
-            var customer = new tbl_Customers { sys_paymentMadeBy = customerName };
-            _context.tbl_Customers.Add(customer);
-            await _context.SaveChangesAsync();
-
-            var reservation = new tbl_GraveReservations
-            {
-                sys_graveId = graveId,
-                sys_customerId = customer.sys_customerId,
-                sys_reservedOn = DateOnly.FromDateTime(DateTime.Now)
-            };
-            _context.tbl_GraveReservations.Add(reservation);
-            await _context.SaveChangesAsync();
-
-
-            var b = new tbl_Beneficiaries
-            {
-                sys_benefitFullName = beneficiaryFullName,
-                sys_benefitDOB = beneficiaryDOB,
-                sys_benefitRelationship = beneficiaryRelationship,
-                sys_reservationId = reservation.sys_reservationId
-            };
-            _context.tbl_Beneficiaries.Add(b);
-            await _context.SaveChangesAsync();
-
-
-            //Create a reservation invoice
-
-            var invoice = new tbl_Invoices
-            {
-
-                sys_invoiceDate = DateOnly.FromDateTime(DateTime.Now),
-               
-                sys_customerId = customer.sys_customerId,
-                sys_invoiceDueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7))
-            };
-            _context.tbl_Invoices.Add(invoice);
-            await _context.SaveChangesAsync();
-
-
-            //get the grave
-
-            var grave = await _context.tbl_Graves.FindAsync(graveId);
-            var theSection = await _context.tbl_Sections.FindAsync(grave.sys_sectionId);
-
-            // Create Invoice Item
-
-            var invoiceItem = new tbl_InvoiceItems
-            {
-                sys_invoiceId = invoice.sys_invoiceId,
-                sys_itemName = $"Grave Reservation - Grave ID {grave.sys_plotNumber}",
-                sys_itemCost = theSection.sys_SecPrice
-            };
-            _context.tbl_InvoiceItems.Add(invoiceItem);
-            await _context.SaveChangesAsync();
-
-
-            //Link grave reservation to invoice via the linker table
-
-            var linker = new tbl_GraveReservationInvoices
-            {
-                sys_reservationId = reservation.sys_reservationId,
-                sys_invoiceId = invoice.sys_invoiceId
-            };
-            _context.tbl_GraveReservationInvoices.Add(linker);
-            await _context.SaveChangesAsync();
-
-            // Update Grave status
-            grave.sys_graveSaleStatus = "Reserved";
-            
-            _context.tbl_Graves.Update(grave);
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Reservation Created Successfully";
-
-            return RedirectToPage(new { id = graveId });
-        }
 
         // Supplier Payment
         public async Task<IActionResult> OnPostAddSupplierPaymentAsync(int jobId, int supplierId, double amountDue, double amountPaid, double balanceDue, int paymentMethodId, string notes)
@@ -938,31 +801,6 @@ namespace ZororoMemorialPark.Pages.Graves
             return RedirectToPage(new { id = allocation.sys_graveId });
         }
         */
-
-        // Record Reservation Payment
-        public async Task<IActionResult> OnPostRecordReservationPaymentAsync(int reservationId, double amountPaid, int paymentMethodId, string notes)
-        {
-            var reservation = await _context.tbl_GraveReservations.FindAsync(reservationId);
-            if (reservation == null) return BadRequest();
-
-            var invoice = await _context.tbl_Invoices.FirstOrDefaultAsync(i => i.sys_customerId == reservation.sys_customerId);
-            if (invoice == null) return BadRequest();
-
-            var payment = new tbl_IncomePayments
-            {
-                sys_invoiceId = invoice.sys_invoiceId,
-                sys_date = DateOnly.FromDateTime(DateTime.Now),
-                sys_amount = amountPaid,
-                sys_paymentMethod = _context.tbl_PaymentMethods.FirstOrDefault(pm => pm.sys_paymentMethodId == paymentMethodId)?.sys_paymentMethodName,
-                sys_notes = notes ?? "n/a"
-            };
-            _context.tbl_IncomePayments.Add(payment);
-            await _context.SaveChangesAsync();
-            return RedirectToPage(new { id = id });
-        }
-
-
-
 
         ///////////////////////////////////////////////////////////
         //Job details Methods/////

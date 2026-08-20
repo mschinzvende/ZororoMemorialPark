@@ -151,6 +151,15 @@
                                         </li>
                                     }
 
+                                    @if (isManager || isOps || isFinance)
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" href="/Reservations/Index">
+                                                <i class="bi bi-bookmark-check"></i> Reservations
+                                            </a>
+                                        </li>
+                                    }
+
                                     @if (isManager || isOps || isFinance || isAgent)
                                     {
                                         <li>

@@ -1,0 +1,128 @@
+@page "{id:int}"
+@model ZororoMemorialPark.Pages.Reservations.DetailsModel
+@{
+    ViewData["Title"] = "Reservation";
+    var reference = string.IsNullOrWhiteSpace(Model.Reservation.sys_reservationReference)
+        ? $"RES-{Model.Reservation.sys_reservationId}"
+        : Model.Reservation.sys_reservationReference;
+}
+
+<div class="container-fluid py-4 mb-4">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">@TempData["SuccessMessage"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">@TempData["ErrorMessage"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <a asp-page="Index" class="text-decoration-none small"><i class="bi bi-arrow-left"></i> Reservations</a>
+            <h4 class="mb-0 mt-1">@reference</h4>
+        </div>
+        <a class="btn btn-outline-primary" asp-page="/Finance/InvoicesList" asp-route-SearchTerm="@Model.Customer.sys_paymentMadeBy"><i class="bi bi-receipt me-1"></i> View invoices</a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header" style="background-color: var(--primary-green); color: var(--primary-white);"><h6 class="mb-0">Reservation overview</h6></div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h6 class="border-bottom pb-2">Customer contact</h6>
+                            <dl class="row mb-0">
+                                <dt class="col-sm-5">Name</dt><dd class="col-sm-7">@Model.Customer.sys_paymentMadeBy</dd>
+                                <dt class="col-sm-5">Phone</dt><dd class="col-sm-7">@Model.Customer.sys_customerPhone</dd>
+                                <dt class="col-sm-5">Email</dt><dd class="col-sm-7">@(Model.Customer.sys_customerEmail ?? "Not recorded")</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="border-bottom pb-2">Terms</h6>
+                            <dl class="row mb-0">
+                                <dt class="col-sm-6">Selected section</dt><dd class="col-sm-6">@(Model.PreferredSection?.sys_sectionName ?? "Not recorded")</dd>
+                                <dt class="col-sm-6">Agreed price</dt><dd class="col-sm-6">$@Model.Reservation.sys_agreedPrice.ToString("N2")</dd>
+                                <dt class="col-sm-6">Next installment</dt><dd class="col-sm-6">@(Model.Reservation.sys_nextInstallmentDueDate?.ToString("dd MMM yyyy") ?? "Not scheduled")</dd>
+                                <dt class="col-sm-6">Expiry</dt><dd class="col-sm-6">@(Model.Reservation.sys_expiryDate?.ToString("dd MMM yyyy") ?? "Not set")</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Reservation invoices and payments</h6>
+                    <span class="badge @(Model.PaymentStatus == "Fully paid" ? "bg-success" : Model.PaymentStatus == "Partially paid" ? "bg-warning text-dark" : "bg-primary")">@Model.PaymentStatus</span>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center border-bottom pb-3 mb-3">
+                        <div class="col-4"><small class="d-block text-muted">Total</small><strong>$@Model.Total.ToString("N2")</strong></div>
+                        <div class="col-4"><small class="d-block text-muted">Paid</small><strong class="text-success">$@Model.Paid.ToString("N2")</strong></div>
+                        <div class="col-4"><small class="d-block text-muted">Balance</small><strong class="text-warning">$@Model.Balance.ToString("N2")</strong></div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped align-middle">
+                            <thead><tr><th>Invoice</th><th>Issued</th><th>Due</th><th class="text-end">Total</th><th class="text-end">Paid</th><th class="text-end">Balance</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var invoice in Model.Invoices)
+                                {
+                                    <tr>
+                                        <td>#@invoice.InvoiceId</td><td>@invoice.InvoiceDate.ToString("dd MMM yyyy")</td><td>@invoice.DueDate.ToString("dd MMM yyyy")</td>
+                                        <td class="text-end">$@invoice.Total.ToString("N2")</td><td class="text-end">$@invoice.Paid.ToString("N2")</td><td class="text-end">$@invoice.Balance.ToString("N2")</td>
+                                        <td class="text-end"><a asp-page="/Finance/InvoiceDetail" asp-route-id="@invoice.InvoiceId" class="btn btn-sm btn-outline-primary">Open</a></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (Model.Payments.Any())
+                    {
+                        <h6 class="mt-4 mb-2">Payment history</h6>
+                        <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Date</th><th>Invoice</th><th>Method</th><th>Receipt</th><th class="text-end">Amount</th></tr></thead><tbody>
+                            @foreach (var payment in Model.Payments) { <tr><td>@payment.sys_date.ToString("dd MMM yyyy")</td><td>#@payment.sys_invoiceId</td><td>@payment.sys_paymentMethod</td><td>@payment.sys_receiptNumber</td><td class="text-end">$@payment.sys_amount.ToString("N2")</td></tr> }
+                        </tbody></table></div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><h6 class="mb-0">Grave assignment</h6></div>
+                <div class="card-body">
+                    @if (Model.LinkedGrave != null)
+                    {
+                        <div class="alert alert-success mb-3"><i class="bi bi-check-circle me-1"></i> Grave <strong>@Model.LinkedGrave.sys_plotNumber</strong> is reserved.</div>
+                        <dl class="row mb-0"><dt class="col-5">Section</dt><dd class="col-7">@Model.LinkedGraveSection?.sys_sectionName</dd><dt class="col-5">Plot</dt><dd class="col-7">@Model.LinkedGrave.sys_plotNumber</dd></dl>
+                        <a class="btn btn-outline-primary btn-sm mt-3" asp-page="/Graves/GraveDetails" asp-route-id="@Model.LinkedGrave.sys_graveId">Open grave</a>
+                    }
+                    else if (!Model.CanManageGraveLink)
+                    {
+                        <p class="text-muted mb-0">No physical grave has been assigned. A manager or operations officer can link one when it is available.</p>
+                    }
+                    else if (!Model.AvailableGraves.Any())
+                    {
+                        <p class="text-muted mb-0">No unsold graves are currently available in the selected section.</p>
+                    }
+                    else
+                    {
+                        <p class="small text-muted">Only unsold graves in @Model.PreferredSection?.sys_sectionName are shown.</p>
+                        <form method="post" asp-page-handler="LinkGrave">
+                            <input type="hidden" name="reservationId" value="@Model.Reservation.sys_reservationId" />
+                            <label class="form-label fw-semibold">Available grave</label>
+                            <select class="form-select mb-3" name="graveId" required><option value="">Select plot</option>@foreach (var grave in Model.AvailableGraves) { <option value="@grave.sys_graveId">@grave.sys_plotNumber</option> }</select>
+                            <button class="btn btn-primary w-100"><i class="bi bi-link-45deg me-1"></i> Link grave</button>
+                        </form>
+                    }
+                </div>
+            </div>
+            <div class="card shadow-sm"><div class="card-header"><h6 class="mb-0">Beneficiaries</h6></div><div class="card-body">
+                @if (Model.Beneficiaries.Any()) { <ul class="list-group list-group-flush">@foreach (var beneficiary in Model.Beneficiaries) { <li class="list-group-item px-0"><strong>@beneficiary.sys_benefitFullName</strong><br /><small class="text-muted">@beneficiary.sys_benefitRelationship · @beneficiary.sys_benefitDOB.ToString("dd MMM yyyy")</small></li> }</ul> }
+                else { <p class="text-muted mb-0">No beneficiaries recorded.</p> }
+            </div></div>
+        </div>
+    </div>
+</div>

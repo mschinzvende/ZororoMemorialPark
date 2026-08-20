@@ -45,12 +45,6 @@
                             <a class="nav-link active" id="details-tab" data-bs-toggle="tab" href="#details" role="tab">Details</a>
                         </li>
                     }
-                    @if (isManager || isOps || isFinance)
-                    {
-                        <li class="nav-item">
-                            <a class="nav-link" id="reservation-tab" data-bs-toggle="tab" href="#reservation" role="tab">Reservations</a>
-                        </li>
-                    }
                     @if (isManager || isOps)
                     {
                         <li class="nav-item">
@@ -102,34 +96,23 @@
                                         <dt class="col-sm-4">Location</dt>
                                         <dd class="col-sm-8">(@Model.Grave.sys_latitude, @Model.Grave.sys_longitude)</dd>
 
-                                        @if(Model.Grave.sys_graveSaleStatus=="Reserved"){
-                                            <div class="alert alert-info">RESERVED BY @Model.Customer.sys_paymentMadeBy</div>
-                                        }
-                                        else{
-                                            if(Model.Reservation!=null){
-                                                <div class="alert alert-info">WAS RESERVED BY @Model.Customer.sys_paymentMadeBy</div>
-
-                                            }
-                                            else{
-
-                                            
+                                        @if (Model.Grave.sys_graveSaleStatus != "Reserved")
+                                        {
                                             <dt class="col-sm-4">Price</dt>
                                             <dd class="col-sm-8">$@Model.Section.sys_SecPrice</dd>
 
-
-                                            <dt class="col-sm-4">Total Paid</dt> 
+                                            <dt class="col-sm-4">Total Paid</dt>
                                             <dd class="col-sm-8">$@Model.TotalPaidAllocation</dd>
 
-                                            <dt class="col-sm-4">Balance</dt> 
+                                            <dt class="col-sm-4">Balance</dt>
                                             <dd class="col-sm-8">$@Model.AllocationBalance</dd>
 
                                             <dt class="col-sm-4">Payment Status: </dt>
                                             <dd class="col-sm-8">
                                                 <span class="badge @(Model.AllocationPaymentStatus == "Fully Paid" ? "bg-success" : Model.AllocationPaymentStatus == "Partially Paid" ? "bg-warning text-dark" : "bg-danger")">
                                                     @Model.AllocationPaymentStatus
-                                                </span> </dd>
-                                                }
-
+                                                </span>
+                                            </dd>
                                         }
                                     </dl>
                                 </div>
@@ -252,11 +235,9 @@
                     
                         <div class="row mb-3">
                             <div class="col-md-12">
-                                @if (Model.Reservation == null)
-                                {
-                                    <!-- Allocation Payments Section -->
+                                <!-- Allocation Payments Section -->
 
-                                    <div class="card p-3 mb-3 shadow-sm">
+                                <div class="card p-3 mb-3 shadow-sm">
 
                                         <h6 class="mb-3 border-bottom pb-2">Payments Made</h6>
 
@@ -294,157 +275,11 @@
                                             <div class="alert alert-info">No payments found.</div>
                                         }
 
-                                    </div>
-                                }
+                                </div>
                             </div>
                         </div>
 
                     </div>
-
-                    <!-- Reservation Tab -->
-                    <div class="tab-pane fade" id="reservation" role="tabpanel">
-                        <div class="row mb-3">
-                            <!-- Grave Information -->
-                            <div class="col-md-6">
-                                <div class="card p-3 mb-3 shadow-sm">
-                                    <h6 class="mb-3 border-bottom pb-2">Reservation Details</h6>
-                                            @if (Model.Reservation != null)
-                                            {
-                            
-                                                    <dl class="row">
-                                                        <dt class="col-sm-4">Reserved By</dt>
-                                                        <dd class="col-sm-8">@Model.Customer.sys_paymentMadeBy</dd>
-
-                                                        <dt class="col-sm-4">Price</dt>
-                                                        <dd class="col-sm-8">$@Model.Section.sys_SecPrice</dd>
-
-
-                                                        <dt class="col-sm-4">Total Paid</dt>
-                                                        <dd class="col-sm-8">$@Model.TotalPaidReservation</dd>
-
-                                                        <dt class="col-sm-4">Balance</dt>
-                                                        <dd class="col-sm-8">$@Model.ReservationBalance</dd>
-
-                                                        <dt class="col-sm-4">Payment Status: </dt>
-                                                        <dd class="col-sm-8">
-                                                            <span class="badge @(Model.ReservationPaymentStatus == "Fully Paid" ? "bg-success" : Model.ReservationPaymentStatus == "Partially Paid" ? "bg-warning text-dark" : "bg-danger")">
-                                                                @Model.ReservationPaymentStatus
-                                                            </span>
-                                                        </dd>
-                                                            @if (Model.Beneficiaries?.Any() == true)
-                                                                {
-                                                                    
-                                        
-                                                                    @foreach (var b in Model.Beneficiaries)
-                                                                    {
-                                                
-                                                                            <dt class="col-sm-4">Beneficiary Full Name</dt>
-                                                                            <dd class="col-sm-8">@b.sys_benefitFullName</dd>
-                                                                            <dt class="col-sm-4">Beneficiary DOB</dt>
-                                                                            <dd class="col-sm-8">@b.sys_benefitDOB</dd>
-                                                                            <dt class="col-sm-4">Relationship</dt>
-                                                                            <dd class="col-sm-8">@b.sys_benefitRelationship</dd>
-                                                    
-                                                                    }
-                                        
-                                                            }
-                                                    </dl>
-
-                                    
-
-                                                    @if (Model.ReservationPaymentStatus == "Partially Paid" || Model.ReservationPaymentStatus == "Unpaid")
-                                                    {
-                                                            <button class="btn btn-sm btn-success mt-2"
-                                                                    data-bs-toggle="modal"
-                                                                    data-bs-target="#reservationPaymentModal"
-                                                                    data-reservationid="@Model.Reservation.sys_reservationId">
-                                                                💳 Capture Payment
-                                                            </button>
-                                                    }
-                                            }
-                                    
-                                            else
-                                            {
-                                                <div class="alert alert-info">No reservation found.</div>
-                                                @if(Model.Grave.sys_graveSaleStatus !="Occupied"){
-                                            <button class="btn btn-sm btn-primary"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#reservationModal">
-                                                ➕ Reserve Grave
-                                            </button>
-                                                }
-                                               
-                                            }
-                                            
-                                </div>
-
-                             </div>
-
-                            <!-- Payments Section -->
-                            <div class="col-md-6">
-                                <div class="card p-3 mb-3 shadow-sm">
-                                    <h6 class="mb-3 border-bottom pb-2">Reservation Payments</h6>
-
-
-                                    @if (Model.ReservationPayments?.Any() == true)
-                                    {
-                                        <div class="table-responsive">
-                                            <table class="table table-sm table-striped align-middle">
-                                                <thead class="table-dark">
-                                                    <tr>
-                                                        <th>Date</th>
-                                                        <th>Invoice No</th>
-                                                        <th>Amount</th>
-                                                        <th>Method</th>
-                                                        <th>Notes</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach (var p in Model.ReservationPayments)
-                                                    {
-                                                        <tr>
-                                                            <td>@p.sys_date.ToString("dd MMM yyyy")</td>
-                                                            <td>@p.InvoiceNumber</td>
-                                                            <td>@p.sys_amount.ToString("C")</td>
-                                                            <td>@p.sys_paymentMethod</td>
-                                                            <td>@p.sys_notes</td>
-                                                        </tr>
-                                                    }
-                                                </tbody>
-                                                <tfoot class="table-light">
-                                                    <tr>
-                                                        <th colspan="2" class="text-end">Total Due</th>
-                                                        <th>$@Model.Section.sys_SecPrice</th>
-                                                        <th colspan="2"></th>
-                                                    </tr>
-                                                    <tr>
-                                                        <th colspan="2" class="text-end">Total Paid:</th>
-                                                        <th>$@Model.TotalPaidReservation</th>
-                                                        <th colspan="2"></th>
-                                                    </tr>
-                                                    <tr>
-                                                        <th colspan="2" class="text-end">Balance:</th>
-                                                        <th>
-                                                            @Model.ReservationBalance.ToString("C")
-                                                        </th>
-                                                        <th colspan="2"></th>
-                                                    </tr>
-                                                </tfoot>
-                                            </table>
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <div class="alert alert-info mb-0">
-                                            No payments recorded for this reservation.
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                           
-                        </div>
-                    </div>
-
 
                     <!-- Jobs Tab -->
                     <div class="tab-pane fade" id="jobs" role="tabpanel">
@@ -759,103 +594,6 @@
                     <button type="submit" class="btn btn-primary">Save Payment</button>
                 </div>
             </form>
-        </div>
-    </div>
-</div>
-
-
-<!-- Reserve Modal -->
-<div class="modal fade" id="reservationModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <form method="post" asp-page-handler="CreateReservation">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Reserve Grave</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" name="graveId" value="@Model.Grave.sys_graveId" />
-
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Customer Name <span class="text-danger">*</span></label>
-                            <input type="text" name="customerName" class="form-control" required />
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label">Beneficiary Full Name <span class="text-danger">*</span></label>
-                            <input type="text" name="beneficiaryFullName" class="form-control" required />
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label">Beneficiary DOB</label>
-                            <input type="date" name="beneficiaryDOB" class="form-control" required />
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label">Relationship</label>
-                            <input type="text" name="beneficiaryRelationship" class="form-control" required />
-                        </div>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Reserve</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Record Reservation Payment Modal -->
-<div class="modal fade" id="reservationPaymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-
-            @if(Model.Reservation != null){
-
-            
-            <form method="post" asp-page-handler="RecordReservationPayment">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title" id="paymentModalLabel">Record Reservation Payment</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-
-                        <input type="hidden" name="reservationId" value="@Model.Reservation.sys_reservationId" />
-
-                        <div class="mb-3">
-
-                        <label class="form-label">Current Balance Due</label>
-                        <input type="number" step="0.01" name="balanceDue" class="form-control" value="@Model.ReservationBalance" readonly />
-                    </div>
-
-                    <div class="mb-3">
-
-                        <label class="form-label">Amount Paid</label>
-                        <input type="number" step="0.01" name="amountPaid" min="0" max="@Model.ReservationBalance" class="form-control" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Payment Method</label>
-                        <select name="paymentMethodId" class="form-select">
-                            @foreach (var method in Model.PaymentMethods)
-                            {
-                                <option value="@method.sys_paymentMethodId">@method.sys_paymentMethodName</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Notes</label>
-                        <textarea name="notes" class="form-control"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">Save Payment</button>
-                </div>
-            </form>
-            }
         </div>
     </div>
 </div>

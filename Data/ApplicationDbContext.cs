@@ -55,6 +55,16 @@ namespace ZororoMemorialPark.Data
             modelBuilder.Entity<tbl_BookingNotificationRecipient>()
                 .HasIndex(x => x.UserId)
                 .IsUnique();
+
+            modelBuilder.Entity<tbl_GraveReservations>()
+                .HasIndex(x => x.sys_reservationReference)
+                .IsUnique();
+
+            modelBuilder.Entity<tbl_GraveReservations>()
+                .HasIndex(x => x.sys_graveId);
+
+            modelBuilder.Entity<tbl_GraveReservations>()
+                .HasIndex(x => x.sys_preferredSectionId);
         }
 
         // Define DbSets for your entities here

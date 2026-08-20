@@ -71,7 +71,8 @@ namespace ZororoMemorialPark.Pages.Reports
     .ToListAsync();
 
             var reservedSet = await _context.tbl_GraveReservations
-                .Select(r => r.sys_graveId)
+                .Where(r => r.sys_graveId.HasValue)
+                .Select(r => r.sys_graveId!.Value)
                 .ToListAsync();
 
 
