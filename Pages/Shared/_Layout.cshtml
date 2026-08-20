@@ -97,7 +97,7 @@
 
 </head>
 
-<body>
+<body class="d-flex flex-column min-vh-100">
 
     <header>
         <nav class="navbar navbar-expand-lg navbar-dark">
@@ -402,17 +402,11 @@
             </div>
         </nav>
     </header>
-    <div class="container-fluid py-4 mb-4">
-    
-        
+    <main class="container-fluid flex-grow-1 py-4">
         @RenderBody()
+    </main>
 
-    
-    </div>
-
-
-
-    <footer class="footer text-center mt-5 mb-3">
+    <footer class="footer text-center mt-auto">
         © @DateTime.Now.Year @companyName — @settings?.Phone | @settings?.Email
     </footer>
 

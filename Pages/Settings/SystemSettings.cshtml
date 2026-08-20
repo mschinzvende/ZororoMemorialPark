@@ -35,7 +35,7 @@
     }
 
     <form id="systemSettingsForm" method="post" enctype="multipart/form-data">
-        <div class="row g-4 align-items-start">
+        <div class="row g-4">
             <aside class="col-xl-3">
                 <nav class="settings-navigation" aria-label="Settings sections">
                     <div class="settings-navigation-label">Configuration</div>
@@ -178,9 +178,9 @@
                             <label class="form-label" asp-for="Settings.waAccessToken">WhatsApp access token</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-key"></i></span>
-                                <input type="password" class="form-control" asp-for="Settings.waAccessToken" required autocomplete="new-password" />
+                                <input type="password" class="form-control" asp-for="Settings.waAccessToken" autocomplete="new-password" />
                             </div>
-                            <div class="form-text">This token is used only by the server when sending WhatsApp messages.</div>
+                            <div class="form-text">Leave blank to retain the existing token. This token is used only by the server when sending WhatsApp messages.</div>
                         </div>
                     </div>
 

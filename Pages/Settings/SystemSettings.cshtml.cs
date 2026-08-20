@@ -60,6 +60,10 @@ namespace ZororoMemorialPark.Pages.Settings
                 await _context.SaveChangesAsync();
             }
 
+            // Credentials are write-only on this page. They are never rendered back to the browser.
+            Settings.SmtpPassword = string.Empty;
+            Settings.waAccessToken = string.Empty;
+
             await LoadBookingNotificationUsersAsync();
 
             return Page();
@@ -82,13 +86,16 @@ namespace ZororoMemorialPark.Pages.Settings
             settingsInDb.SenderName = Settings.SenderName;
             settingsInDb.SenderEmail = Settings.SenderEmail;
             settingsInDb.SmtpUsername = Settings.SmtpUsername;
-            if(Settings.SmtpPassword != null)
+            if (!string.IsNullOrWhiteSpace(Settings.SmtpPassword))
             {
                 settingsInDb.SmtpPassword = Settings.SmtpPassword;
             }
             
             settingsInDb.UseSSL = Settings.UseSSL;
-            settingsInDb.waAccessToken = Settings.waAccessToken;
+            if (!string.IsNullOrWhiteSpace(Settings.waAccessToken))
+            {
+                settingsInDb.waAccessToken = Settings.waAccessToken;
+            }
             settingsInDb.waApiUrl = Settings.waApiUrl;
             settingsInDb.systemUrl = Settings.systemUrl;
 
