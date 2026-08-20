@@ -34,6 +34,26 @@ public class IndexModel : PageModel
     [BindProperty]
     public CreateReservationInput Input { get; set; } = new();
 
+    [BindProperty(SupportsGet = true)]
+    public string? SearchTerm { get; set; }
+
+    [BindProperty(SupportsGet = true)]
+    public string StatusFilter { get; set; } = "All";
+
+    [BindProperty(SupportsGet = true)]
+    public int? SectionFilter { get; set; }
+
+    [BindProperty(SupportsGet = true)]
+    public string GraveLinkFilter { get; set; } = "All";
+
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
+
+    public const int PageSize = 20;
+    public int TotalPages { get; set; } = 1;
+    public int TotalRecords { get; set; }
+    public bool ShowCreateModal { get; private set; }
+
     public List<tbl_Sections> Sections { get; set; } = new();
     public List<ReservationRow> Reservations { get; set; } = new();
 
@@ -46,6 +66,7 @@ public class IndexModel : PageModel
     {
         if (!ModelState.IsValid)
         {
+            ShowCreateModal = true;
             await LoadPageAsync();
             return Page();
         }
@@ -55,6 +76,7 @@ public class IndexModel : PageModel
 
         if (section == null)
         {
+            ShowCreateModal = true;
             ModelState.AddModelError("Input.SectionId", "Select a valid section.");
             await LoadPageAsync();
             return Page();
@@ -63,6 +85,7 @@ public class IndexModel : PageModel
         var phone = NormalisePhone(Input.CustomerPhone);
         if (phone.Length < 8)
         {
+            ShowCreateModal = true;
             ModelState.AddModelError("Input.CustomerPhone", "Enter a valid contact number, for example 263771234567.");
             await LoadPageAsync();
             return Page();
@@ -71,6 +94,7 @@ public class IndexModel : PageModel
         var today = DateOnly.FromDateTime(DateTime.Today);
         if (Input.NextInstallmentDueDate < today)
         {
+            ShowCreateModal = true;
             ModelState.AddModelError("Input.NextInstallmentDueDate", "The next installment date cannot be in the past.");
             await LoadPageAsync();
             return Page();
@@ -78,6 +102,7 @@ public class IndexModel : PageModel
 
         if (Input.ExpiryDate.HasValue && Input.ExpiryDate < today)
         {
+            ShowCreateModal = true;
             ModelState.AddModelError("Input.ExpiryDate", "The reservation expiry date cannot be in the past.");
             await LoadPageAsync();
             return Page();
@@ -163,10 +188,58 @@ public class IndexModel : PageModel
             Input.NextInstallmentDueDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7));
         }
 
-        var reservations = await _context.tbl_GraveReservations
-            .AsNoTracking()
+        var reservationQuery = _context.tbl_GraveReservations.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            var term = SearchTerm.Trim();
+            var matchingCustomerIds = _context.tbl_Customers.AsNoTracking()
+                .Where(x => x.sys_paymentMadeBy.Contains(term) ||
+                            x.sys_customerPhone.Contains(term) ||
+                            (x.sys_customerEmail != null && x.sys_customerEmail.Contains(term)))
+                .Select(x => x.sys_customerId);
+            var matchingSectionIds = _context.tbl_Sections.AsNoTracking()
+                .Where(x => x.sys_sectionName.Contains(term))
+                .Select(x => x.sys_sectionId);
+            var matchingGraveIds = _context.tbl_Graves.AsNoTracking()
+                .Where(x => x.sys_plotNumber.Contains(term))
+                .Select(x => x.sys_graveId);
+
+            reservationQuery = reservationQuery.Where(x =>
+                x.sys_reservationReference.Contains(term) ||
+                matchingCustomerIds.Contains(x.sys_customerId) ||
+                (x.sys_preferredSectionId.HasValue && matchingSectionIds.Contains(x.sys_preferredSectionId.Value)) ||
+                (x.sys_graveId.HasValue && matchingGraveIds.Contains(x.sys_graveId.Value)));
+        }
+
+        if (!string.Equals(StatusFilter, "All", StringComparison.OrdinalIgnoreCase))
+        {
+            reservationQuery = reservationQuery.Where(x => x.sys_status == StatusFilter);
+        }
+
+        if (SectionFilter.HasValue)
+        {
+            reservationQuery = reservationQuery.Where(x => x.sys_preferredSectionId == SectionFilter.Value);
+        }
+
+        if (string.Equals(GraveLinkFilter, "Linked", StringComparison.OrdinalIgnoreCase))
+        {
+            reservationQuery = reservationQuery.Where(x => x.sys_graveId.HasValue);
+        }
+        else if (string.Equals(GraveLinkFilter, "Unlinked", StringComparison.OrdinalIgnoreCase))
+        {
+            reservationQuery = reservationQuery.Where(x => !x.sys_graveId.HasValue);
+        }
+
+        TotalRecords = await reservationQuery.CountAsync();
+        TotalPages = Math.Max(1, (int)Math.Ceiling(TotalRecords / (double)PageSize));
+        PageNumber = Math.Clamp(PageNumber, 1, TotalPages);
+
+        var reservations = await reservationQuery
             .OrderByDescending(x => x.sys_reservedOn)
             .ThenByDescending(x => x.sys_reservationId)
+            .Skip((PageNumber - 1) * PageSize)
+            .Take(PageSize)
             .ToListAsync();
 
         var customerIds = reservations.Select(x => x.sys_customerId).Distinct().ToList();

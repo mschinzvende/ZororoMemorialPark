@@ -109,7 +109,16 @@
                     {
                         <div class="alert alert-success mb-3"><i class="bi bi-check-circle me-1"></i> Grave <strong>@Model.LinkedGrave.sys_plotNumber</strong> is reserved.</div>
                         <dl class="row mb-0"><dt class="col-5">Section</dt><dd class="col-7">@Model.LinkedGraveSection?.sys_sectionName</dd><dt class="col-5">Plot</dt><dd class="col-7">@Model.LinkedGrave.sys_plotNumber</dd></dl>
-                        <a class="btn btn-outline-primary btn-sm mt-3" asp-page="/Graves/GraveDetails" asp-route-id="@Model.LinkedGrave.sys_graveId">Open grave</a>
+                        <div class="d-flex gap-2 mt-3">
+                            <a class="btn btn-outline-primary btn-sm" asp-page="/Graves/GraveDetails" asp-route-id="@Model.LinkedGrave.sys_graveId">Open grave</a>
+                            @if (Model.CanManageGraveLink)
+                            {
+                                <form method="post" asp-page-handler="UnlinkGrave" onsubmit="return confirm('Unlink this grave and make it available for sale again?');">
+                                    <input type="hidden" name="reservationId" value="@Model.Reservation.sys_reservationId" />
+                                    <button class="btn btn-outline-danger btn-sm"><i class="bi bi-link-45deg me-1"></i> Unlink grave</button>
+                                </form>
+                            }
+                        </div>
                     }
                     else if (!Model.CanManageGraveLink)
                     {

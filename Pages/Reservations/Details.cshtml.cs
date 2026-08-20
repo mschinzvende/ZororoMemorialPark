@@ -116,6 +116,55 @@ public class DetailsModel : PageModel
         return RedirectToPage(new { id = reservationId });
     }
 
+    public async Task<IActionResult> OnPostUnlinkGraveAsync(int reservationId)
+    {
+        if (!CanManageGraveLink)
+        {
+            return Forbid();
+        }
+
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        var reservation = await _context.tbl_GraveReservations
+            .FirstOrDefaultAsync(x => x.sys_reservationId == reservationId);
+
+        if (reservation?.sys_graveId is not int graveId)
+        {
+            TempData["ErrorMessage"] = "There is no grave linked to this reservation.";
+            return RedirectToPage(new { id = reservationId });
+        }
+
+        var grave = await _context.tbl_Graves.FirstOrDefaultAsync(x => x.sys_graveId == graveId);
+        if (grave == null)
+        {
+            TempData["ErrorMessage"] = "The linked grave could not be found.";
+            return RedirectToPage(new { id = reservationId });
+        }
+
+        var hasAllocation = await _context.tbl_GraveAllocations
+            .AnyAsync(x => x.sys_graveId == graveId);
+        if (hasAllocation)
+        {
+            TempData["ErrorMessage"] = "This grave cannot be unlinked because it has already been allocated.";
+            return RedirectToPage(new { id = reservationId });
+        }
+
+        var linkedElsewhere = await _context.tbl_GraveReservations
+            .AnyAsync(x => x.sys_graveId == graveId && x.sys_reservationId != reservationId);
+        if (linkedElsewhere)
+        {
+            TempData["ErrorMessage"] = "This grave is linked to another reservation and cannot be released.";
+            return RedirectToPage(new { id = reservationId });
+        }
+
+        reservation.sys_graveId = null;
+        grave.sys_graveSaleStatus = "Unsold";
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        TempData["SuccessMessage"] = $"Grave {grave.sys_plotNumber} was unlinked and is available for sale again.";
+        return RedirectToPage(new { id = reservationId });
+    }
+
     public async Task<IActionResult> OnPostCapturePaymentAsync(
         int reservationId,
         int invoiceId,
