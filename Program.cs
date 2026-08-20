@@ -8,6 +8,7 @@ using ZororoMemorialPark.Data.Models;
 using ZororoMemorialPark.Services.WhatsApp;
 using ZororoMemorialPark.Services.Bookings;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,6 +53,7 @@ builder.Services.AddTransient<StockMovementPdfService>();
 builder.Services.AddTransient<SupplierPaymentsPdfService>();
 
 builder.Services.AddScoped<SystemSettingsService>();
+builder.Services.AddSingleton<PersistentStaticFileStorage>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<WhatsAppNotificationService>();
 builder.Services.AddHostedService<BurialReminderService>();
@@ -93,6 +95,17 @@ else
 app.UseHttpsRedirection();
 var provider = new FileExtensionContentTypeProvider();
 provider.Mappings[".pdf"] = "application/pdf";
+
+var persistentStaticFiles = app.Services.GetRequiredService<PersistentStaticFileStorage>();
+foreach (var directory in new[] { "uploads", "receipts", "documents" })
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(persistentStaticFiles.GetDirectory(directory)),
+        RequestPath = $"/{directory}",
+        ContentTypeProvider = provider
+    });
+}
 
 app.UseStaticFiles(new StaticFileOptions
 {

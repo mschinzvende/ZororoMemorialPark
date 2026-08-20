@@ -25,13 +25,20 @@ namespace ZororoMemorialPark.Pages.Bookings
         private readonly IAppLogger _appLogger;
 
         private readonly WhatsAppNotificationService _whatsApp;
+        private readonly PersistentStaticFileStorage _fileStorage;
 
-        public DetailsModel(ApplicationDbContext db, UserManager<IdentityUser> userManager, IAppLogger appLogger, WhatsAppNotificationService whatsApp)
+        public DetailsModel(
+            ApplicationDbContext db,
+            UserManager<IdentityUser> userManager,
+            IAppLogger appLogger,
+            WhatsAppNotificationService whatsApp,
+            PersistentStaticFileStorage fileStorage)
         {
             _db = db;
             _userManager = userManager;
             _appLogger = appLogger;
             _whatsApp = whatsApp;
+            _fileStorage = fileStorage;
         }
 
 
@@ -217,8 +224,7 @@ namespace ZororoMemorialPark.Pages.Bookings
                 string burialOrderPath = null;
                 if (BurialOrder != null)
                 {
-                    var dir = Path.Combine("wwwroot", "uploads", "burial-orders");
-                    Directory.CreateDirectory(dir);
+                    var dir = _fileStorage.GetDirectory("uploads", "burial-orders");
                     var file = $"{Guid.NewGuid()}{Path.GetExtension(BurialOrder.FileName)}";
                     var full = Path.Combine(dir, file);
                     using var fs = new FileStream(full, FileMode.Create);
@@ -345,7 +351,7 @@ namespace ZororoMemorialPark.Pages.Bookings
             _db.tbl_InvoiceItems.Add(new tbl_InvoiceItems
             {
                 sys_invoiceId = Booking.sys_invoiceId.Value,
-                sys_itemName = $"Discount – {DiscountReason}",
+                sys_itemName = $"Discount â€“ {DiscountReason}",
                 sys_itemCost = -DiscountAmount
             });
 
@@ -798,7 +804,7 @@ namespace ZororoMemorialPark.Pages.Bookings
             _db.tbl_InvoiceItems.Add(new tbl_InvoiceItems
             {
                 sys_invoiceId = inv.sys_invoiceId,
-                sys_itemName = $"Burial Fee – {sec.sys_sectionName}",
+                sys_itemName = $"Burial Fee â€“ {sec.sys_sectionName}",
                 sys_itemCost = sec.sys_SecPrice
             });
 
@@ -1190,7 +1196,7 @@ namespace ZororoMemorialPark.Pages.Bookings
             // Optional logo path
             var logoPath = string.IsNullOrEmpty(settings.LogoPath)
                 ? null
-                : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", settings.LogoPath.TrimStart('/'));
+                : _fileStorage.GetExistingFilePathForPublicPath(settings.LogoPath);
 
             var pdfService = HttpContext.RequestServices.GetRequiredService<InvoicePdfService>();
 

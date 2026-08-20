@@ -202,6 +202,13 @@ PublishScripts/
 !**/[Pp]ackages/build/
 # Uncomment if necessary however generally it will be regenerated when needed
 #!**/[Pp]ackages/repositories.config
+
+# Runtime-generated public files. In Azure production these are stored under
+# %HOME%\data\zororo-static, outside the deployment package.
+/wwwroot/uploads/
+/wwwroot/receipts/
+/wwwroot/documents/
+
 # NuGet v3's project.json files produces more ignorable files
 *.nuget.props
 *.nuget.targets

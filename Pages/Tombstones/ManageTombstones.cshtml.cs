@@ -3,18 +3,19 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using ZororoMemorialPark.Data;
 using ZororoMemorialPark.Data.Models;
+using ZororoMemorialPark.Services;
 
 namespace ZororoMemorialPark.Pages.Tombstones
 {
     public class ManageTombstonesModel : PageModel
     {
         private readonly ApplicationDbContext _context;
-        private readonly IWebHostEnvironment _env;
+        private readonly PersistentStaticFileStorage _fileStorage;
 
-        public ManageTombstonesModel(ApplicationDbContext context, IWebHostEnvironment env)
+        public ManageTombstonesModel(ApplicationDbContext context, PersistentStaticFileStorage fileStorage)
         {
             _context = context;
-            _env = env;
+            _fileStorage = fileStorage;
         }
 
         public IList<tbl_Tombstones> Tombstones { get; set; } = new List<tbl_Tombstones>();
@@ -37,8 +38,7 @@ namespace ZororoMemorialPark.Pages.Tombstones
             // handle image upload
             if (ImageFile != null && ImageFile.Length > 0)
             {
-                string uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "tombstones");
-                Directory.CreateDirectory(uploadsFolder);
+                string uploadsFolder = _fileStorage.GetDirectory("uploads", "tombstones");
 
                 string fileName = $"{Guid.NewGuid()}{Path.GetExtension(ImageFile.FileName)}";
                 string filePath = Path.Combine(uploadsFolder, fileName);
@@ -72,8 +72,7 @@ namespace ZororoMemorialPark.Pages.Tombstones
 
             if (ImageFile != null && ImageFile.Length > 0)
             {
-                string uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "tombstones");
-                Directory.CreateDirectory(uploadsFolder);
+                string uploadsFolder = _fileStorage.GetDirectory("uploads", "tombstones");
 
                 string fileName = $"{Guid.NewGuid()}{Path.GetExtension(ImageFile.FileName)}";
                 string filePath = Path.Combine(uploadsFolder, fileName);
@@ -86,8 +85,8 @@ namespace ZororoMemorialPark.Pages.Tombstones
                 // delete old image
                 if (!string.IsNullOrEmpty(existing.sys_imagePath))
                 {
-                    var oldPath = Path.Combine(_env.WebRootPath, existing.sys_imagePath.TrimStart('/'));
-                    if (System.IO.File.Exists(oldPath))
+                    var oldPath = _fileStorage.GetPersistentFilePathForPublicPath(existing.sys_imagePath);
+                    if (!string.IsNullOrEmpty(oldPath) && System.IO.File.Exists(oldPath))
                         System.IO.File.Delete(oldPath);
                 }
 
@@ -106,8 +105,8 @@ namespace ZororoMemorialPark.Pages.Tombstones
 
             if (!string.IsNullOrEmpty(existing.sys_imagePath))
             {
-                var oldPath = Path.Combine(_env.WebRootPath, existing.sys_imagePath.TrimStart('/'));
-                if (System.IO.File.Exists(oldPath))
+                var oldPath = _fileStorage.GetPersistentFilePathForPublicPath(existing.sys_imagePath);
+                if (!string.IsNullOrEmpty(oldPath) && System.IO.File.Exists(oldPath))
                     System.IO.File.Delete(oldPath);
             }
 

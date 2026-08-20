@@ -23,13 +23,13 @@ namespace ZororoMemorialPark.Pages.Burials
         private readonly UserManager<IdentityUser> _userManager;
         private readonly BurialSchedulePdfService _pdfService;
         private readonly WhatsAppNotificationService _whatsApp;
-        private readonly IWebHostEnvironment _env;
+        private readonly PersistentStaticFileStorage _fileStorage;
 
         public BurialScheduleModel(
             ApplicationDbContext context,
             NotificationService notificationService,
             SystemSettingsService settingsService, IAppLogger appLogger, UserManager<IdentityUser> userManager,
-            BurialSchedulePdfService pdfService, WhatsAppNotificationService whatsApp, IWebHostEnvironment env)
+            BurialSchedulePdfService pdfService, WhatsAppNotificationService whatsApp, PersistentStaticFileStorage fileStorage)
         {
             _context = context;
             _notificationService = notificationService;
@@ -38,7 +38,7 @@ namespace ZororoMemorialPark.Pages.Burials
             _userManager = userManager;
             _pdfService = pdfService;
             _whatsApp = whatsApp;
-            _env = env;
+            _fileStorage = fileStorage;
         }
 
         // Filter
@@ -196,13 +196,13 @@ namespace ZororoMemorialPark.Pages.Burials
 
                 var settings = await _settingsService.GetSettingsAsync();
 
-                var logoPath = Path.Combine(_env.ContentRootPath, "wwwroot", settings.LogoPath);
+                var logoPath = _fileStorage.GetExistingFilePathForPublicPath(settings.LogoPath);
 
                 var pdfBytes = _pdfService.GenerateSchedulePdf(AllBurials, settings, logoPath);
 
                 var fileName = $"BurialSchedule_{DateTime.Now:yyyyMMddHHmm}.pdf";
                 var relativePath = $"/documents/{fileName}";
-                var fullPath = Path.Combine(_env.WebRootPath, "documents", fileName);
+                var fullPath = Path.Combine(_fileStorage.GetDirectory("documents"), fileName);
 
                 await System.IO.File.WriteAllBytesAsync(fullPath, pdfBytes);
 
@@ -234,7 +234,7 @@ namespace ZororoMemorialPark.Pages.Burials
 
                 var settings = await _settingsService.GetSettingsAsync();
 
-                var logoPath = Path.Combine(_env.ContentRootPath, "wwwroot", settings.LogoPath);
+                var logoPath = _fileStorage.GetExistingFilePathForPublicPath(settings.LogoPath);
 
                 var pdfBytes = _pdfService.GenerateSchedulePdf(AllBurials, settings, logoPath);
 

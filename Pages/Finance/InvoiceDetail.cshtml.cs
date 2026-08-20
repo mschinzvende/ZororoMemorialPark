@@ -18,18 +18,18 @@ namespace ZororoMemorialPark.Pages.Finance
         private readonly ApplicationDbContext _context;
        private readonly InvoicePdfService _pdfService;
         private readonly SystemSettingsService _settingsService;
-        private readonly IWebHostEnvironment _env;
+        private readonly PersistentStaticFileStorage _fileStorage;
 
         private readonly WhatsAppNotificationService _whatsApp;
         public List<tbl_PaymentMethods> PaymentMethods { get; set; }
         public InvoiceDetailModel(ApplicationDbContext context, InvoicePdfService pdfService, 
-            WhatsAppNotificationService whatsApp, SystemSettingsService settingsService, IWebHostEnvironment env)
+            WhatsAppNotificationService whatsApp, SystemSettingsService settingsService, PersistentStaticFileStorage fileStorage)
         {
             _context = context;
             _pdfService = pdfService;
             _whatsApp = whatsApp;
             _settingsService = settingsService;
-            _env = env;
+            _fileStorage = fileStorage;
         }
 
         public tbl_Invoices Invoice { get; set; }
@@ -89,7 +89,7 @@ namespace ZororoMemorialPark.Pages.Finance
 
             var settings = await _settingsService.GetSettingsAsync();
 
-            var logoPath = Path.Combine(_env.ContentRootPath, "wwwroot", settings.LogoPath.TrimStart('/'));
+            var logoPath = _fileStorage.GetExistingFilePathForPublicPath(settings.LogoPath);
 
             var pdfBytes = _pdfService.GenerateInvoicePdf(
                 invoice,
@@ -103,7 +103,7 @@ namespace ZororoMemorialPark.Pages.Finance
                 payments);
 
             var fileName = $"invoice_{id}.pdf";
-            var path = Path.Combine("wwwroot/documents", fileName);
+            var path = Path.Combine(_fileStorage.GetDirectory("documents"), fileName);
 
             await System.IO.File.WriteAllBytesAsync(path, pdfBytes);
 
@@ -140,14 +140,14 @@ namespace ZororoMemorialPark.Pages.Finance
                 .Select(c => c.sys_paymentMadeBy)
                 .FirstOrDefaultAsync() ?? "Customer";
 
-            // company placeholders — replace with actual from config/site settings
+            // company placeholders â€” replace with actual from config/site settings
             string companyName = "Zororo Memorial Park";
             string companyAddress = "40 Livingstone Avenue, Harare, Zimbabwe";
             string companyPhone = "+263 782 352 083";
             string companyEmail = "info@zororomemorial.co.zw";
             var settings = await _settingsService.GetSettingsAsync();
 
-            var logoPath = Path.Combine(_env.ContentRootPath, "wwwroot", settings.LogoPath.TrimStart('/'));
+            var logoPath = _fileStorage.GetExistingFilePathForPublicPath(settings.LogoPath);
 
 
             var pdfBytes = _pdfService.GenerateInvoicePdf(invoice,

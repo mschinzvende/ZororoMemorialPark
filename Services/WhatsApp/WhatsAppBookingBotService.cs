@@ -14,19 +14,22 @@ namespace ZororoMemorialPark.Services.WhatsApp
         private readonly WhatsAppOptions _opt;
         private readonly BurialBookingEngine _engine;
         private readonly WhatsAppNotificationService _notificationService;
+        private readonly PersistentStaticFileStorage _fileStorage;
 
         public WhatsAppBookingBotService(
             ApplicationDbContext db,
             WhatsAppClient wa,
             IOptions<WhatsAppOptions> opt,
             BurialBookingEngine engine,
-            WhatsAppNotificationService notificationService)
+            WhatsAppNotificationService notificationService,
+            PersistentStaticFileStorage fileStorage)
         {
             _db = db;
             _wa = wa;
             _opt = opt.Value;
             _engine = engine;
             _notificationService = notificationService;
+            _fileStorage = fileStorage;
         }
 
         public async Task ProcessIncomingAsync(WhatsAppWebhookModels.Message msg)
@@ -367,13 +370,7 @@ namespace ZororoMemorialPark.Services.WhatsApp
 
             var bytes = await _notificationService.DownloadMediaAsync(mediaId);
 
-            var folder =
-                Path.Combine(
-                    Directory.GetCurrentDirectory(),
-                    "wwwroot",
-                    "receipts");
-
-            Directory.CreateDirectory(folder);
+            var folder = _fileStorage.GetDirectory("receipts");
 
             var fileName =
                 $"{Guid.NewGuid()}.jpg";

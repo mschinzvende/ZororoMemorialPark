@@ -6,6 +6,7 @@ using System.Net.Mail;
 using System.Net;
 using ZororoMemorialPark.Data.Models;
 using Microsoft.EntityFrameworkCore;
+using ZororoMemorialPark.Services;
 
 namespace ZororoMemorialPark.Pages.Settings
 {
@@ -25,12 +26,12 @@ namespace ZororoMemorialPark.Pages.Settings
             };
 
         private readonly ApplicationDbContext _context;
-        private readonly IWebHostEnvironment _env;
+        private readonly PersistentStaticFileStorage _fileStorage;
 
-        public SystemSettingsModel(ApplicationDbContext context, IWebHostEnvironment env)
+        public SystemSettingsModel(ApplicationDbContext context, PersistentStaticFileStorage fileStorage)
         {
             _context = context;
-            _env = env;
+            _fileStorage = fileStorage;
         }
 
         [BindProperty]
@@ -109,9 +110,7 @@ namespace ZororoMemorialPark.Pages.Settings
             // Upload Logo
             if (LogoFile != null)
             {
-                string folder = Path.Combine(_env.WebRootPath, "uploads");
-                if (!Directory.Exists(folder))
-                    Directory.CreateDirectory(folder);
+                string folder = _fileStorage.GetDirectory("uploads");
 
                 string fileName = "company_logo" + Path.GetExtension(LogoFile.FileName);
                 string fullPath = Path.Combine(folder, fileName);

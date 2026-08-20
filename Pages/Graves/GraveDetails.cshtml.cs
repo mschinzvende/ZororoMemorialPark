@@ -22,14 +22,18 @@ namespace ZororoMemorialPark.Pages.Graves
 
         private readonly IAppLogger _appLogger;
 
-        private readonly IWebHostEnvironment _env;
+        private readonly PersistentStaticFileStorage _fileStorage;
 
-        public GraveDetailsModel(ApplicationDbContext context, UserManager<IdentityUser> userManager, IAppLogger appLogger, IWebHostEnvironment env)
+        public GraveDetailsModel(
+            ApplicationDbContext context,
+            UserManager<IdentityUser> userManager,
+            IAppLogger appLogger,
+            PersistentStaticFileStorage fileStorage)
         {
             _context = context;
             _userManager = userManager;
             _appLogger = appLogger;
-            _env = env;
+            _fileStorage = fileStorage;
         }
 
         [BindProperty(SupportsGet = true)]
@@ -565,9 +569,7 @@ namespace ZororoMemorialPark.Pages.Graves
                     if (burialOrder != null && burialOrder.Length != 0)
                     {
                         // Ensure uploads folder exists
-                        string uploadDir = Path.Combine(_env.WebRootPath, "uploads");
-                        if (!Directory.Exists(uploadDir))
-                            Directory.CreateDirectory(uploadDir);
+                        string uploadDir = _fileStorage.GetDirectory("uploads");
 
                         // Generate unique file name
                         fileName = $"{Guid.NewGuid()}{Path.GetExtension(burialOrder.FileName)}";
@@ -625,9 +627,7 @@ namespace ZororoMemorialPark.Pages.Graves
                     if (burialOrder != null && burialOrder.Length != 0)
                     {
                         // Ensure uploads folder exists
-                        string uploadDir = Path.Combine(_env.WebRootPath, "uploads");
-                        if (!Directory.Exists(uploadDir))
-                            Directory.CreateDirectory(uploadDir);
+                        string uploadDir = _fileStorage.GetDirectory("uploads");
 
                         // Generate unique file name
                          fileName= $"{Guid.NewGuid()}{Path.GetExtension(burialOrder.FileName)}";
