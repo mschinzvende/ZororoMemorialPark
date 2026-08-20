@@ -51,6 +51,10 @@ namespace ZororoMemorialPark.Data
 
             modelBuilder.Entity<tbl_CommissionPaymentAllocations>()
                 .HasIndex(x => x.sys_commissionPaymentId);
+
+            modelBuilder.Entity<tbl_BookingNotificationRecipient>()
+                .HasIndex(x => x.UserId)
+                .IsUnique();
         }
 
         // Define DbSets for your entities here
@@ -108,6 +112,7 @@ namespace ZororoMemorialPark.Data
         public DbSet<tbl_InventoryAuditTrail> tbl_InventoryAuditTrail { get; set; }
 
         public DbSet<SystemSettings> SystemSettings { get; set; }
+        public DbSet<tbl_BookingNotificationRecipient> tbl_BookingNotificationRecipients { get; set; }
         public DbSet<tbl_Requisition> tbl_Requisitions { get; set; }
         public DbSet<tbl_RequisitionLine> tbl_RequisitionLines { get; set; }
         public DbSet<tbl_RequisitionWorkflowDefinition> tbl_RequisitionWorkflowDefinitions { get; set; }

@@ -353,6 +353,27 @@ namespace ZororoMemorialPark.Migrations
                     b.ToTable("tbl_Agents");
                 });
 
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_BookingNotificationRecipient", b =>
+                {
+                    b.Property<int>("sys_bookingNotificationRecipientId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_bookingNotificationRecipientId"));
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("sys_bookingNotificationRecipientId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("tbl_BookingNotificationRecipients");
+                });
+
             modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Beneficiaries", b =>
                 {
                     b.Property<int>("sys_benefitId")

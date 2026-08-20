@@ -20,8 +20,8 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog(); // Replace default logger
 
-//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-var connectionString = Environment.GetEnvironmentVariable("DB_STRING_ZDBZ");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+//var connectionString = Environment.GetEnvironmentVariable("DB_STRING_ZDBZ");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
@@ -69,6 +69,7 @@ builder.Services.Configure<WhatsAppOptions>(
 builder.Services.AddHttpClient<WhatsAppClient>();
 
 builder.Services.AddScoped<BurialBookingEngine>();
+builder.Services.AddScoped<BookingNotificationService>();
 builder.Services.AddScoped<WhatsAppBookingBotService>();
 builder.Services.AddScoped<BurialSchedulePdfService>();
 

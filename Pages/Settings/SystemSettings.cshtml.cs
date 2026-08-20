@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using ZororoMemorialPark.Data;
@@ -8,8 +9,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ZororoMemorialPark.Pages.Settings
 {
+    [Authorize(Roles = "Manager")]
     public class SystemSettingsModel : PageModel
     {
+        private static readonly IReadOnlyDictionary<string, string> BookingNotificationRoleLabels =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Manager"] = "Manager (legacy Admin)",
+                ["Admin"] = "Manager (legacy Admin)",
+                ["FinanceOfficer"] = "Finance Officer (legacy Accountant)",
+                ["Accountant"] = "Finance Officer (legacy Accountant)",
+                ["OperationsOfficer"] = "Operations Officer (legacy Supervisor)",
+                ["Supervisor"] = "Operations Officer (legacy Supervisor)",
+                ["Agent"] = "Agent"
+            };
+
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _env;
 
@@ -24,6 +38,11 @@ namespace ZororoMemorialPark.Pages.Settings
 
         [BindProperty]
         public IFormFile LogoFile { get; set; }
+
+        [BindProperty]
+        public List<string> SelectedBookingNotificationUserIds { get; set; } = new();
+
+        public List<BookingNotificationRecipientOption> BookingNotificationUsers { get; set; } = new();
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -40,6 +59,8 @@ namespace ZororoMemorialPark.Pages.Settings
                 _context.SystemSettings.Add(Settings);
                 await _context.SaveChangesAsync();
             }
+
+            await LoadBookingNotificationUsersAsync();
 
             return Page();
         }
@@ -76,6 +97,8 @@ namespace ZororoMemorialPark.Pages.Settings
             settingsInDb.dayStartTime = Settings.dayStartTime;
             settingsInDb.dayEndTime = Settings.dayEndTime;
 
+            await SaveBookingNotificationRecipientsAsync();
+
             // Upload Logo
             if (LogoFile != null)
             {
@@ -99,6 +122,80 @@ namespace ZororoMemorialPark.Pages.Settings
             return RedirectToPage();
         }
 
+        private async Task LoadBookingNotificationUsersAsync()
+        {
+            var selectedUserIds = await _context.tbl_BookingNotificationRecipients
+                .AsNoTracking()
+                .Select(r => r.UserId)
+                .ToListAsync();
+
+            var userRoles = await (
+                from user in _context.Users
+                join userRole in _context.UserRoles on user.Id equals userRole.UserId
+                join role in _context.Roles on userRole.RoleId equals role.Id
+                where BookingNotificationRoleLabels.Keys.Contains(role.Name!)
+                select new
+                {
+                    user.Id,
+                    UserName = user.UserName ?? user.Email ?? "Unnamed user",
+                    user.PhoneNumber,
+                    RoleName = role.Name!
+                })
+                .ToListAsync();
+
+            var selected = selectedUserIds.ToHashSet(StringComparer.Ordinal);
+
+            BookingNotificationUsers = userRoles
+                .GroupBy(x => new { x.Id, x.UserName, x.PhoneNumber })
+                .Select(group => new BookingNotificationRecipientOption
+                {
+                    UserId = group.Key.Id,
+                    UserName = group.Key.UserName,
+                    PhoneNumber = group.Key.PhoneNumber,
+                    Roles = group
+                        .Select(x => BookingNotificationRoleLabels[x.RoleName])
+                        .Distinct()
+                        .OrderBy(x => x)
+                        .ToList(),
+                    IsSelected = selected.Contains(group.Key.Id)
+                })
+                .OrderBy(x => x.UserName)
+                .ToList();
+        }
+
+        private async Task SaveBookingNotificationRecipientsAsync()
+        {
+            await LoadBookingNotificationUsersAsync();
+
+            var eligibleUserIds = BookingNotificationUsers
+                .Select(x => x.UserId)
+                .ToHashSet(StringComparer.Ordinal);
+
+            var requestedUserIds = (SelectedBookingNotificationUserIds ?? new List<string>())
+                .Where(userId => eligibleUserIds.Contains(userId))
+                .Distinct(StringComparer.Ordinal)
+                .ToHashSet(StringComparer.Ordinal);
+
+            var existingRecipients = await _context.tbl_BookingNotificationRecipients
+                .ToListAsync();
+
+            var recipientsToRemove = existingRecipients
+                .Where(recipient => !requestedUserIds.Contains(recipient.UserId))
+                .ToList();
+
+            _context.tbl_BookingNotificationRecipients.RemoveRange(recipientsToRemove);
+
+            var existingUserIds = existingRecipients
+                .Select(recipient => recipient.UserId)
+                .ToHashSet(StringComparer.Ordinal);
+
+            foreach (var userId in requestedUserIds.Except(existingUserIds))
+            {
+                _context.tbl_BookingNotificationRecipients.Add(
+                    new tbl_BookingNotificationRecipient { UserId = userId });
+            }
+        }
+
         public async Task<IActionResult> OnPostTestEmailAsync()
         {
             var settings = await _context.SystemSettings.FirstOrDefaultAsync();
@@ -113,7 +210,7 @@ namespace ZororoMemorialPark.Pages.Settings
             {
                 using var smtp = new MailKit.Net.Smtp.SmtpClient();
 
-                // Better debugging – shows real errors from cPanel
+                // Better debugging â€“ shows real errors from cPanel
                 smtp.ServerCertificateValidationCallback = (s, c, h, e) => true;
 
                 if (settings.UseSSL)
@@ -151,5 +248,14 @@ namespace ZororoMemorialPark.Pages.Settings
             return RedirectToPage();
         }
 
+    }
+
+    public class BookingNotificationRecipientOption
+    {
+        public string UserId { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
+        public List<string> Roles { get; set; } = new();
+        public bool IsSelected { get; set; }
     }
 }

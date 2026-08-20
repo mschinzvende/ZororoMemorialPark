@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using ZororoMemorialPark.Data.Models;
 using ZororoMemorialPark.Data;
 using ZororoMemorialPark.Services.WhatsApp;
+using ZororoMemorialPark.Services.Bookings;
 using static System.Collections.Specialized.BitVector32;
 using Azure;
 
@@ -19,11 +20,16 @@ namespace ZororoMemorialPark.Pages.Bookings
     {
         private readonly ApplicationDbContext _db;
         private readonly WhatsAppNotificationService _whatsApp;
+        private readonly BookingNotificationService _bookingNotificationService;
 
-        public CreateModel(ApplicationDbContext db, WhatsAppNotificationService whatsApp)
+        public CreateModel(
+            ApplicationDbContext db,
+            WhatsAppNotificationService whatsApp,
+            BookingNotificationService bookingNotificationService)
         {
             _db = db;
             _whatsApp = whatsApp;
+            _bookingNotificationService = bookingNotificationService;
         }
 
         public List<tbl_Sections> Sections { get; set; } = new();
@@ -455,6 +461,11 @@ namespace ZororoMemorialPark.Pages.Bookings
                     TempData["Err"] = $"Notification Failed to Send: {response.ReasonPhrase}";
                 }
             }
+
+            await _bookingNotificationService.NotifyBookingCreatedAsync(
+                booking,
+                customer,
+                bookedSection);
 
             return RedirectToPage("Details", new { id = booking.sys_bookingId });
         }

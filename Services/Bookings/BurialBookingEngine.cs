@@ -12,11 +12,16 @@ namespace ZororoMemorialPark.Services.Bookings
     {
         private readonly ApplicationDbContext _db;
         private readonly WhatsAppNotificationService _notificationService;
+        private readonly BookingNotificationService _bookingNotificationService;
 
-        public BurialBookingEngine(ApplicationDbContext db, WhatsAppNotificationService notificationService)
+        public BurialBookingEngine(
+            ApplicationDbContext db,
+            WhatsAppNotificationService notificationService,
+            BookingNotificationService bookingNotificationService)
         {
             _db = db;
             _notificationService = notificationService;
+            _bookingNotificationService = bookingNotificationService;
         }
 
         // ======================================================
@@ -215,6 +220,11 @@ namespace ZororoMemorialPark.Services.Bookings
             await _notificationService.SendBookingNotification(customer.sys_customerPhone, "booking_notification",
                 $"{booking.sys_deceasedFirstName} {booking.sys_deceasedLastName}", booking.sys_requestedBurialDateTime.ToString("f"),
                 bookedSection.sys_sectionName, customer.sys_paymentMadeBy);
+
+            await _bookingNotificationService.NotifyBookingCreatedAsync(
+                booking,
+                customer,
+                bookedSection);
 
             return (true, "Booking created.", booking);
         }
