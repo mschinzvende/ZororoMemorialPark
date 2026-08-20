@@ -65,6 +65,26 @@ namespace ZororoMemorialPark.Data
 
             modelBuilder.Entity<tbl_GraveReservations>()
                 .HasIndex(x => x.sys_preferredSectionId);
+
+            modelBuilder.Entity<tbl_Expenses>()
+                .HasIndex(x => x.sys_requisitionLineId)
+                .IsUnique()
+                .HasFilter("[sys_requisitionLineId] IS NOT NULL");
+
+            modelBuilder.Entity<tbl_Expenses>()
+                .HasIndex(x => x.sys_requisitionId);
+
+            modelBuilder.Entity<tbl_Expenses>()
+                .HasOne<tbl_Requisition>()
+                .WithMany()
+                .HasForeignKey(x => x.sys_requisitionId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<tbl_Expenses>()
+                .HasOne<tbl_RequisitionLine>()
+                .WithMany()
+                .HasForeignKey(x => x.sys_requisitionLineId)
+                .OnDelete(DeleteBehavior.NoAction);
         }
 
         // Define DbSets for your entities here

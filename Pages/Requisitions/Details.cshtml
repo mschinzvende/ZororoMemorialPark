@@ -44,6 +44,14 @@
                 @Model.Requisition.Justification
             </div>
         </div>
+
+        @if (Model.Requisition.Status == RequisitionStatus.Approved && (User.IsInRole("Manager") || User.IsInRole("FinanceOfficer")))
+        {
+            <div class="alert alert-success d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mt-3 mb-0">
+                <span><i class="bi bi-shield-check me-1"></i>This requisition is fully approved. Capture its approved line items as controlled expenses.</span>
+                <a class="btn btn-sm btn-success" href="/Finance/Expenses?RequisitionId=@Model.Requisition.Id"><i class="bi bi-wallet2 me-1"></i>Capture approved expense</a>
+            </div>
+        }
     </div>
 </div>
 

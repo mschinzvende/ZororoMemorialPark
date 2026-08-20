@@ -640,20 +640,44 @@ namespace ZororoMemorialPark.Migrations
                     b.Property<DateOnly>("sys_date")
                         .HasColumnType("date");
 
-                    b.Property<int>("sys_jobId")
+                    b.Property<string>("sys_expenseCategory")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("sys_jobId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("sys_requisitionId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("sys_requisitionLineId")
                         .HasColumnType("int");
 
                     b.Property<string>("sys_notes")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("sys_payeeName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("sys_paymentMethodId")
                         .HasColumnType("int");
 
-                    b.Property<int>("sys_supplierId")
+                    b.Property<string>("sys_reference")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("sys_supplierId")
                         .HasColumnType("int");
 
                     b.HasKey("sys_expenseId");
+
+                    b.HasIndex("sys_requisitionId");
+
+                    b.HasIndex("sys_requisitionLineId")
+                        .IsUnique()
+                        .HasFilter("[sys_requisitionLineId] IS NOT NULL");
 
                     b.ToTable("tbl_Expenses");
                 });
@@ -1626,6 +1650,19 @@ namespace ZororoMemorialPark.Migrations
                     b.HasKey("sys_paymentId");
 
                     b.ToTable("tbl_BurialPayments");
+                });
+
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Expenses", b =>
+                {
+                    b.HasOne("tbl_Requisition", null)
+                        .WithMany()
+                        .HasForeignKey("sys_requisitionId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("tbl_RequisitionLine", null)
+                        .WithMany()
+                        .HasForeignKey("sys_requisitionLineId")
+                        .OnDelete(DeleteBehavior.NoAction);
                 });
 
             modelBuilder.Entity("tbl_Requisition", b =>

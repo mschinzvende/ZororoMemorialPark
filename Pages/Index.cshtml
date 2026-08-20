@@ -1,281 +1,186 @@
-﻿@page
+@page
 @model ZororoMemorialPark.Pages.IndexModel
 @{
-    ViewData["Title"] = "Cemetery Dashboard";
-}
-
-@using Microsoft.AspNetCore.Identity
-@inject UserManager<IdentityUser> UserManager
-
-@{
-    bool isManager = User.IsInRole("Manager");
-    bool isOps = User.IsInRole("OperationsOfficer");
-    bool isFinance = User.IsInRole("FinanceOfficer");
-    bool isAgent = User.IsInRole("Agent");
-
-    if (isAgent)
-    {
-        Response.Redirect("/Graves/Graves");
-    }
+    ViewData["Title"] = "Dashboard";
+    var isManager = User.IsInRole("Manager");
+    var isOperations = User.IsInRole("OperationsOfficer") && !isManager;
+    var isFinance = User.IsInRole("FinanceOfficer") && !isManager && !isOperations;
+    var isAgent = User.IsInRole("Agent") && !isManager && !isOperations && !isFinance;
 }
 
 <style>
-    .chart-container {
+    .dashboard-shell { max-width: 1540px; }
+    .dashboard-hero {
+        background: linear-gradient(120deg, #07553f 0%, #0a7654 58%, #138563 100%);
+        border-radius: 1rem;
+        color: #fff;
+        overflow: hidden;
         position: relative;
-        height: 240px;
-        width: 100%;
     }
+    .dashboard-hero::after {
+        background: rgba(255,255,255,.08);
+        border-radius: 50%;
+        content: "";
+        height: 220px;
+        position: absolute;
+        right: -58px;
+        top: -108px;
+        width: 220px;
+    }
+    .dashboard-hero .content { position: relative; z-index: 1; }
+    .metric-link { color: inherit; display: block; text-decoration: none; }
+    .metric-card { border: 1px solid #e7ece9; border-radius: .9rem; height: 100%; transition: transform .18s ease, box-shadow .18s ease; }
+    .metric-card:hover { box-shadow: 0 .7rem 1.5rem rgba(17, 62, 46, .12) !important; transform: translateY(-3px); }
+    .metric-icon { align-items: center; border-radius: .75rem; display: inline-flex; font-size: 1.25rem; height: 2.8rem; justify-content: center; width: 2.8rem; }
+    .metric-value { color: #153a2d; font-size: 1.7rem; font-weight: 700; letter-spacing: -.04em; line-height: 1.05; }
+    .metric-label { color: #52655d; font-size: .77rem; font-weight: 700; letter-spacing: .045em; text-transform: uppercase; }
+    .metric-detail { color: #728178; font-size: .83rem; }
+    .dashboard-panel { border: 1px solid #e5ebe7; border-radius: .9rem; height: 100%; }
+    .dashboard-panel .card-header { background: transparent; border-bottom: 1px solid #edf1ee; padding: 1rem 1.15rem; }
+    .chart-container { height: 270px; position: relative; }
+    .quick-link { align-items: center; border: 1px solid #dfe8e3; border-radius: .7rem; color: #264f3e; display: flex; gap: .75rem; min-height: 76px; padding: .8rem; text-decoration: none; transition: all .18s ease; }
+    .quick-link:hover { background: #f1f8f4; border-color: #86c5a3; color: #07553f; transform: translateY(-2px); }
+    .quick-link .bi-arrow-right { margin-left: auto; }
+    .workspace-note { background: #f5faf7; border: 1px solid #dcebe2; border-radius: .75rem; color: #496458; font-size: .88rem; }
+    @@media (max-width: 767.98px) { .dashboard-hero { border-radius: .75rem; } .chart-container { height: 230px; } }
 </style>
 
-<div class="container-fluid mt-4 mb-4">
-
-    <!-- TOP MONTH METRICS -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card shadow-sm p-3 text-center">
-                <h6 class="mb-1">Revenue (This Month)</h6>
-                <h3 class="fw-bold">$@Model.RevenueThisMonth</h3>
-                <small class="text-muted">@Model.CurrentMonthLabel</small>
+<div class="container-fluid dashboard-shell py-4 pb-5">
+    <section class="dashboard-hero p-4 p-lg-5 mb-4 shadow-sm">
+        <div class="content d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3">
+            <div>
+                <div class="text-uppercase small fw-semibold opacity-75 mb-2">Zororo Memorial Park</div>
+                <h1 class="h3 mb-2">@Model.DashboardRoleLabel</h1>
+                <p class="mb-0 opacity-75">@Model.CurrentMonthLabel · Prioritised information for the work in front of you.</p>
             </div>
+            <a href="#dashboard-workspace" class="btn btn-light btn-sm px-3">
+                View work queue <i class="bi bi-arrow-down ms-1"></i>
+            </a>
         </div>
+    </section>
 
-        <div class="col-md-3">
-            <div class="card shadow-sm p-3 text-center">
-                <h6 class="mb-1">Outstanding (This Month)</h6>
-                <h3 class="fw-bold text-danger">$@Model.OutstandingThisMonth</h3>
-                <small class="text-muted">Open balance on invoices this month</small>
+    <div id="dashboard-workspace">
+        @if (isManager)
+        {
+            <div class="workspace-note d-flex gap-2 align-items-start p-3 mb-4">
+                <i class="bi bi-shield-lock-fill text-success mt-1"></i>
+                <span><strong>Manager view.</strong> This is the only dashboard that presents the organisation-wide financial position.</span>
             </div>
-        </div>
 
-        <div class="col-md-3">
-            <div class="card shadow-sm p-3 text-center">
-                <h6 class="mb-1">Graves Sold (This Month)</h6>
-                <h3 class="fw-bold text-primary">@Model.GravesSoldThisMonth</h3>
-                <small class="text-muted">Allocations in the month</small>
+            <div class="row g-3 mb-4">
+                <div class="col-xl-3 col-md-6"><a class="metric-link" href="/Finance/InvoicesList"><article class="card metric-card shadow-sm"><div class="card-body"><div class="d-flex justify-content-between align-items-start mb-3"><span class="metric-icon bg-primary-subtle text-primary"><i class="bi bi-receipt"></i></span><i class="bi bi-arrow-up-right text-muted"></i></div><div class="metric-label">Total invoiced</div><div class="metric-value mt-1">$@Model.TotalInvoiced.ToString("N2")</div><div class="metric-detail mt-2">All invoice value on record</div></div></article></a></div>
+                <div class="col-xl-3 col-md-6"><a class="metric-link" href="/Reports/RevenueReport"><article class="card metric-card shadow-sm"><div class="card-body"><div class="d-flex justify-content-between align-items-start mb-3"><span class="metric-icon bg-success-subtle text-success"><i class="bi bi-cash-coin"></i></span><i class="bi bi-arrow-up-right text-muted"></i></div><div class="metric-label">Income collected</div><div class="metric-value mt-1">$@Model.TotalCollected.ToString("N2")</div><div class="metric-detail mt-2">Customer payments received to date</div></div></article></a></div>
+                <div class="col-xl-3 col-md-6"><a class="metric-link" href="/Reports/OutstandingBalances"><article class="card metric-card shadow-sm"><div class="card-body"><div class="d-flex justify-content-between align-items-start mb-3"><span class="metric-icon bg-danger-subtle text-danger"><i class="bi bi-hourglass-split"></i></span><i class="bi bi-arrow-up-right text-muted"></i></div><div class="metric-label">Open receivables</div><div class="metric-value mt-1">$@Model.TotalOutstanding.ToString("N2")</div><div class="metric-detail mt-2">Unpaid invoice balance</div></div></article></a></div>
+                <div class="col-xl-3 col-md-6"><a class="metric-link" href="/Finance/Expenses"><article class="card metric-card shadow-sm"><div class="card-body"><div class="d-flex justify-content-between align-items-start mb-3"><span class="metric-icon bg-warning-subtle text-warning-emphasis"><i class="bi bi-wallet2"></i></span><i class="bi bi-arrow-up-right text-muted"></i></div><div class="metric-label">Expenses paid</div><div class="metric-value mt-1">$@Model.ExpensesPaid.ToString("N2")</div><div class="metric-detail mt-2">Daily operating and construction costs</div></div></article></a></div>
             </div>
-        </div>
 
-        <div class="col-md-3">
-            <div class="card shadow-sm p-3 text-center">
-                <h6 class="mb-1">New Reservations (This Month)</h6>
-                <h3 class="fw-bold text-warning">@Model.NewReservationsThisMonth</h3>
-                <small class="text-muted">New reservation records created</small>
+            <div class="row g-4">
+                <div class="col-lg-8"><section class="card dashboard-panel shadow-sm"><div class="card-header d-flex justify-content-between align-items-center"><div><h2 class="h6 mb-1">Income vs expenses</h2><p class="small text-muted mb-0">Six-month cash overview of customer income against all paid operating and construction costs.</p></div><a href="/Reports/ExpenseReport" class="btn btn-sm btn-outline-success">Expense report</a></div><div class="card-body"><div class="chart-container"><canvas id="cashMovementChart"></canvas></div></div></section></div>
+                <div class="col-lg-4"><section class="card dashboard-panel shadow-sm"><div class="card-header"><h2 class="h6 mb-1">Financial position</h2><p class="small text-muted mb-0">Income collected less all paid expenses.</p></div><div class="card-body d-flex flex-column justify-content-center"><div class="text-muted small text-uppercase fw-semibold">Net cash position</div><div class="display-6 fw-bold text-success my-2">$@Model.NetCashPosition.ToString("N2")</div><p class="small text-muted mb-4">This is a cash view, not an accrual profit calculation.</p><a href="/Finance/Expenses" class="btn btn-outline-success w-100">Review expenses <i class="bi bi-arrow-right ms-1"></i></a></div></section></div>
             </div>
-        </div>
+        }
+        else if (isOperations)
+        {
+            <div class="row g-3 mb-4">
+                <div class="col-xl col-md-6"><a class="metric-link" href="/Graves/Graves?ActiveTab=underconstruction"><article class="card metric-card shadow-sm"><div class="card-body"><span class="metric-icon bg-primary-subtle text-primary mb-3"><i class="bi bi-hammer"></i></span><div class="metric-label">Open construction jobs</div><div class="metric-value mt-1">@Model.ActiveJobsCount</div><div class="metric-detail mt-2">Pending and in progress</div></div></article></a></div>
+                <div class="col-xl col-md-6"><a class="metric-link" href="/Jobs/JobEntries"><article class="card metric-card shadow-sm"><div class="card-body"><span class="metric-icon bg-danger-subtle text-danger mb-3"><i class="bi bi-exclamation-octagon"></i></span><div class="metric-label">Overdue jobs</div><div class="metric-value mt-1">@Model.OverdueJobsCount</div><div class="metric-detail mt-2">Past planned end date</div></div></article></a></div>
+                <div class="col-xl col-md-6"><a class="metric-link" href="/Graves/Graves?ActiveTab=underconstruction"><article class="card metric-card shadow-sm"><div class="card-body"><span class="metric-icon bg-warning-subtle text-warning-emphasis mb-3"><i class="bi bi-cone-striped"></i></span><div class="metric-label">In digging stage</div><div class="metric-value mt-1">@Model.DiggingGravesCount</div><div class="metric-detail mt-2">Active grave preparation</div></div></article></a></div>
+                <div class="col-xl col-md-6"><a class="metric-link" href="/Reservations/Index?GraveLinkFilter=Unlinked"><article class="card metric-card shadow-sm"><div class="card-body"><span class="metric-icon bg-info-subtle text-info mb-3"><i class="bi bi-bookmark-plus"></i></span><div class="metric-label">Awaiting plot link</div><div class="metric-value mt-1">@Model.UnlinkedReservationsCount</div><div class="metric-detail mt-2">Active reservations without a grave</div></div></article></a></div>
+                <div class="col-xl col-md-6"><a class="metric-link" href="/Burials/BurialSchedule"><article class="card metric-card shadow-sm"><div class="card-body"><span class="metric-icon bg-success-subtle text-success mb-3"><i class="bi bi-calendar-event"></i></span><div class="metric-label">Next 7 days</div><div class="metric-value mt-1">@Model.UpcomingBurialsCount</div><div class="metric-detail mt-2">Scheduled burials</div></div></article></a></div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-7"><section class="card dashboard-panel shadow-sm"><div class="card-header d-flex justify-content-between align-items-center"><div><h2 class="h6 mb-1">Open work by development stage</h2><p class="small text-muted mb-0">Where construction attention is currently required.</p></div><a href="/Jobs/JobEntries" class="btn btn-sm btn-outline-success">Open jobs</a></div><div class="card-body"><div class="chart-container"><canvas id="operationsStageChart"></canvas></div></div></section></div>
+                <div class="col-lg-5"><section class="card dashboard-panel shadow-sm"><div class="card-header"><h2 class="h6 mb-1">Work queue status</h2><p class="small text-muted mb-0">Current status of open construction jobs.</p></div><div class="card-body"><div class="chart-container"><canvas id="operationsStatusChart"></canvas></div></div></section></div>
+            </div>
+
+            <section class="card dashboard-panel shadow-sm mt-4"><div class="card-header"><h2 class="h6 mb-0">Operations shortcuts</h2></div><div class="card-body"><div class="row g-3"><div class="col-lg-4"><a class="quick-link" href="/Graves/Graves?ActiveTab=underconstruction"><span class="metric-icon bg-success-subtle text-success"><i class="bi bi-grid-3x3-gap"></i></span><span><strong>Grave workboard</strong><small class="d-block text-muted">Review construction by plot</small></span><i class="bi bi-arrow-right"></i></a></div><div class="col-lg-4"><a class="quick-link" href="/Reservations/Index?GraveLinkFilter=Unlinked"><span class="metric-icon bg-info-subtle text-info"><i class="bi bi-link-45deg"></i></span><span><strong>Link a reservation</strong><small class="d-block text-muted">Assign an available plot</small></span><i class="bi bi-arrow-right"></i></a></div><div class="col-lg-4"><a class="quick-link" href="/Burials/BurialSchedule"><span class="metric-icon bg-warning-subtle text-warning-emphasis"><i class="bi bi-calendar-week"></i></span><span><strong>Burial schedule</strong><small class="d-block text-muted">Coordinate upcoming services</small></span><i class="bi bi-arrow-right"></i></a></div></div></div></section>
+        }
+        else if (isFinance)
+        {
+            <div class="workspace-note d-flex gap-2 align-items-start p-3 mb-4"><i class="bi bi-info-circle-fill text-success mt-1"></i><span>This workspace supports collections and customer follow-up. The organisation-wide financial position is restricted to Managers.</span></div>
+            <div class="row g-3 mb-4">
+                <div class="col-xl-3 col-md-6"><a class="metric-link" href="/Reports/OutstandingBalances"><article class="card metric-card shadow-sm"><div class="card-body"><span class="metric-icon bg-danger-subtle text-danger mb-3"><i class="bi bi-cash-stack"></i></span><div class="metric-label">Outstanding receivables</div><div class="metric-value mt-1">$@Model.TotalOutstanding.ToString("N2")</div><div class="metric-detail mt-2">Open customer balances</div></div></article></a></div>
+                <div class="col-xl-3 col-md-6"><a class="metric-link" href="/Finance/InvoicesList"><article class="card metric-card shadow-sm"><div class="card-body"><span class="metric-icon bg-warning-subtle text-warning-emphasis mb-3"><i class="bi bi-calendar-x"></i></span><div class="metric-label">Overdue invoices</div><div class="metric-value mt-1">@Model.OverdueInvoicesCount</div><div class="metric-detail mt-2">Require customer follow-up</div></div></article></a></div>
+                <div class="col-xl-3 col-md-6"><a class="metric-link" href="/Reports/PaymentLedger"><article class="card metric-card shadow-sm"><div class="card-body"><span class="metric-icon bg-success-subtle text-success mb-3"><i class="bi bi-wallet2"></i></span><div class="metric-label">Collected this month</div><div class="metric-value mt-1">$@Model.CollectedThisMonth.ToString("N2")</div><div class="metric-detail mt-2">@Model.CurrentMonthLabel</div></div></article></a></div>
+                <div class="col-xl-3 col-md-6"><a class="metric-link" href="/Reservations/Index"><article class="card metric-card shadow-sm"><div class="card-body"><span class="metric-icon bg-info-subtle text-info mb-3"><i class="bi bi-bell"></i></span><div class="metric-label">Installments due</div><div class="metric-value mt-1">@Model.InstallmentsDueCount</div><div class="metric-detail mt-2">Due or due in the next 7 days</div></div></article></a></div>
+            </div>
+            <div class="row g-4"><div class="col-lg-8"><section class="card dashboard-panel shadow-sm"><div class="card-header d-flex justify-content-between align-items-center"><div><h2 class="h6 mb-1">Receivables ageing</h2><p class="small text-muted mb-0">Outstanding invoice value grouped by due date.</p></div><a href="/Reports/OutstandingBalances" class="btn btn-sm btn-outline-success">Review balances</a></div><div class="card-body"><div class="chart-container"><canvas id="receivableAgingChart"></canvas></div></div></section></div><div class="col-lg-4"><section class="card dashboard-panel shadow-sm"><div class="card-header"><h2 class="h6 mb-1">Finance actions</h2><p class="small text-muted mb-0">Keep customer follow-up and daily expenditure current.</p></div><div class="card-body d-grid gap-3"><a href="/Finance/InvoicesList" class="quick-link"><span class="metric-icon bg-danger-subtle text-danger"><i class="bi bi-receipt-cutoff"></i></span><span><strong>Follow up invoices</strong><small class="d-block text-muted">Open customer accounts</small></span><i class="bi bi-arrow-right"></i></a><a href="/Reservations/Index" class="quick-link"><span class="metric-icon bg-info-subtle text-info"><i class="bi bi-bookmark-check"></i></span><span><strong>Reservation installments</strong><small class="d-block text-muted">Capture and confirm payments</small></span><i class="bi bi-arrow-right"></i></a><a href="/Finance/Expenses" class="quick-link"><span class="metric-icon bg-warning-subtle text-warning-emphasis"><i class="bi bi-wallet2"></i></span><span><strong>Capture daily expense</strong><small class="d-block text-muted">Record operating costs and references</small></span><i class="bi bi-arrow-right"></i></a></div></section></div></div>
+        }
+        else if (isAgent)
+        {
+            @if (!Model.HasLinkedAgentProfile)
+            {
+                <div class="alert alert-warning border-0 shadow-sm mb-4"><i class="bi bi-person-exclamation me-2"></i>Your sign-in is not linked to an active agent profile. Ask a Manager or Operations Officer to link it in Agent Management.</div>
+            }
+            <div class="row g-3 mb-4">
+                <div class="col-xl-3 col-md-6"><a class="metric-link" href="/Bookings/Index"><article class="card metric-card shadow-sm"><div class="card-body"><span class="metric-icon bg-primary-subtle text-primary mb-3"><i class="bi bi-clipboard-plus"></i></span><div class="metric-label">My new bookings</div><div class="metric-value mt-1">@Model.MyBookingsThisMonth</div><div class="metric-detail mt-2">Created in @Model.CurrentMonthLabel</div></div></article></a></div>
+                <div class="col-xl-3 col-md-6"><a class="metric-link" href="/Bookings/Index"><article class="card metric-card shadow-sm"><div class="card-body"><span class="metric-icon bg-warning-subtle text-warning-emphasis mb-3"><i class="bi bi-credit-card"></i></span><div class="metric-label">Awaiting payment</div><div class="metric-value mt-1">@Model.MyAwaitingPaymentCount</div><div class="metric-detail mt-2">Bookings to follow up</div></div></article></a></div>
+                <div class="col-xl-3 col-md-6"><a class="metric-link" href="/Bookings/Index"><article class="card metric-card shadow-sm"><div class="card-body"><span class="metric-icon bg-success-subtle text-success mb-3"><i class="bi bi-check2-circle"></i></span><div class="metric-label">Ready to allocate</div><div class="metric-value mt-1">@Model.MyReadyForAllocationCount</div><div class="metric-detail mt-2">Paid bookings awaiting a plot</div></div></article></a></div>
+                <div class="col-xl-3 col-md-6"><a class="metric-link" href="/Burials/BurialSchedule"><article class="card metric-card shadow-sm"><div class="card-body"><span class="metric-icon bg-info-subtle text-info mb-3"><i class="bi bi-calendar-event"></i></span><div class="metric-label">Upcoming burials</div><div class="metric-value mt-1">@Model.MyUpcomingBurialsCount</div><div class="metric-detail mt-2">Next 7 days</div></div></article></a></div>
+            </div>
+            <div class="row g-4"><div class="col-lg-7"><section class="card dashboard-panel shadow-sm"><div class="card-header d-flex justify-content-between align-items-center"><div><h2 class="h6 mb-1">My active booking pipeline</h2><p class="small text-muted mb-0">A view of your current bookings by status.</p></div><a href="/Bookings/Index" class="btn btn-sm btn-outline-success">Open bookings</a></div><div class="card-body"><div class="chart-container"><canvas id="agentBookingStatusChart"></canvas></div></div></section></div><div class="col-lg-5"><section class="card dashboard-panel shadow-sm"><div class="card-header"><h2 class="h6 mb-1">My next actions</h2><p class="small text-muted mb-0">Keep every family informed as their booking progresses.</p></div><div class="card-body d-grid gap-3"><a href="/Bookings/Create" class="quick-link"><span class="metric-icon bg-success-subtle text-success"><i class="bi bi-plus-circle"></i></span><span><strong>Create a booking</strong><small class="d-block text-muted">Start a new burial arrangement</small></span><i class="bi bi-arrow-right"></i></a><a href="/Burials/BurialSchedule" class="quick-link"><span class="metric-icon bg-info-subtle text-info"><i class="bi bi-calendar-week"></i></span><span><strong>Review the schedule</strong><small class="d-block text-muted">Prepare for upcoming burials</small></span><i class="bi bi-arrow-right"></i></a></div></section></div></div>
+        }
+        else
+        {
+            <div class="alert alert-info border-0 shadow-sm"><i class="bi bi-info-circle me-2"></i>Your account does not yet have a recognised workspace role. Please contact a Manager to update your access.</div>
+        }
     </div>
-
-    <!-- CHARTS -->
-    <div class="row g-4">
-
-        <!-- Under Construction per Section (Current Month) -->
-        <div class="col-lg-6 col-md-12">
-            <div class="card shadow-sm p-3">
-                <h6 class="mb-2">Under Construction Graves per Section (Current Month)</h6>
-                <div class="chart-container">
-                    <canvas id="underConstructionMonthBySectionChart"></canvas>
-                </div>
-                <small class="text-muted">
-                    Based on jobs ending this month that are Pending/In Progress
-                </small>
-            </div>
-        </div>
-
-        <!-- Burials (Allocations) per Section (Current Month) -->
-        <div class="col-lg-6 col-md-12">
-            <div class="card shadow-sm p-3">
-                <h6 class="mb-2">Burials (Allocations) per Section (Current Month)</h6>
-                <div class="chart-container">
-                    <canvas id="burialsMonthBySectionChart"></canvas>
-                </div>
-
-                <small class="text-muted">
-                    Allocations with allocated date within the month
-                </small>
-            </div>
-        </div>
-
-
-        <!-- Available Graves for Sale per Section -->
-        <div class="col-lg-6 col-md-12">
-            <div class="card shadow-sm p-3">
-                <h6 class="mb-2">Available Graves for Sale per Section</h6>
-                <div class="chart-container">
-                    <canvas id="availableGravesBySectionChart"></canvas>
-                </div>
-                <small class="text-muted">
-                    Graves currently unsold and available for allocation
-                </small>
-            </div>
-        </div>
-
-
-        <!-- Development Stage per Section (Current Month) -->
-        <div class="col-lg-6 col-md-12">
-            <div class="card shadow-sm p-3">
-                <h6 class="mb-2">Development Stage per Section (Current Month)</h6>
-                <div class="chart-container">
-                    <canvas id="stageMonthBySectionChart"></canvas>
-                </div>
-                <small class="text-muted">
-                    Stages of graves currently in active construction jobs ending this month
-                </small>
-            </div>
-        </div>
-
-        <!-- Monthly Revenue Trend (Last 6 Months) -->
-        <div class="col-lg-6 col-md-12">
-            <div class="card shadow-sm p-3">
-                <h6 class="mb-2">Monthly Revenue Trend (Last 6 Months)</h6>
-                <div class="chart-container">
-                    <canvas id="revenueTrend6MonthsChart"></canvas>
-                </div>
-                <small class="text-muted">Sum of payments per month</small>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="mb-5"></div>
 </div>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <script>
-        // -----------------------------
-        // Under Construction per Section (Current Month)
-        // -----------------------------
-        new Chart(document.getElementById("underConstructionMonthBySectionChart"), {
-            type: "bar",
-            data: {
-                labels: @Html.Raw(Model.UnderConstructionMonthSectionNamesJson),
-                datasets: [{
-                    label: "Under Construction",
-                    data: @Html.Raw(Model.UnderConstructionMonthSectionCountsJson),
-                    backgroundColor: "#8e24aa"
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, ticks: { precision: 0 } }
-                }
-            }
-        });
+        const dashboardColours = ["#087f5b", "#1971c2", "#f08c00", "#c92a2a", "#7048e8", "#0b7285", "#5c940d"];
+        const currencyAxis = { ticks: { callback: value => "$" + Number(value).toLocaleString() } };
 
-        // -----------------------------
-        // Burials per Section (Current Month)
-        // -----------------------------
-        new Chart(document.getElementById("burialsMonthBySectionChart"), {
-            type: "bar",
-            data: {
-                labels: @Html.Raw(Model.BurialsMonthSectionNamesJson),
-                datasets: [{
-                    label: "Burials",
-                    data: @Html.Raw(Model.BurialsMonthSectionCountsJson),
-                    backgroundColor: "#1565c0"
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, ticks: { precision: 0 } }
-                }
-            }
-        });
-
-        // -----------------------------
-        // Development Stage per Section (Current Month) - stacked bar
-        // -----------------------------
-        const stageSectionLabels = @Html.Raw(Model.StageMonthMatrixSectionLabelsJson);
-        const stageMonthMatrixData = @Html.Raw(Model.StageMonthMatrixDataJson);
-
-        const stageColors = ["#2E7D32", "#0277BD", "#F9A825", "#8E24AA", "#C62828", "#00897B", "#5D4037", "#6A1B9A"];
-        let idx = 0;
-
-        const stageDatasets = [];
-        for (const stageName in stageMonthMatrixData) {
-            stageDatasets.push({
-                label: stageName,
-                data: stageMonthMatrixData[stageName],
-                backgroundColor: stageColors[idx % stageColors.length]
+        @if (isManager)
+        {
+            <text>
+            new Chart(document.getElementById("cashMovementChart"), {
+                type: "line",
+                data: { labels: @Html.Raw(Model.CashTrendLabelsJson), datasets: [
+                    { label: "Income collected", data: @Html.Raw(Model.CashCollectionTrendJson), borderColor: "#087f5b", backgroundColor: "rgba(8,127,91,.12)", fill: true, tension: .32, borderWidth: 2.5 },
+                    { label: "Expenses paid", data: @Html.Raw(Model.ExpensePaymentTrendJson), borderColor: "#d97706", backgroundColor: "rgba(217,119,6,.08)", fill: true, tension: .32, borderWidth: 2.5 }
+                ] },
+                options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { legend: { position: "bottom" } }, scales: { y: { beginAtZero: true, ...currencyAxis }, x: { grid: { display: false } } } }
             });
-            idx++;
+            </text>
         }
-
-        new Chart(document.getElementById("stageMonthBySectionChart"), {
-            type: "bar",
-            data: {
-                labels: stageSectionLabels,
-                datasets: stageDatasets
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: "bottom" } },
-                scales: {
-                    x: { stacked: true },
-                    y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
-                }
-            }
-        });
-
-        // -----------------------------
-        // Revenue Trend - Last 6 Months
-        // -----------------------------
-        new Chart(document.getElementById("revenueTrend6MonthsChart"), {
-            type: "line",
-            data: {
-                labels: @Html.Raw(Model.Revenue6MonthsLabelsJson),
-                datasets: [{
-                    label: "Revenue",
-                    data: @Html.Raw(Model.Revenue6MonthsValuesJson),
-                    borderColor: "#0277bd",
-                    borderWidth: 2,
-                    fill: false,
-                    tension: 0.2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true } }
-            }
-        });
+        @if (isOperations)
+        {
+            <text>
+            new Chart(document.getElementById("operationsStageChart"), {
+                type: "bar",
+                data: { labels: @Html.Raw(Model.OperationsStageLabelsJson), datasets: [{ label: "Open jobs", data: @Html.Raw(Model.OperationsStageCountsJson), backgroundColor: "#087f5b", borderRadius: 6, maxBarThickness: 48 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } } }
+            });
+            new Chart(document.getElementById("operationsStatusChart"), {
+                type: "doughnut",
+                data: { labels: @Html.Raw(Model.OperationsJobStatusLabelsJson), datasets: [{ data: @Html.Raw(Model.OperationsJobStatusCountsJson), backgroundColor: ["#f08c00", "#1971c2"], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: "64%", plugins: { legend: { position: "bottom" } } }
+            });
+            </text>
+        }
+        @if (isFinance)
+        {
+            <text>
+            new Chart(document.getElementById("receivableAgingChart"), {
+                type: "bar",
+                data: { labels: @Html.Raw(Model.ReceivableAgingLabelsJson), datasets: [{ label: "Outstanding balance", data: @Html.Raw(Model.ReceivableAgingValuesJson), backgroundColor: ["#1971c2", "#f08c00", "#e8590c", "#c92a2a"], borderRadius: 7, maxBarThickness: 62 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ...currencyAxis }, x: { grid: { display: false } } } }
+            });
+            </text>
+        }
+        @if (isAgent)
+        {
+            <text>
+            new Chart(document.getElementById("agentBookingStatusChart"), {
+                type: "bar",
+                data: { labels: @Html.Raw(Model.MyBookingStatusLabelsJson), datasets: [{ label: "Bookings", data: @Html.Raw(Model.MyBookingStatusCountsJson), backgroundColor: dashboardColours, borderRadius: 7, maxBarThickness: 56 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } } }
+            });
+            </text>
+        }
     </script>
-
-
-    <script>
-        // -----------------------------
-        // Available Graves for Sale per Section
-        // -----------------------------
-        new Chart(document.getElementById("availableGravesBySectionChart"), {
-            type: "bar",
-            data: {
-                labels: @Html.Raw(Model.AvailableSaleSectionNamesJson),
-                datasets: [{
-                    label: "Available Graves",
-                    data: @Html.Raw(Model.AvailableSaleSectionCountsJson),
-                    backgroundColor: "#2e7d32"
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { precision: 0 }
-                    }
-                }
-            }
-        });
-    </script>
-
 }

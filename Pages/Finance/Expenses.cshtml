@@ -1,0 +1,277 @@
+@page
+@model ZororoMemorialPark.Pages.Finance.ExpensesModel
+@{
+    ViewData["Title"] = "Daily Expenses";
+    var showPrevious = Model.PageNumber > 1;
+    var showNext = Model.PageNumber < Model.TotalPages;
+}
+
+<style>
+    .expense-summary-card { border: 1px solid #e4ece7; border-radius: .8rem; height: 100%; }
+    .expense-summary-card .icon { align-items: center; border-radius: .7rem; display: inline-flex; font-size: 1.15rem; height: 2.5rem; justify-content: center; width: 2.5rem; }
+    .expense-table td { vertical-align: middle; }
+    .expense-table .expense-note { color: #66756d; display: block; font-size: .78rem; max-width: 310px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>
+
+<div class="container-fluid py-4 pb-5">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <section class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-4 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3" style="background:linear-gradient(120deg,#07553f,#14835f); color:#fff; border-radius:.75rem;">
+            <div>
+                <div class="text-uppercase small fw-semibold opacity-75 mb-1">Finance control</div>
+                <h1 class="h4 mb-1">Daily Expenses</h1>
+                <p class="mb-0 opacity-75">Capture operating costs only from approved requisition items. Construction payments remain visible here but are maintained from their job record.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-light" href="/Reports/ExpenseReport"><i class="bi bi-bar-chart-line me-1"></i> Expense report</a>
+                <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#createExpenseModal" @(Model.ApprovedRequisitionLines.Any() ? null : "disabled")><i class="bi bi-check2-square me-1"></i> Capture approved expense</button>
+            </div>
+        </div>
+    </section>
+
+    <form method="get" class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-2 col-md-4"><label asp-for="FromDate" class="form-label small fw-semibold">From</label><input asp-for="FromDate" type="date" class="form-control" /></div>
+                <div class="col-lg-2 col-md-4"><label asp-for="ToDate" class="form-label small fw-semibold">To</label><input asp-for="ToDate" type="date" class="form-control" /></div>
+                <div class="col-lg-3 col-md-4"><label asp-for="CategoryFilter" class="form-label small fw-semibold">Category</label><select asp-for="CategoryFilter" class="form-select"><option value="All">All expense categories</option>@foreach (var category in Model.ExpenseCategories) { <option value="@category">@category</option> }</select></div>
+                <div class="col-lg-3 col-md-8"><label asp-for="SearchTerm" class="form-label small fw-semibold">Search</label><input asp-for="SearchTerm" class="form-control" placeholder="Payee, requisition, reference, or plot" /></div>
+                <div class="col-lg-2 col-md-4 d-grid"><button class="btn btn-success"><i class="bi bi-funnel me-1"></i> Apply filters</button></div>
+            </div>
+        </div>
+    </form>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-4"><div class="card expense-summary-card shadow-sm"><div class="card-body d-flex gap-3"><span class="icon bg-danger-subtle text-danger"><i class="bi bi-wallet2"></i></span><div><div class="small text-muted text-uppercase fw-semibold">Total paid</div><div class="fs-4 fw-bold">$@Model.TotalExpenses.ToString("N2")</div><small class="text-muted">@Model.TotalRecords recorded expenses</small></div></div></div></div>
+        <div class="col-lg-4"><div class="card expense-summary-card shadow-sm"><div class="card-body d-flex gap-3"><span class="icon bg-primary-subtle text-primary"><i class="bi bi-building-check"></i></span><div><div class="small text-muted text-uppercase fw-semibold">Approved operating costs</div><div class="fs-4 fw-bold">$@Model.DailyOperatingExpenses.ToString("N2")</div><small class="text-muted">Captured from approved requisitions</small></div></div></div></div>
+        <div class="col-lg-4"><div class="card expense-summary-card shadow-sm"><div class="card-body d-flex gap-3"><span class="icon bg-warning-subtle text-warning-emphasis"><i class="bi bi-hammer"></i></span><div><div class="small text-muted text-uppercase fw-semibold">Construction costs</div><div class="fs-4 fw-bold">$@Model.ConstructionExpenses.ToString("N2")</div><small class="text-muted">Linked to grave development jobs</small></div></div></div></div>
+    </div>
+
+    <section class="card shadow-sm border-0">
+        <div class="card-header bg-white d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 py-3">
+            <div><h2 class="h6 mb-1">Expense register</h2><p class="small text-muted mb-0">Shows approved requisition expenses and job-linked construction costs in one auditable register.</p></div>
+            <span class="badge text-bg-light border">Page @Model.PageNumber of @Model.TotalPages</span>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Expenses.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover expense-table mb-0">
+                        <thead class="table-light"><tr><th class="ps-4">Date</th><th>Category / payee</th><th>Reference</th><th>Payment method</th><th>Source</th><th class="text-end">Amount paid</th><th class="text-end pe-4">Actions</th></tr></thead>
+                        <tbody>
+                        @foreach (var expense in Model.Expenses)
+                        {
+                            <tr>
+                                <td class="ps-4 text-nowrap">@expense.Date.ToString("dd MMM yyyy")</td>
+                                <td><div class="fw-semibold">@expense.Category</div><small class="text-muted">@expense.Payee</small></td>
+                                <td><div>@(string.IsNullOrWhiteSpace(expense.Reference) ? "—" : expense.Reference)</div><span class="expense-note" title="@expense.Notes">@expense.Notes</span></td>
+                                <td>@expense.PaymentMethod</td>
+                                <td>
+                                    @if (expense.IsRequisitionExpense)
+                                    {
+                                        <a class="badge text-bg-success text-decoration-none" href="/Requisitions/Details/@expense.RequisitionId" title="@expense.RequisitionLineDescription"><i class="bi bi-check2-circle me-1"></i>@expense.RequisitionNumber</a>
+                                    }
+                                    else if (expense.IsConstructionCost)
+                                    {
+                                        <span class="badge text-bg-warning">Job #@expense.JobId &middot; @expense.PlotNumber</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge text-bg-secondary">Legacy entry</span>
+                                    }
+                                </td>
+                                <td class="text-end fw-semibold">$@expense.AmountPaid.ToString("N2")</td>
+                                <td class="text-end pe-4">
+                                    @if (expense.IsRequisitionExpense)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-primary edit-expense-btn" data-bs-toggle="modal" data-bs-target="#editExpenseModal" data-id="@expense.ExpenseId" data-date="@expense.Date.ToString("yyyy-MM-dd")" data-category="@expense.Category" data-payee="@expense.Payee" data-supplier="@expense.SupplierId" data-method="@expense.PaymentMethodId" data-reference="@expense.Reference" data-notes="@expense.Notes"><i class="bi bi-pencil"></i><span class="visually-hidden">Edit</span></button>
+                                    }
+                                    else if (expense.IsConstructionCost)
+                                    {
+                                        <a class="btn btn-sm btn-outline-secondary" href="/Jobs/JobEntries"><i class="bi bi-box-arrow-up-right"></i><span class="visually-hidden">Open job</span></a>
+                                    }
+                                    else if (User.IsInRole("Manager"))
+                                    {
+                                        <form method="post" asp-page-handler="Delete" class="d-inline"><input type="hidden" name="expenseId" value="@expense.ExpenseId" /><button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this legacy expense? This cannot be undone.');"><i class="bi bi-trash"></i><span class="visually-hidden">Delete</span></button></form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="p-5 text-center text-muted"><i class="bi bi-receipt fs-2 d-block mb-2"></i>No expenses match the selected filters.</div>
+            }
+        </div>
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+            <small class="text-muted">Showing up to 20 records per page</small>
+            <nav><ul class="pagination pagination-sm mb-0"><li class="page-item @(!showPrevious ? "disabled" : "")"><a class="page-link" asp-route-PageNumber="@(Model.PageNumber - 1)" asp-route-FromDate="@Model.FromDate" asp-route-ToDate="@Model.ToDate" asp-route-CategoryFilter="@Model.CategoryFilter" asp-route-SearchTerm="@Model.SearchTerm" asp-route-RequisitionId="@Model.RequisitionId">Previous</a></li><li class="page-item disabled"><span class="page-link">@Model.PageNumber / @Model.TotalPages</span></li><li class="page-item @(!showNext ? "disabled" : "")"><a class="page-link" asp-route-PageNumber="@(Model.PageNumber + 1)" asp-route-FromDate="@Model.FromDate" asp-route-ToDate="@Model.ToDate" asp-route-CategoryFilter="@Model.CategoryFilter" asp-route-SearchTerm="@Model.SearchTerm" asp-route-RequisitionId="@Model.RequisitionId">Next</a></li></ul></nav>
+        </div>
+    </section>
+</div>
+
+<div class="modal fade" id="createExpenseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Create">
+                <div class="modal-header text-white" style="background:#07553f;">
+                    <div>
+                        <h2 class="modal-title h5 mb-0">Capture approved expense</h2>
+                        <small class="opacity-75">The approved requisition line fixes the amount and provides the audit trail.</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-success small d-flex gap-2" role="alert"><i class="bi bi-shield-check fs-5"></i><span>Only items from completed requisition approvals are available. A line can be paid once, and its approved amount cannot be changed here.</span></div>
+                    @if (Model.ApprovedRequisitionLines.Any())
+                    {
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-8">
+                                <label asp-for="NewExpense.RequisitionLineId" class="form-label fw-semibold">Approved requisition item</label>
+                                <select asp-for="NewExpense.RequisitionLineId" class="form-select" id="approvedRequisitionLine" required>
+                                    <option value="">Select an approved item</option>
+                                    @foreach (var line in Model.ApprovedRequisitionLines)
+                                    {
+                                        <option value="@line.LineId" data-request-number="@line.RequestNumber" data-description="@line.Description" data-quantity="@line.ApprovedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-unit-cost="@line.ApprovedUnitCost.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-amount="@line.ApprovedAmount.ToString(System.Globalization.CultureInfo.InvariantCulture)">@line.RequestNumber &middot; @line.Description</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold" for="approvedExpenseAmount">Approved amount</label>
+                                <div class="input-group"><span class="input-group-text">$</span><input id="approvedExpenseAmount" class="form-control bg-light" value="Select an item" readonly /></div>
+                            </div>
+                            <div class="col-12">
+                                <div class="border rounded-3 p-3 bg-light-subtle small" id="approvedExpenseSummary"><span class="text-muted">Select a line to review its final approved quantity, unit cost, and amount.</span></div>
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-4"><label asp-for="NewExpense.ExpenseDate" class="form-label">Expense date</label><input asp-for="NewExpense.ExpenseDate" type="date" class="form-control" required /></div>
+                            <div class="col-md-4"><label asp-for="NewExpense.Category" class="form-label">Expense category</label><select asp-for="NewExpense.Category" class="form-select" required><option value="">Select category</option>@foreach (var category in Model.ExpenseCategories) { <option value="@category">@category</option> }</select></div>
+                            <div class="col-md-4"><label asp-for="NewExpense.PaymentMethodId" class="form-label">Payment method</label><select asp-for="NewExpense.PaymentMethodId" class="form-select" required><option value="">Select method</option>@foreach (var method in Model.PaymentMethods) { <option value="@method.sys_paymentMethodId">@method.sys_paymentMethodName</option> }</select></div>
+                            <div class="col-md-6"><label asp-for="NewExpense.PayeeName" class="form-label">Payee or vendor</label><input asp-for="NewExpense.PayeeName" class="form-control" maxlength="150" required /></div>
+                            <div class="col-md-6"><label asp-for="NewExpense.SupplierId" class="form-label">Linked supplier <span class="text-muted fw-normal">(optional)</span></label><select asp-for="NewExpense.SupplierId" class="form-select"><option value="">No linked supplier</option>@foreach (var supplier in Model.Suppliers) { <option value="@supplier.sys_supplierId">@supplier.sys_supplierName</option> }</select></div>
+                            <div class="col-md-6"><label asp-for="NewExpense.Reference" class="form-label">Payment reference <span class="text-muted fw-normal">(optional)</span></label><input asp-for="NewExpense.Reference" class="form-control" maxlength="100" placeholder="Voucher, receipt, or transaction reference" /></div>
+                            <div class="col-12"><label asp-for="NewExpense.Notes" class="form-label">Payment notes <span class="text-muted fw-normal">(optional)</span></label><textarea asp-for="NewExpense.Notes" class="form-control" rows="3" maxlength="500" placeholder="Any additional payment information"></textarea></div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-4"><i class="bi bi-clipboard2-check fs-2 d-block mb-2"></i>No unpaid approved requisition items are available for the current view.</div>
+                    }
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button class="btn btn-success" @(Model.ApprovedRequisitionLines.Any() ? null : "disabled")><i class="bi bi-check2-circle me-1"></i> Capture approved expense</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editExpenseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+        <form method="post" asp-page-handler="Update">
+            <div class="modal-header text-white" style="background:#07553f;"><div><h2 class="modal-title h5 mb-0">Update payment details</h2><small class="opacity-75">The approved amount and requisition item are locked for audit control.</small></div><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <input asp-for="EditExpense.ExpenseId" type="hidden" />
+                <div class="alert alert-light border small"><i class="bi bi-lock-fill text-success me-1"></i>Changing the approved amount or source is not permitted. Use a separate approved requisition item for another expense.</div>
+                <div class="row g-3">
+                    <div class="col-md-6"><label asp-for="EditExpense.ExpenseDate" class="form-label">Expense date</label><input asp-for="EditExpense.ExpenseDate" type="date" class="form-control" required /></div>
+                    <div class="col-md-6"><label asp-for="EditExpense.Category" class="form-label">Expense category</label><select asp-for="EditExpense.Category" class="form-select" required><option value="">Select category</option>@foreach (var category in Model.ExpenseCategories) { <option value="@category">@category</option> }</select></div>
+                    <div class="col-md-6"><label asp-for="EditExpense.PayeeName" class="form-label">Payee or vendor</label><input asp-for="EditExpense.PayeeName" class="form-control" maxlength="150" required /></div>
+                    <div class="col-md-6"><label asp-for="EditExpense.SupplierId" class="form-label">Linked supplier <span class="text-muted fw-normal">(optional)</span></label><select asp-for="EditExpense.SupplierId" class="form-select"><option value="">No linked supplier</option>@foreach (var supplier in Model.Suppliers) { <option value="@supplier.sys_supplierId">@supplier.sys_supplierName</option> }</select></div>
+                    <div class="col-md-6"><label asp-for="EditExpense.PaymentMethodId" class="form-label">Payment method</label><select asp-for="EditExpense.PaymentMethodId" class="form-select" required><option value="">Select method</option>@foreach (var method in Model.PaymentMethods) { <option value="@method.sys_paymentMethodId">@method.sys_paymentMethodName</option> }</select></div>
+                    <div class="col-md-6"><label asp-for="EditExpense.Reference" class="form-label">Payment reference <span class="text-muted fw-normal">(optional)</span></label><input asp-for="EditExpense.Reference" class="form-control" maxlength="100" /></div>
+                    <div class="col-12"><label asp-for="EditExpense.Notes" class="form-label">Payment notes <span class="text-muted fw-normal">(optional)</span></label><textarea asp-for="EditExpense.Notes" class="form-control" rows="3" maxlength="500"></textarea></div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button class="btn btn-success"><i class="bi bi-check2-circle me-1"></i> Save details</button></div>
+        </form>
+    </div></div>
+</div>
+
+@section Scripts {
+    <script>
+        const approvedLineSelect = document.getElementById('approvedRequisitionLine');
+        const approvedAmountInput = document.getElementById('approvedExpenseAmount');
+        const approvedSummary = document.getElementById('approvedExpenseSummary');
+        const referenceInput = document.getElementById('NewExpense_Reference');
+
+        const updateApprovedLineSummary = () => {
+            if (!approvedLineSelect || !approvedAmountInput || !approvedSummary) return;
+
+            const selected = approvedLineSelect.options[approvedLineSelect.selectedIndex];
+            if (!selected || !selected.value) {
+                approvedAmountInput.value = 'Select an item';
+                approvedSummary.replaceChildren();
+                const emptySummary = document.createElement('span');
+                emptySummary.className = 'text-muted';
+                emptySummary.textContent = 'Select a line to review its final approved quantity, unit cost, and amount.';
+                approvedSummary.appendChild(emptySummary);
+                return;
+            }
+
+            const amount = Number(selected.dataset.amount || 0);
+            const quantity = Number(selected.dataset.quantity || 0);
+            const unitCost = Number(selected.dataset.unitCost || 0);
+            const requestNumber = selected.dataset.requestNumber || '';
+            const description = selected.dataset.description || '';
+
+            const formattedAmount = amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            approvedAmountInput.value = formattedAmount;
+            approvedSummary.replaceChildren();
+            const requestElement = document.createElement('div');
+            requestElement.className = 'fw-semibold text-success';
+            requestElement.textContent = requestNumber;
+            const descriptionElement = document.createElement('div');
+            descriptionElement.textContent = description;
+            const approvalElement = document.createElement('div');
+            approvalElement.className = 'text-muted mt-1';
+            approvalElement.textContent = `Final approval: ${quantity.toLocaleString()} × $${unitCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} = $${formattedAmount}`;
+            approvedSummary.append(requestElement, descriptionElement, approvalElement);
+
+            if (referenceInput && (!referenceInput.value || referenceInput.dataset.autoReference === 'true')) {
+                referenceInput.value = requestNumber;
+                referenceInput.dataset.autoReference = 'true';
+            }
+        };
+
+        if (approvedLineSelect) {
+            approvedLineSelect.addEventListener('change', updateApprovedLineSummary);
+            updateApprovedLineSummary();
+        }
+
+        if (referenceInput) {
+            referenceInput.addEventListener('input', () => {
+                referenceInput.dataset.autoReference = 'false';
+            });
+        }
+
+        document.querySelectorAll('.edit-expense-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                document.getElementById('EditExpense_ExpenseId').value = button.dataset.id;
+                document.getElementById('EditExpense_ExpenseDate').value = button.dataset.date;
+                document.getElementById('EditExpense_Category').value = button.dataset.category;
+                document.getElementById('EditExpense_PayeeName').value = button.dataset.payee;
+                document.getElementById('EditExpense_SupplierId').value = button.dataset.supplier || '';
+                document.getElementById('EditExpense_PaymentMethodId').value = button.dataset.method;
+                document.getElementById('EditExpense_Reference').value = button.dataset.reference;
+                document.getElementById('EditExpense_Notes').value = button.dataset.notes;
+            });
+        });
+    </script>
+}

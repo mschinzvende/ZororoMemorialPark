@@ -257,11 +257,11 @@ namespace ZororoMemorialPark.Pages.Graves
                 if (jobIds.Count > 0)
                 {
                     balancesDict = await _context.tbl_Expenses
-                        .Where(e => jobIds.Contains(e.sys_jobId))
+                        .Where(e => e.sys_jobId.HasValue && jobIds.Contains(e.sys_jobId.Value))
                         .GroupBy(e => e.sys_jobId)
                         .Select(g => new
                         {
-                            JobId = g.Key,
+                            JobId = g.Key.Value,
                             Balance = g.Sum(e => (double?)e.sys_amountDue - (double?)e.sys_amountPaid) ?? 0.0
                         })
                         .ToDictionaryAsync(x => x.JobId, x => x.Balance);

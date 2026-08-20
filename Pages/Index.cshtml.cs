@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Security.Claims;
 using System.Text.Json;
 using System.Threading.Tasks;
 using ZororoMemorialPark.Data;
@@ -19,271 +20,352 @@ namespace ZororoMemorialPark.Pages
             _context = context;
         }
 
-        // =========================
-        // Top month metrics (cards)
-        // =========================
-        public string CurrentMonthLabel { get; set; } = "";
-        public decimal RevenueThisMonth { get; set; }
-        public decimal OutstandingThisMonth { get; set; }
-        public int GravesSoldThisMonth { get; set; }
-        public int NewReservationsThisMonth { get; set; }
+        public string CurrentMonthLabel { get; private set; } = string.Empty;
+        public string DashboardRoleLabel { get; private set; } = "Workspace";
 
-        // =========================
-        // Charts JSON
-        // =========================
-        public string UnderConstructionMonthSectionNamesJson { get; set; } = "[]";
-        public string UnderConstructionMonthSectionCountsJson { get; set; } = "[]";
+        // Manager-only financial position
+        public decimal TotalInvoiced { get; private set; }
+        public decimal TotalCollected { get; private set; }
+        public decimal TotalOutstanding { get; private set; }
+        public decimal ExpensesPaid { get; private set; }
+        public decimal NetCashPosition { get; private set; }
+        public string CashTrendLabelsJson { get; private set; } = "[]";
+        public string CashCollectionTrendJson { get; private set; } = "[]";
+        public string ExpensePaymentTrendJson { get; private set; } = "[]";
 
-        public string BurialsMonthSectionNamesJson { get; set; } = "[]";
-        public string BurialsMonthSectionCountsJson { get; set; } = "[]";
+        // Operations workspace
+        public int ActiveJobsCount { get; private set; }
+        public int OverdueJobsCount { get; private set; }
+        public int DiggingGravesCount { get; private set; }
+        public int UnlinkedReservationsCount { get; private set; }
+        public int UpcomingBurialsCount { get; private set; }
+        public string OperationsStageLabelsJson { get; private set; } = "[]";
+        public string OperationsStageCountsJson { get; private set; } = "[]";
+        public string OperationsJobStatusLabelsJson { get; private set; } = "[]";
+        public string OperationsJobStatusCountsJson { get; private set; } = "[]";
 
-        // Stacked matrix: { "StageName": [counts per section] }
-        public string StageMonthMatrixSectionLabelsJson { get; set; } = "[]";
-        public string StageMonthMatrixDataJson { get; set; } = "{}";
+        // Finance workspace: collections and follow-up, not the overall financial position.
+        public decimal CollectedThisMonth { get; private set; }
+        public int OverdueInvoicesCount { get; private set; }
+        public int InstallmentsDueCount { get; private set; }
+        public string ReceivableAgingLabelsJson { get; private set; } = "[]";
+        public string ReceivableAgingValuesJson { get; private set; } = "[]";
 
-        public string Revenue6MonthsLabelsJson { get; set; } = "[]";
-        public string Revenue6MonthsValuesJson { get; set; } = "[]";
+        // Agent workspace
+        public bool HasLinkedAgentProfile { get; private set; }
+        public int MyBookingsThisMonth { get; private set; }
+        public int MyAwaitingPaymentCount { get; private set; }
+        public int MyReadyForAllocationCount { get; private set; }
+        public int MyUpcomingBurialsCount { get; private set; }
+        public string MyBookingStatusLabelsJson { get; private set; } = "[]";
+        public string MyBookingStatusCountsJson { get; private set; } = "[]";
 
-        // Available Graves for Sale per Section
-        public string AvailableSaleSectionNamesJson { get; set; } = "[]";
-        public string AvailableSaleSectionCountsJson { get; set; } = "[]";
-
-
-        public async Task OnGet()
+        public async Task OnGetAsync()
         {
-            // =========================
-            // Date boundaries (current month)
-            // =========================
-            var now = DateTime.Today;
-            var monthStart = new DateOnly(now.Year, now.Month, 1);
-            var monthEndExclusive = monthStart.AddMonths(1);
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var monthStart = new DateOnly(today.Year, today.Month, 1);
+            var nextMonthStart = monthStart.AddMonths(1);
 
-            CurrentMonthLabel = now.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
+            CurrentMonthLabel = DateTime.Today.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
 
-            // =========================
-            // Revenue (This Month)
-            // =========================
-            RevenueThisMonth = await _context.tbl_IncomePayments
-                .Where(p => p.sys_date >= monthStart && p.sys_date < monthEndExclusive)
-                .SumAsync(p => (decimal?)p.sys_amount) ?? 0m;
+            // A user can belong to more than one legacy role. Manager is intentionally
+            // evaluated first so the restricted executive view is the only one rendered.
+            if (User.IsInRole("Manager"))
+            {
+                DashboardRoleLabel = "Executive overview";
+                await LoadManagerDashboardAsync(today, monthStart, nextMonthStart);
+                return;
+            }
 
-            // =========================
-            // Outstanding (This Month)
-            // Definition used (no invoice date dependency):
-            // - Take invoices that had at least one payment in the month
-            // - Outstanding = invoice total - total paid (to date)
-            // =========================
-            var invoiceIdsTouchedThisMonth = await _context.tbl_IncomePayments
-                .Where(p => p.sys_date >= monthStart && p.sys_date < monthEndExclusive)
-                .Select(p => p.sys_invoiceId)
+            if (User.IsInRole("OperationsOfficer"))
+            {
+                DashboardRoleLabel = "Operations control centre";
+                await LoadOperationsDashboardAsync(today);
+                return;
+            }
+
+            if (User.IsInRole("FinanceOfficer"))
+            {
+                DashboardRoleLabel = "Collections and receivables";
+                await LoadFinanceDashboardAsync(today, monthStart, nextMonthStart);
+                return;
+            }
+
+            if (User.IsInRole("Agent"))
+            {
+                DashboardRoleLabel = "My booking desk";
+                await LoadAgentDashboardAsync(today, monthStart, nextMonthStart);
+                return;
+            }
+
+            DashboardRoleLabel = "Cemetery workspace";
+        }
+
+        private async Task LoadManagerDashboardAsync(DateOnly today, DateOnly monthStart, DateOnly nextMonthStart)
+        {
+            var invoiceBalances = await LoadInvoiceBalancesAsync();
+
+            TotalInvoiced = invoiceBalances.Sum(x => x.Total);
+            TotalOutstanding = invoiceBalances.Sum(x => x.Outstanding);
+            var tombstoneInvoiceIds = await _context.tbl_TombstoneSales
+                .AsNoTracking()
+                .Select(x => x.sys_invoiceId)
                 .Distinct()
                 .ToListAsync();
 
-            if (invoiceIdsTouchedThisMonth.Count == 0)
-            {
-                OutstandingThisMonth = 0m;
-            }
-            else
-            {
-                var invoiceTotals = await _context.tbl_InvoiceItems
-                    .Where(ii => invoiceIdsTouchedThisMonth.Contains(ii.sys_invoiceId))
-                    .GroupBy(ii => ii.sys_invoiceId)
-                    .Select(g => new
-                    {
-                        sys_invoiceId = g.Key,
-                        Total = g.Sum(x => x.sys_itemCost)
-                    })
-                    .ToListAsync();
+            var invoiceCollections = await _context.tbl_IncomePayments
+                .AsNoTracking()
+                .Where(x => !tombstoneInvoiceIds.Contains(x.sys_invoiceId))
+                .SumAsync(x => (decimal?)x.sys_amount) ?? 0m;
+            var tombstoneCollections = await _context.tbl_TombstoneSales
+                .AsNoTracking()
+                .SumAsync(x => (decimal?)x.sys_amountPaid) ?? 0m;
 
-                var invoicePaymentsAll = await _context.tbl_IncomePayments
-                    .Where(p => invoiceIdsTouchedThisMonth.Contains(p.sys_invoiceId))
-                    .GroupBy(p => p.sys_invoiceId)
-                    .Select(g => new
-                    {
-                        sys_invoiceId = g.Key,
-                        Paid = g.Sum(x => x.sys_amount)
-                    })
-                    .ToListAsync();
+            // Tombstone sales manage their own paid value; excluding their invoice-linked
+            // payments here prevents that cash from being counted twice.
+            TotalCollected = invoiceCollections + tombstoneCollections;
+            ExpensesPaid = await _context.tbl_Expenses
+                .AsNoTracking()
+                .SumAsync(x => (decimal?)x.sys_amountPaid) ?? 0m;
+            NetCashPosition = TotalCollected - ExpensesPaid;
 
-                var paidMap = invoicePaymentsAll.ToDictionary(x => x.sys_invoiceId, x => (decimal)x.Paid);
+            var firstMonth = monthStart.AddMonths(-5);
+            var monthKeys = Enumerable.Range(0, 6)
+                .Select(offset => firstMonth.AddMonths(offset))
+                .ToList();
 
-                OutstandingThisMonth = invoiceTotals.Sum(inv =>
+            var collectionByMonth = await _context.tbl_IncomePayments
+                .AsNoTracking()
+                .Where(x => x.sys_date >= firstMonth && x.sys_date < nextMonthStart && !tombstoneInvoiceIds.Contains(x.sys_invoiceId))
+                .GroupBy(x => new { x.sys_date.Year, x.sys_date.Month })
+                .Select(group => new
                 {
-                    paidMap.TryGetValue(inv.sys_invoiceId, out var paid);
-                    return (decimal)inv.Total - paid;
-                });
-
-                if (OutstandingThisMonth < 0) OutstandingThisMonth = 0; // safety
-            }
-
-            // =========================
-            // Graves Sold (This Month) = allocations in month
-            // =========================
-            GravesSoldThisMonth = await _context.tbl_GraveAllocations
-                .Where(a => a.sys_allocatedOn >= monthStart && a.sys_allocatedOn < monthEndExclusive)
-                .CountAsync();
-
-            // =========================
-            // New Reservations (This Month)
-            // Requires tbl_GraveReservations (see section 1)
-            // =========================
-            NewReservationsThisMonth = await _context.tbl_GraveReservations
-                .Where(r => r.sys_reservedOn >= monthStart && r.sys_reservedOn < monthEndExclusive
-                            )
-                .CountAsync();
-
-            // =========================
-            // Lookup lists (sections + stages)
-            // =========================
-            var sectionList = await _context.tbl_Sections
-                .OrderBy(s => s.sys_sectionName)
-                .ToListAsync();
-
-            var stageList = await _context.tbl_DevelopmentStages
-                .OrderBy(s => s.sys_stageOrder)
-                .ToListAsync();
-
-            var sectionNameById = sectionList.ToDictionary(x => x.sys_sectionId, x => x.sys_sectionName);
-
-            // =========================
-            // CHART 1: Under Construction per Section (Current Month)
-            // Interpretation used:
-            // - Graves with jobs ENDING this month and job is Pending/In Progress
-            // =========================
-            var underConstructionMonth = await (
-                from j in _context.tbl_Jobs
-                join g in _context.tbl_Graves on j.sys_graveId equals g.sys_graveId
-                join s in _context.tbl_Sections on g.sys_sectionId equals s.sys_sectionId
-                where j.sys_endDate >= monthStart && j.sys_endDate < monthEndExclusive
-                      && (j.sys_jobStatus == "Pending" || j.sys_jobStatus == "In Progress")
-                group j by s.sys_sectionName into grp
-                select new
-                {
-                    SectionName = grp.Key,
-                    Count = grp.Select(x => x.sys_graveId).Distinct().Count()
-                }
-            ).ToListAsync();
-
-            UnderConstructionMonthSectionNamesJson = JsonSerializer.Serialize(underConstructionMonth.Select(x => x.SectionName));
-            UnderConstructionMonthSectionCountsJson = JsonSerializer.Serialize(underConstructionMonth.Select(x => x.Count));
-
-            // =========================
-            // CHART 2: Burials (Allocations) per Section (Current Month)
-            // =========================
-            var burialsMonth = await (
-                from a in _context.tbl_GraveAllocations
-                join g in _context.tbl_Graves on a.sys_graveId equals g.sys_graveId
-                join s in _context.tbl_Sections on g.sys_sectionId equals s.sys_sectionId
-                where a.sys_allocatedOn >= monthStart && a.sys_allocatedOn < monthEndExclusive
-                group a by s.sys_sectionName into grp
-                select new
-                {
-                    SectionName = grp.Key,
-                    Count = grp.Count()
-                }
-            ).ToListAsync();
-
-            BurialsMonthSectionNamesJson = JsonSerializer.Serialize(burialsMonth.Select(x => x.SectionName));
-            BurialsMonthSectionCountsJson = JsonSerializer.Serialize(burialsMonth.Select(x => x.Count));
-
-
-
-            // =========================
-            // Available Graves for Sale per Section
-            // Definition:
-            // - sys_graveSaleStatus == "Unsold"
-            // =========================
-            var availableBySection = await (
-                from g in _context.tbl_Graves
-                join s in _context.tbl_Sections on g.sys_sectionId equals s.sys_sectionId
-                where g.sys_graveSaleStatus == "Unsold"
-                group g by s.sys_sectionName into grp
-                select new
-                {
-                    SectionName = grp.Key,
-                    Count = grp.Count()
-                }
-            ).ToListAsync();
-
-            AvailableSaleSectionNamesJson = JsonSerializer.Serialize(
-                availableBySection.Select(x => x.SectionName)
-            );
-
-            AvailableSaleSectionCountsJson = JsonSerializer.Serialize(
-                availableBySection.Select(x => x.Count)
-            );
-
-
-            // =========================
-            // CHART 3: Development Stage per Section (Current Month) - stacked
-            // Interpretation used:
-            // - Look at graves in active construction jobs ending this month
-            // - Bucket them by section + current stage
-            // =========================
-            var stageSectionCounts = await (
-                from j in _context.tbl_Jobs
-                join g in _context.tbl_Graves on j.sys_graveId equals g.sys_graveId
-                where j.sys_endDate >= monthStart && j.sys_endDate < monthEndExclusive
-                      && (j.sys_jobStatus == "Pending" || j.sys_jobStatus == "In Progress")
-                group g by new { g.sys_sectionId, g.sys_stageId } into grp
-                select new
-                {
-                    grp.Key.sys_sectionId,
-                    grp.Key.sys_stageId,
-                    Count = grp.Select(x => x.sys_graveId).Distinct().Count()
-                }
-            ).ToListAsync();
-
-            // Always show all sections (consistent X-axis)
-            var sectionNames = sectionList.Select(s => s.sys_sectionName).ToList();
-            StageMonthMatrixSectionLabelsJson = JsonSerializer.Serialize(sectionNames);
-
-            // Build datasets per stage (consistent legend)
-            var stageMatrix = stageList.ToDictionary(
-                st => st.sys_stageName,
-                st => sectionList.Select(sec =>
-                    stageSectionCounts.FirstOrDefault(x =>
-                        x.sys_sectionId == sec.sys_sectionId &&
-                        x.sys_stageId == st.sys_stageId
-                    )?.Count ?? 0
-                ).ToList()
-            );
-
-            StageMonthMatrixDataJson = JsonSerializer.Serialize(stageMatrix);
-
-            // =========================
-            // CHART 4: Revenue Trend (Last 6 Months)
-            // =========================
-            var firstMonth = monthStart.AddMonths(-5); // includes current month => 6 months total
-            var monthKeys = new List<(int Year, int Month)>();
-            for (int i = 0; i < 6; i++)
-            {
-                var d = firstMonth.AddMonths(i);
-                monthKeys.Add((d.Year, d.Month));
-            }
-
-            var revenueRaw = await _context.tbl_IncomePayments
-                .Where(p => p.sys_date >= firstMonth && p.sys_date < monthEndExclusive)
-                .GroupBy(p => new { p.sys_date.Year, p.sys_date.Month })
-                .Select(g => new
-                {
-                    g.Key.Year,
-                    g.Key.Month,
-                    Amount = g.Sum(x => x.sys_amount)
+                    group.Key.Year,
+                    group.Key.Month,
+                    Amount = group.Sum(x => (decimal)x.sys_amount)
                 })
                 .ToListAsync();
 
-            var revenueMap = revenueRaw.ToDictionary(x => (x.Year, x.Month), x => (decimal)x.Amount);
+            var tombstoneCollectionsByMonth = await _context.tbl_TombstoneSales
+                .AsNoTracking()
+                .Where(x => x.sys_saleDate >= firstMonth && x.sys_saleDate < nextMonthStart)
+                .GroupBy(x => new { x.sys_saleDate.Year, x.sys_saleDate.Month })
+                .Select(group => new
+                {
+                    group.Key.Year,
+                    group.Key.Month,
+                    Amount = group.Sum(x => (decimal)x.sys_amountPaid)
+                })
+                .ToListAsync();
 
-            var labels = monthKeys.Select(k => $"{k.Year}-{k.Month:00}").ToList();
-            var values = monthKeys.Select(k =>
+            var supplierPaymentsByMonth = await _context.tbl_Expenses
+                .AsNoTracking()
+                .Where(x => x.sys_date >= firstMonth && x.sys_date < nextMonthStart)
+                .GroupBy(x => new { x.sys_date.Year, x.sys_date.Month })
+                .Select(group => new
+                {
+                    group.Key.Year,
+                    group.Key.Month,
+                    Amount = group.Sum(x => (decimal)x.sys_amountPaid)
+                })
+                .ToListAsync();
+
+            var collectionMap = collectionByMonth.ToDictionary(x => (x.Year, x.Month), x => x.Amount);
+            foreach (var tombstoneCollection in tombstoneCollectionsByMonth)
             {
-                revenueMap.TryGetValue((k.Year, k.Month), out var amt);
-                return amt;
-            }).ToList();
+                collectionMap[(tombstoneCollection.Year, tombstoneCollection.Month)] =
+                    collectionMap.GetValueOrDefault((tombstoneCollection.Year, tombstoneCollection.Month)) + tombstoneCollection.Amount;
+            }
 
-            Revenue6MonthsLabelsJson = JsonSerializer.Serialize(labels);
-            Revenue6MonthsValuesJson = JsonSerializer.Serialize(values);
+            var expensePaymentMap = supplierPaymentsByMonth.ToDictionary(x => (x.Year, x.Month), x => x.Amount);
+
+            CashTrendLabelsJson = JsonSerializer.Serialize(monthKeys.Select(x => x.ToString("MMM", CultureInfo.InvariantCulture)));
+            CashCollectionTrendJson = JsonSerializer.Serialize(monthKeys.Select(x => collectionMap.GetValueOrDefault((x.Year, x.Month))));
+            ExpensePaymentTrendJson = JsonSerializer.Serialize(monthKeys.Select(x => expensePaymentMap.GetValueOrDefault((x.Year, x.Month))));
+        }
+
+        private async Task LoadOperationsDashboardAsync(DateOnly today)
+        {
+            var activeJobs = _context.tbl_Jobs
+                .AsNoTracking()
+                .Where(x => x.sys_jobStatus == "Pending" || x.sys_jobStatus == "In Progress");
+
+            ActiveJobsCount = await activeJobs.CountAsync();
+            OverdueJobsCount = await activeJobs.CountAsync(x => x.sys_endDate < today);
+            DiggingGravesCount = await (
+                from job in activeJobs
+                join stage in _context.tbl_DevelopmentStages.AsNoTracking() on job.sys_stageId equals stage.sys_stageId
+                where EF.Functions.Like(stage.sys_stageName, "%dig%")
+                select job.sys_graveId
+            ).Distinct().CountAsync();
+
+            UnlinkedReservationsCount = await _context.tbl_GraveReservations
+                .AsNoTracking()
+                .CountAsync(x => x.sys_status == "Active" && !x.sys_graveId.HasValue);
+
+            var nextWeek = DateTime.Today.AddDays(7);
+            UpcomingBurialsCount = await _context.tbl_BurialBookings
+                .AsNoTracking()
+                .CountAsync(x => x.sys_requestedBurialDateTime >= DateTime.Today &&
+                                 x.sys_requestedBurialDateTime < nextWeek &&
+                                 x.sys_bookingStatus != "Cancelled" &&
+                                 x.sys_bookingStatus != "Rejected" &&
+                                 x.sys_bookingStatus != "Expired");
+
+            var jobsByStage = await (
+                from job in activeJobs
+                join stage in _context.tbl_DevelopmentStages.AsNoTracking() on job.sys_stageId equals stage.sys_stageId
+                group job by stage.sys_stageName into stageGroup
+                orderby stageGroup.Key
+                select new { Name = stageGroup.Key, Count = stageGroup.Count() }
+            ).ToListAsync();
+
+            var jobsByStatus = await activeJobs
+                .GroupBy(x => x.sys_jobStatus)
+                .Select(group => new { Name = group.Key, Count = group.Count() })
+                .ToListAsync();
+
+            OperationsStageLabelsJson = JsonSerializer.Serialize(jobsByStage.Select(x => x.Name));
+            OperationsStageCountsJson = JsonSerializer.Serialize(jobsByStage.Select(x => x.Count));
+            OperationsJobStatusLabelsJson = JsonSerializer.Serialize(jobsByStatus.Select(x => x.Name));
+            OperationsJobStatusCountsJson = JsonSerializer.Serialize(jobsByStatus.Select(x => x.Count));
+        }
+
+        private async Task LoadFinanceDashboardAsync(DateOnly today, DateOnly monthStart, DateOnly nextMonthStart)
+        {
+            var invoiceBalances = await LoadInvoiceBalancesAsync();
+
+            TotalOutstanding = invoiceBalances.Sum(x => x.Outstanding);
+            OverdueInvoicesCount = invoiceBalances.Count(x => x.Outstanding > 0 && x.DueDate < today);
+            CollectedThisMonth = await _context.tbl_IncomePayments
+                .AsNoTracking()
+                .Where(x => x.sys_date >= monthStart && x.sys_date < nextMonthStart)
+                .SumAsync(x => (decimal?)x.sys_amount) ?? 0m;
+            InstallmentsDueCount = await _context.tbl_GraveReservations
+                .AsNoTracking()
+                .CountAsync(x => x.sys_status == "Active" &&
+                                 x.sys_nextInstallmentDueDate.HasValue &&
+                                 x.sys_nextInstallmentDueDate.Value <= today.AddDays(7));
+
+            var current = invoiceBalances.Where(x => x.Outstanding > 0 && x.DueDate >= today).Sum(x => x.Outstanding);
+            var oneToThirty = invoiceBalances.Where(x => x.Outstanding > 0 && x.DueDate < today && x.DueDate >= today.AddDays(-30)).Sum(x => x.Outstanding);
+            var thirtyOneToSixty = invoiceBalances.Where(x => x.Outstanding > 0 && x.DueDate < today.AddDays(-30) && x.DueDate >= today.AddDays(-60)).Sum(x => x.Outstanding);
+            var overSixty = invoiceBalances.Where(x => x.Outstanding > 0 && x.DueDate < today.AddDays(-60)).Sum(x => x.Outstanding);
+
+            ReceivableAgingLabelsJson = JsonSerializer.Serialize(new[] { "Current", "1–30 days", "31–60 days", "Over 60 days" });
+            ReceivableAgingValuesJson = JsonSerializer.Serialize(new[] { current, oneToThirty, thirtyOneToSixty, overSixty });
+        }
+
+        private async Task LoadAgentDashboardAsync(DateOnly today, DateOnly monthStart, DateOnly nextMonthStart)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return;
+            }
+
+            var agentId = await _context.tbl_Agents
+                .AsNoTracking()
+                .Where(x => x.UserId == userId && x.sys_isActive)
+                .Select(x => (int?)x.sys_agentId)
+                .FirstOrDefaultAsync();
+
+            if (!agentId.HasValue)
+            {
+                return;
+            }
+
+            HasLinkedAgentProfile = true;
+            var myBookings = _context.tbl_BurialBookings
+                .AsNoTracking()
+                .Where(x => x.sys_agentId == agentId.Value);
+
+            MyBookingsThisMonth = await myBookings.CountAsync(x => x.sys_createdOn >= monthStart.ToDateTime(TimeOnly.MinValue) &&
+                                                                  x.sys_createdOn < nextMonthStart.ToDateTime(TimeOnly.MinValue));
+            MyAwaitingPaymentCount = await myBookings.CountAsync(x =>
+                x.sys_bookingStatus == "PendingPayment" ||
+                x.sys_bookingStatus == "Invoiced" ||
+                x.sys_bookingStatus == "Partialy Paid" ||
+                x.sys_bookingStatus == "PaidPartial");
+
+            var allocatedBookingIds = _context.tbl_GraveAllocations
+                .AsNoTracking()
+                .Select(x => x.sys_bookingId);
+            MyReadyForAllocationCount = await myBookings.CountAsync(x =>
+                (x.sys_bookingStatus == "Paid in Full" || x.sys_bookingStatus == "PaidFull") &&
+                !allocatedBookingIds.Contains(x.sys_bookingId));
+
+            var nextWeek = DateTime.Today.AddDays(7);
+            MyUpcomingBurialsCount = await myBookings.CountAsync(x => x.sys_requestedBurialDateTime >= DateTime.Today &&
+                                                                       x.sys_requestedBurialDateTime < nextWeek &&
+                                                                       x.sys_bookingStatus != "Cancelled" &&
+                                                                       x.sys_bookingStatus != "Rejected" &&
+                                                                       x.sys_bookingStatus != "Expired");
+
+            var bookingStatusSummary = await myBookings
+                .Where(x => x.sys_bookingStatus != "Cancelled" && x.sys_bookingStatus != "Rejected" && x.sys_bookingStatus != "Expired")
+                .GroupBy(x => x.sys_bookingStatus)
+                .Select(group => new { Name = group.Key, Count = group.Count() })
+                .OrderBy(x => x.Name)
+                .ToListAsync();
+
+            MyBookingStatusLabelsJson = JsonSerializer.Serialize(bookingStatusSummary.Select(x => x.Name));
+            MyBookingStatusCountsJson = JsonSerializer.Serialize(bookingStatusSummary.Select(x => x.Count));
+        }
+
+        private async Task<List<InvoiceBalanceMetric>> LoadInvoiceBalancesAsync()
+        {
+            var invoiceTotals = await _context.tbl_InvoiceItems
+                .AsNoTracking()
+                .GroupBy(x => x.sys_invoiceId)
+                .Select(group => new
+                {
+                    InvoiceId = group.Key,
+                    Total = group.Sum(x => (decimal)x.sys_itemCost)
+                })
+                .ToListAsync();
+
+            var payments = await _context.tbl_IncomePayments
+                .AsNoTracking()
+                .GroupBy(x => x.sys_invoiceId)
+                .Select(group => new
+                {
+                    InvoiceId = group.Key,
+                    Paid = group.Sum(x => (decimal)x.sys_amount)
+                })
+                .ToListAsync();
+
+            var invoices = await _context.tbl_Invoices
+                .AsNoTracking()
+                .Select(x => new { x.sys_invoiceId, x.sys_invoiceDueDate })
+                .ToListAsync();
+
+            var totalByInvoice = invoiceTotals.ToDictionary(x => x.InvoiceId, x => x.Total);
+            var paidByInvoice = payments.ToDictionary(x => x.InvoiceId, x => x.Paid);
+
+            return invoices
+                .Where(x => totalByInvoice.ContainsKey(x.sys_invoiceId))
+                .Select(x =>
+                {
+                    var total = totalByInvoice[x.sys_invoiceId];
+                    var paid = paidByInvoice.GetValueOrDefault(x.sys_invoiceId);
+                    return new InvoiceBalanceMetric
+                    {
+                        DueDate = x.sys_invoiceDueDate,
+                        Total = total,
+                        Paid = paid,
+                        Outstanding = Math.Max(0m, total - paid)
+                    };
+                })
+                .ToList();
+        }
+
+        private sealed class InvoiceBalanceMetric
+        {
+            public DateOnly DueDate { get; init; }
+            public decimal Total { get; init; }
+            public decimal Paid { get; init; }
+            public decimal Outstanding { get; init; }
         }
     }
 }

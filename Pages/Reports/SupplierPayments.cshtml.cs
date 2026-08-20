@@ -160,8 +160,9 @@ namespace ZororoMemorialPark.Pages.Reports
             // Base query: Expenses joined to Jobs, Suppliers, Stages, Graves, Sections
             var query =
                 from e in _context.tbl_Expenses
-                join sup in _context.tbl_Suppliers on e.sys_supplierId equals sup.sys_supplierId
-                join j in _context.tbl_Jobs on e.sys_jobId equals j.sys_jobId
+                where e.sys_supplierId.HasValue && e.sys_jobId.HasValue
+                join sup in _context.tbl_Suppliers on e.sys_supplierId.Value equals sup.sys_supplierId
+                join j in _context.tbl_Jobs on e.sys_jobId.Value equals j.sys_jobId
                 join st in _context.tbl_DevelopmentStages on j.sys_stageId equals st.sys_stageId
                 join g in _context.tbl_Graves on j.sys_graveId equals g.sys_graveId
                 join sec in _context.tbl_Sections on g.sys_sectionId equals sec.sys_sectionId
