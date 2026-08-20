@@ -21,18 +21,7 @@ namespace ZororoMemorialPark.Pages.Reports
             _context = context;
         }
 
-        public IReadOnlyList<string> ExpenseCategories { get; } = new[]
-        {
-            "Ground maintenance",
-            "Equipment and fuel",
-            "Utilities",
-            "Office and administration",
-            "Security",
-            "Staff welfare",
-            "Marketing",
-            "Other",
-            "Construction"
-        };
+        public List<string> ExpenseCategories { get; private set; } = new();
 
         public DateOnly? FromDate { get; private set; }
         public DateOnly? ToDate { get; private set; }
@@ -48,12 +37,14 @@ namespace ZororoMemorialPark.Pages.Reports
 
         public async Task OnGetAsync()
         {
+            await LoadExpenseCategoriesAsync();
             ParseFilters();
             await LoadReportAsync();
         }
 
         public async Task<IActionResult> OnGetCsvAsync()
         {
+            await LoadExpenseCategoriesAsync();
             ParseFilters();
             await LoadReportAsync();
 
@@ -98,6 +89,18 @@ namespace ZororoMemorialPark.Pages.Reports
                 FromDate = new DateOnly(today.Year, today.Month, 1);
                 ToDate = today;
             }
+        }
+
+        private async Task LoadExpenseCategoriesAsync()
+        {
+            ExpenseCategories = await _context.tbl_ExpenseCategories
+                .AsNoTracking()
+                .OrderBy(x => x.sys_displayOrder)
+                .ThenBy(x => x.sys_expenseCategoryName)
+                .Select(x => x.sys_expenseCategoryName)
+                .ToListAsync();
+
+            ExpenseCategories.Add("Construction");
         }
 
         private async Task LoadReportAsync()

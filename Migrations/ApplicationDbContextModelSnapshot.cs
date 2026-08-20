@@ -620,6 +620,30 @@ namespace ZororoMemorialPark.Migrations
                     b.ToTable("tbl_EvaluationParameterProducts");
                 });
 
+            modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_ExpenseCategories", b =>
+                {
+                    b.Property<int>("sys_expenseCategoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("sys_expenseCategoryId"));
+
+                    b.Property<string>("sys_expenseCategoryName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("sys_displayOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("sys_expenseCategoryId");
+
+                    b.HasIndex("sys_expenseCategoryName")
+                        .IsUnique();
+
+                    b.ToTable("tbl_ExpenseCategories");
+                });
+
             modelBuilder.Entity("ZororoMemorialPark.Data.Models.tbl_Expenses", b =>
                 {
                     b.Property<int>("sys_expenseId")

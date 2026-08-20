@@ -23,17 +23,7 @@ namespace ZororoMemorialPark.Pages.Finance
             _context = context;
         }
 
-        public IReadOnlyList<string> ExpenseCategories { get; } = new[]
-        {
-            "Ground maintenance",
-            "Equipment and fuel",
-            "Utilities",
-            "Office and administration",
-            "Security",
-            "Staff welfare",
-            "Marketing",
-            "Other"
-        };
+        public List<tbl_ExpenseCategories> ExpenseCategories { get; private set; } = new();
 
         [BindProperty]
         public RequisitionExpenseInput NewExpense { get; set; } = new()
@@ -196,6 +186,12 @@ namespace ZororoMemorialPark.Pages.Finance
 
         private async Task LoadPageAsync()
         {
+            ExpenseCategories = await _context.tbl_ExpenseCategories
+                .AsNoTracking()
+                .OrderBy(x => x.sys_displayOrder)
+                .ThenBy(x => x.sys_expenseCategoryName)
+                .ToListAsync();
+
             Suppliers = await _context.tbl_Suppliers
                 .AsNoTracking()
                 .OrderBy(x => x.sys_supplierName)
@@ -343,7 +339,8 @@ namespace ZororoMemorialPark.Pages.Finance
                 return "Select an approved requisition item.";
             }
 
-            if (!ExpenseCategories.Contains(input.Category))
+            if (!await _context.tbl_ExpenseCategories
+                .AnyAsync(x => x.sys_expenseCategoryName == input.Category))
             {
                 return "Select a valid expense category.";
             }

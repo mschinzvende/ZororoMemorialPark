@@ -85,6 +85,10 @@ namespace ZororoMemorialPark.Data
                 .WithMany()
                 .HasForeignKey(x => x.sys_requisitionLineId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<tbl_ExpenseCategories>()
+                .HasIndex(x => x.sys_expenseCategoryName)
+                .IsUnique();
         }
 
         // Define DbSets for your entities here
@@ -105,6 +109,7 @@ namespace ZororoMemorialPark.Data
         public DbSet<tbl_JobEvaluations> tbl_JobEvaluations { get; set; }
         public DbSet<tbl_PaymentMethods> tbl_PaymentMethods { get; set; }
         public DbSet<tbl_Expenses> tbl_Expenses { get; set; }
+        public DbSet<tbl_ExpenseCategories> tbl_ExpenseCategories { get; set; }
 
         public DbSet<tbl_Customers> tbl_Customers { get; set; }
         public DbSet<tbl_Deceased> tbl_Deceased { get; set; }

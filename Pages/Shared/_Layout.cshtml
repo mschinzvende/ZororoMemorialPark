@@ -257,6 +257,15 @@
                                             </a>
                                         </li>
 
+                                        @if (isManager)
+                                        {
+                                            <li>
+                                                <a class="dropdown-item" href="/Finance/ExpenseCategories">
+                                                    <i class="bi bi-tags"></i> Expense Categories
+                                                </a>
+                                            </li>
+                                        }
+
                                         <li>
                                             <a class="dropdown-item" href="/Finance/Commissions">
                                                 <i class="bi bi-cash-stack"></i> Commissions

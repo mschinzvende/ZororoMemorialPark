@@ -9,8 +9,15 @@
 <style>
     .expense-summary-card { border: 1px solid #e4ece7; border-radius: .8rem; height: 100%; }
     .expense-summary-card .icon { align-items: center; border-radius: .7rem; display: inline-flex; font-size: 1.15rem; height: 2.5rem; justify-content: center; width: 2.5rem; }
-    .expense-table td { vertical-align: middle; }
+    .expense-table { --bs-table-bg: #fff; --bs-table-color: #21362d; --bs-table-hover-bg: #f1f8f4; --bs-table-hover-color: #14251e; }
+    .expense-table td { background-color: #fff !important; color: #21362d !important; vertical-align: middle; }
+    .expense-table > thead.table-light { --bs-table-bg: #07553f; --bs-table-color: #fff; color: #fff; }
+    .expense-table > thead.table-light th { background-color: #07553f !important; border-color: #28745c; color: #fff !important; }
     .expense-table .expense-note { color: #66756d; display: block; font-size: .78rem; max-width: 310px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .expense-source { border-radius: 999px; display: inline-block; font-size: .78rem; font-weight: 600; line-height: 1.2; padding: .38rem .55rem; text-decoration: none; }
+    .expense-source--approved { background: #dff3e8 !important; color: #07553f !important; }
+    .expense-source--construction { background: #fff0cf !important; color: #765000 !important; }
+    .expense-source--legacy { background: #e9edf0 !important; color: #43515a !important; }
 </style>
 
 <div class="container-fluid py-4 pb-5">
@@ -38,6 +45,7 @@
             </div>
             <div class="d-flex gap-2">
                 <a class="btn btn-outline-light" href="/Reports/ExpenseReport"><i class="bi bi-bar-chart-line me-1"></i> Expense report</a>
+                @if (User.IsInRole("Manager")) { <a class="btn btn-outline-light" href="/Finance/ExpenseCategories"><i class="bi bi-tags me-1"></i> Categories</a> }
                 <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#createExpenseModal" @(Model.ApprovedRequisitionLines.Any() ? null : "disabled")><i class="bi bi-check2-square me-1"></i> Capture approved expense</button>
             </div>
         </div>
@@ -48,7 +56,7 @@
             <div class="row g-3 align-items-end">
                 <div class="col-lg-2 col-md-4"><label asp-for="FromDate" class="form-label small fw-semibold">From</label><input asp-for="FromDate" type="date" class="form-control" /></div>
                 <div class="col-lg-2 col-md-4"><label asp-for="ToDate" class="form-label small fw-semibold">To</label><input asp-for="ToDate" type="date" class="form-control" /></div>
-                <div class="col-lg-3 col-md-4"><label asp-for="CategoryFilter" class="form-label small fw-semibold">Category</label><select asp-for="CategoryFilter" class="form-select"><option value="All">All expense categories</option>@foreach (var category in Model.ExpenseCategories) { <option value="@category">@category</option> }</select></div>
+                <div class="col-lg-3 col-md-4"><label asp-for="CategoryFilter" class="form-label small fw-semibold">Category</label><select asp-for="CategoryFilter" class="form-select"><option value="All">All expense categories</option>@foreach (var category in Model.ExpenseCategories) { <option value="@category.sys_expenseCategoryName">@category.sys_expenseCategoryName</option> }</select></div>
                 <div class="col-lg-3 col-md-8"><label asp-for="SearchTerm" class="form-label small fw-semibold">Search</label><input asp-for="SearchTerm" class="form-control" placeholder="Payee, requisition, reference, or plot" /></div>
                 <div class="col-lg-2 col-md-4 d-grid"><button class="btn btn-success"><i class="bi bi-funnel me-1"></i> Apply filters</button></div>
             </div>
@@ -83,15 +91,15 @@
                                 <td>
                                     @if (expense.IsRequisitionExpense)
                                     {
-                                        <a class="badge text-bg-success text-decoration-none" href="/Requisitions/Details/@expense.RequisitionId" title="@expense.RequisitionLineDescription"><i class="bi bi-check2-circle me-1"></i>@expense.RequisitionNumber</a>
+                                        <a class="expense-source expense-source--approved" href="/Requisitions/Details/@expense.RequisitionId" title="@expense.RequisitionLineDescription"><i class="bi bi-check2-circle me-1"></i>@expense.RequisitionNumber</a>
                                     }
                                     else if (expense.IsConstructionCost)
                                     {
-                                        <span class="badge text-bg-warning">Job #@expense.JobId &middot; @expense.PlotNumber</span>
+                                        <span class="expense-source expense-source--construction">Job #@expense.JobId &middot; @expense.PlotNumber</span>
                                     }
                                     else
                                     {
-                                        <span class="badge text-bg-secondary">Legacy entry</span>
+                                        <span class="expense-source expense-source--legacy">Legacy entry</span>
                                     }
                                 </td>
                                 <td class="text-end fw-semibold">$@expense.AmountPaid.ToString("N2")</td>
@@ -163,7 +171,7 @@
                         </div>
                         <div class="row g-3">
                             <div class="col-md-4"><label asp-for="NewExpense.ExpenseDate" class="form-label">Expense date</label><input asp-for="NewExpense.ExpenseDate" type="date" class="form-control" required /></div>
-                            <div class="col-md-4"><label asp-for="NewExpense.Category" class="form-label">Expense category</label><select asp-for="NewExpense.Category" class="form-select" required><option value="">Select category</option>@foreach (var category in Model.ExpenseCategories) { <option value="@category">@category</option> }</select></div>
+                            <div class="col-md-4"><label asp-for="NewExpense.Category" class="form-label">Expense category</label><select asp-for="NewExpense.Category" class="form-select" required><option value="">Select category</option>@foreach (var category in Model.ExpenseCategories) { <option value="@category.sys_expenseCategoryName">@category.sys_expenseCategoryName</option> }</select></div>
                             <div class="col-md-4"><label asp-for="NewExpense.PaymentMethodId" class="form-label">Payment method</label><select asp-for="NewExpense.PaymentMethodId" class="form-select" required><option value="">Select method</option>@foreach (var method in Model.PaymentMethods) { <option value="@method.sys_paymentMethodId">@method.sys_paymentMethodName</option> }</select></div>
                             <div class="col-md-6"><label asp-for="NewExpense.PayeeName" class="form-label">Payee or vendor</label><input asp-for="NewExpense.PayeeName" class="form-control" maxlength="150" required /></div>
                             <div class="col-md-6"><label asp-for="NewExpense.SupplierId" class="form-label">Linked supplier <span class="text-muted fw-normal">(optional)</span></label><select asp-for="NewExpense.SupplierId" class="form-select"><option value="">No linked supplier</option>@foreach (var supplier in Model.Suppliers) { <option value="@supplier.sys_supplierId">@supplier.sys_supplierName</option> }</select></div>
@@ -191,7 +199,7 @@
                 <div class="alert alert-light border small"><i class="bi bi-lock-fill text-success me-1"></i>Changing the approved amount or source is not permitted. Use a separate approved requisition item for another expense.</div>
                 <div class="row g-3">
                     <div class="col-md-6"><label asp-for="EditExpense.ExpenseDate" class="form-label">Expense date</label><input asp-for="EditExpense.ExpenseDate" type="date" class="form-control" required /></div>
-                    <div class="col-md-6"><label asp-for="EditExpense.Category" class="form-label">Expense category</label><select asp-for="EditExpense.Category" class="form-select" required><option value="">Select category</option>@foreach (var category in Model.ExpenseCategories) { <option value="@category">@category</option> }</select></div>
+                    <div class="col-md-6"><label asp-for="EditExpense.Category" class="form-label">Expense category</label><select asp-for="EditExpense.Category" class="form-select" required><option value="">Select category</option>@foreach (var category in Model.ExpenseCategories) { <option value="@category.sys_expenseCategoryName">@category.sys_expenseCategoryName</option> }</select></div>
                     <div class="col-md-6"><label asp-for="EditExpense.PayeeName" class="form-label">Payee or vendor</label><input asp-for="EditExpense.PayeeName" class="form-control" maxlength="150" required /></div>
                     <div class="col-md-6"><label asp-for="EditExpense.SupplierId" class="form-label">Linked supplier <span class="text-muted fw-normal">(optional)</span></label><select asp-for="EditExpense.SupplierId" class="form-select"><option value="">No linked supplier</option>@foreach (var supplier in Model.Suppliers) { <option value="@supplier.sys_supplierId">@supplier.sys_supplierName</option> }</select></div>
                     <div class="col-md-6"><label asp-for="EditExpense.PaymentMethodId" class="form-label">Payment method</label><select asp-for="EditExpense.PaymentMethodId" class="form-select" required><option value="">Select method</option>@foreach (var method in Model.PaymentMethods) { <option value="@method.sys_paymentMethodId">@method.sys_paymentMethodName</option> }</select></div>
