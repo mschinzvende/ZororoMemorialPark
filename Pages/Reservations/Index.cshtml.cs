@@ -38,13 +38,13 @@ public class IndexModel : PageModel
     public string? SearchTerm { get; set; }
 
     [BindProperty(SupportsGet = true)]
-    public string StatusFilter { get; set; } = "All";
+    public string? StatusFilter { get; set; } = "All";
 
     [BindProperty(SupportsGet = true)]
     public int? SectionFilter { get; set; }
 
     [BindProperty(SupportsGet = true)]
-    public string GraveLinkFilter { get; set; } = "All";
+    public string? GraveLinkFilter { get; set; } = "All";
 
     [BindProperty(SupportsGet = true)]
     public int PageNumber { get; set; } = 1;
@@ -64,6 +64,16 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostCreateAsync()
     {
+        if (Input.BeneficiaryDOB == default)
+        {
+            ModelState.AddModelError("Input.BeneficiaryDOB", "Enter the beneficiary date of birth.");
+        }
+
+        if (Input.NextInstallmentDueDate == default)
+        {
+            ModelState.AddModelError("Input.NextInstallmentDueDate", "Enter the next installment due date.");
+        }
+
         if (!ModelState.IsValid)
         {
             ShowCreateModal = true;
@@ -178,6 +188,9 @@ public class IndexModel : PageModel
 
     private async Task LoadPageAsync()
     {
+        StatusFilter = string.IsNullOrWhiteSpace(StatusFilter) ? "All" : StatusFilter;
+        GraveLinkFilter = string.IsNullOrWhiteSpace(GraveLinkFilter) ? "All" : GraveLinkFilter;
+
         Sections = await _context.tbl_Sections
             .AsNoTracking()
             .OrderBy(x => x.sys_sectionName)

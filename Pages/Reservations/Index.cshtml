@@ -5,6 +5,13 @@
 }
 
 <div class="container-fluid py-4 mb-4">
+    @if (Model.ShowCreateModal && !ViewContext.ModelState.IsValid)
+    {
+        <div class="alert alert-danger" role="alert">
+            The reservation was not created. Check the highlighted fields in the create form.
+            <div asp-validation-summary="All"></div>
+        </div>
+    }
     @if (TempData["SuccessMessage"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -166,7 +173,7 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <div asp-validation-summary="All" class="text-danger mb-3"></div>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label asp-for="Input.SectionId" class="form-label fw-semibold"></label>
@@ -181,17 +188,17 @@
                         </div>
                         <div class="col-md-6">
                             <label asp-for="Input.NextInstallmentDueDate" class="form-label fw-semibold"></label>
-                            <input asp-for="Input.NextInstallmentDueDate" type="date" class="form-control" />
+                            <input asp-for="Input.NextInstallmentDueDate" type="date" class="form-control" required />
                             <span asp-validation-for="Input.NextInstallmentDueDate" class="text-danger"></span>
                         </div>
                         <div class="col-md-6">
                             <label asp-for="Input.CustomerName" class="form-label fw-semibold"></label>
-                            <input asp-for="Input.CustomerName" class="form-control" />
+                            <input asp-for="Input.CustomerName" class="form-control" required />
                             <span asp-validation-for="Input.CustomerName" class="text-danger"></span>
                         </div>
                         <div class="col-md-6">
                             <label asp-for="Input.CustomerPhone" class="form-label fw-semibold"></label>
-                            <input asp-for="Input.CustomerPhone" class="form-control" placeholder="263771234567" />
+                            <input asp-for="Input.CustomerPhone" class="form-control" placeholder="263771234567" required />
                             <small class="text-muted">WhatsApp number including country code.</small>
                             <span asp-validation-for="Input.CustomerPhone" class="text-danger"></span>
                         </div>
@@ -204,21 +211,22 @@
                             <label asp-for="Input.ExpiryDate" class="form-label fw-semibold"></label>
                             <input asp-for="Input.ExpiryDate" type="date" class="form-control" />
                             <small class="text-muted">Optional internal control date.</small>
+                            <span asp-validation-for="Input.ExpiryDate" class="text-danger"></span>
                         </div>
                         <div class="col-12"><hr class="my-1" /><h6 class="mb-0">Beneficiary</h6></div>
                         <div class="col-md-6">
                             <label asp-for="Input.BeneficiaryFullName" class="form-label fw-semibold"></label>
-                            <input asp-for="Input.BeneficiaryFullName" class="form-control" />
+                            <input asp-for="Input.BeneficiaryFullName" class="form-control" required />
                             <span asp-validation-for="Input.BeneficiaryFullName" class="text-danger"></span>
                         </div>
                         <div class="col-md-3">
                             <label asp-for="Input.BeneficiaryDOB" class="form-label fw-semibold"></label>
-                            <input asp-for="Input.BeneficiaryDOB" type="date" class="form-control" />
+                            <input asp-for="Input.BeneficiaryDOB" type="date" class="form-control" required />
                             <span asp-validation-for="Input.BeneficiaryDOB" class="text-danger"></span>
                         </div>
                         <div class="col-md-3">
                             <label asp-for="Input.BeneficiaryRelationship" class="form-label fw-semibold"></label>
-                            <input asp-for="Input.BeneficiaryRelationship" class="form-control" placeholder="e.g. Parent" />
+                            <input asp-for="Input.BeneficiaryRelationship" class="form-control" placeholder="e.g. Parent" required />
                             <span asp-validation-for="Input.BeneficiaryRelationship" class="text-danger"></span>
                         </div>
                     </div>
