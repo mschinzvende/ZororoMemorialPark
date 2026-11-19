@@ -60,6 +60,12 @@ namespace ZororoMemorialPark.Pages.Graves
             {
                 var sectionName = Request.Form["sectionName"].ToString().Trim();
                 var sectionPrice = double.Parse(Request.Form["sectionPrice"]);
+                var reservationPrice = double.Parse(Request.Form["reservationPrice"]);
+                if (!double.IsFinite(sectionPrice) || sectionPrice < 0 || !double.IsFinite(reservationPrice) || reservationPrice < 0)
+                {
+                    TempData["ErrorMessage"] = "Section prices must be zero or greater.";
+                    return RedirectToPage();
+                }
                 var jobReminder = Request.Form["jobReminder"].ToString().Trim()??"N/A";
                 var reminderPeriod = Int32.Parse(Request.Form["reminderPeriod"].ToString().Trim());
                 var lastGraveNo = Int32.Parse(Request.Form["sys_lastGraveNo"].ToString().Trim());
@@ -85,6 +91,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 {
                     sys_sectionName = sectionName,
                     sys_SecPrice = sectionPrice,
+                    sys_ReservationPrice = reservationPrice,
                     sys_jobReminder = jobReminder,
                     sys_reminderPeriod = reminderPeriod,
                     sys_lastGraveNo = lastGraveNo,
@@ -123,6 +130,12 @@ namespace ZororoMemorialPark.Pages.Graves
             {
                 var sectionIdStr = Request.Form["sys_sectionId"].ToString();
                 var sectionPrice = double.Parse(Request.Form["sys_sectionPrice"]);
+                var reservationPrice = double.Parse(Request.Form["sys_reservationPrice"]);
+                if (!double.IsFinite(sectionPrice) || sectionPrice < 0 || !double.IsFinite(reservationPrice) || reservationPrice < 0)
+                {
+                    TempData["ErrorMessage"] = "Section prices must be zero or greater.";
+                    return RedirectToPage();
+                }
                 var sectionName = Request.Form["sys_sectionName"].ToString().Trim();
                 var jobReminder = Request.Form["sys_jobReminder"].ToString().Trim();
                 var reminderPeriod = Int32.Parse(Request.Form["sys_reminderPeriod"].ToString().Trim());
@@ -159,6 +172,7 @@ namespace ZororoMemorialPark.Pages.Graves
                 section.sys_jobReminder = jobReminder;
                 section.sys_reminderPeriod = reminderPeriod;
                 section.sys_SecPrice = sectionPrice;
+                section.sys_ReservationPrice = reservationPrice;
                 section.sys_lastGraveNo = lastGraveNo;
                 section.sys_maxConcurrentBurialsPerSlot=maxConcurrentBurials;
                 section.sys_agentCommission = agentCommission;

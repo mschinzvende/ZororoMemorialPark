@@ -41,7 +41,8 @@
                             <thead>
                                 <tr>
                                     <th>Section Name</th>
-                                    <th>Price</th>
+                                    <th>Burial Price</th>
+                                    <th>Reservation Price</th>
                                     <th>Reminder</th>
                                     <th>Period</th>
                                     <th>Last Grave No.</th>
@@ -56,6 +57,7 @@
                                     <tr id="row-@grave_section.sys_sectionId">
                                         <td>@grave_section.sys_sectionName</td>
                                         <td>$@grave_section.sys_SecPrice</td>
+                                        <td>$@grave_section.sys_ReservationPrice</td>
                                         <td> @grave_section.sys_jobReminder</td>
                                         <td>@grave_section.sys_reminderPeriod Year(s)</td>
                                         <td>@grave_section.sys_lastGraveNo</td>
@@ -68,6 +70,7 @@
                                                     data-id="@grave_section.sys_sectionId"
                                                     data-name="@grave_section.sys_sectionName"
                                                     data-price="@grave_section.sys_SecPrice"
+                                                    data-reservation-price="@grave_section.sys_ReservationPrice"
                                                     data-reminder="@grave_section.sys_jobReminder"
                                                     data-period="@grave_section.sys_reminderPeriod"
                                                     data-lastNo="@grave_section.sys_lastGraveNo"
@@ -142,8 +145,15 @@
 
                         <div class="col-sm-6">
                             <div class="mb-3">
-                                <label class="form-label fw-bold">Price $</label>
-                                <input type="number" step="1" name="sectionPrice" class="form-control border" style="border-color: var(--primary-green);" required/>
+                                <label class="form-label fw-bold">Burial Price $</label>
+                                <input type="number" min="0" step="0.01" name="sectionPrice" class="form-control border" style="border-color: var(--primary-green);" required/>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Reservation Price $</label>
+                                <input type="number" min="0" step="0.01" name="reservationPrice" class="form-control border" style="border-color: var(--primary-green);" required/>
                             </div>
                         </div>
 
@@ -217,8 +227,15 @@
 
                         <div class="col-sm-6">
                             <div class="mb-3">
-                                <label class="form-label fw-bold">Price $</label>
-                                <input name="sys_sectionPrice" class="form-control border" style="border-color: var(--primary-green);" />
+                                <label class="form-label fw-bold">Burial Price $</label>
+                                <input type="number" min="0" step="0.01" name="sys_sectionPrice" class="form-control border" style="border-color: var(--primary-green);" required />
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Reservation Price $</label>
+                                <input type="number" min="0" step="0.01" name="sys_reservationPrice" class="form-control border" style="border-color: var(--primary-green);" required />
                             </div>
                         </div>
 
@@ -303,6 +320,7 @@
         var id = button.getAttribute('data-id');
         var name = button.getAttribute('data-name');
         var price = button.getAttribute('data-price');
+        var reservationPrice = button.getAttribute('data-reservation-price');
         var reminder = button.getAttribute('data-reminder')
         var period = button.getAttribute('data-period')
          var lastNo = button.getAttribute('data-lastNo')
@@ -313,6 +331,7 @@
         modal.querySelector('input[name="sys_sectionId"]').value = id;
         modal.querySelector('input[name="sys_sectionName"]').value = name;
         modal.querySelector('input[name="sys_sectionPrice"]').value = price;
+        modal.querySelector('input[name="sys_reservationPrice"]').value = reservationPrice;
         modal.querySelector('input[name="sys_jobReminder"]').value = reminder;
         modal.querySelector('input[name="sys_reminderPeriod"]').value = period;
         modal.querySelector('input[name="sys_lastGraveNo"]').value = lastNo;

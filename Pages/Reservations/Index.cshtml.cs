@@ -138,7 +138,7 @@ public class IndexModel : PageModel
                 sys_reservedOn = today,
                 sys_preferredSectionId = section.sys_sectionId,
                 sys_reservationReference = CreateReference(),
-                sys_agreedPrice = section.sys_SecPrice,
+                sys_agreedPrice = section.sys_ReservationPrice,
                 sys_status = "Active",
                 sys_nextInstallmentDueDate = Input.NextInstallmentDueDate,
                 sys_expiryDate = Input.ExpiryDate

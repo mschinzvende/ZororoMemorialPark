@@ -1252,6 +1252,9 @@ namespace ZororoMemorialPark.Migrations
                     b.Property<double>("sys_SecPrice")
                         .HasColumnType("float");
 
+                    b.Property<double>("sys_ReservationPrice")
+                        .HasColumnType("float");
+
                     b.Property<int?>("sys_agentCommission")
                         .HasColumnType("int");
 

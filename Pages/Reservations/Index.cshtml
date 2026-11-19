@@ -181,7 +181,7 @@
                                 <option value="">Select section</option>
                                 @foreach (var item in Model.Sections)
                                 {
-                                    <option value="@item.sys_sectionId">@item.sys_sectionName — $@(item.sys_SecPrice.ToString("N2"))</option>
+                                    <option value="@item.sys_sectionId">@item.sys_sectionName — reservation $@(item.sys_ReservationPrice.ToString("N2"))</option>
                                 }
                             </select>
                             <span asp-validation-for="Input.SectionId" class="text-danger"></span>
